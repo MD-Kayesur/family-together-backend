@@ -1,19 +1,52 @@
-# FamilyRoots Backend — Authentication & Security Specification
+# FamilyRoots / Kinora — Authentication, Session & Resource Authorization Specification
 
-## 1. Executive Summary
-This document specifies the technical design, security architecture, and database models for the complete authentication system in the **FamilyRoots Backend** (`family-together-backend`).
+## 1. Executive Summary & Architecture Overview
 
-The system uses a **NestJS Native JWT + Passport** architecture with **HTTP-Only Cookies**, **Prisma ORM 7**, and **Role-Based Access Control (RBAC)** to ensure privacy-first security for multi-generational family tree data.
+The **FamilyRoots / Kinora** platform requires a multi-layered security system that goes beyond simple JWT checking. Because FamilyRoots stores sensitive multi-generational family networks, personal archives, and lineage records, the authentication system is designed as a **Stateful Session & Rotating JWT Architecture** coupled with **Resource-Level Authorization**.
+
+```
+                    ┌──────────────────┐
+                    │    Next.js Web   │
+                    └────────┬─────────┘
+                             │
+                             │ HTTPS (HttpOnly Cookies)
+                             ▼
+                    ┌──────────────────┐
+                    │   NestJS API     │
+                    └────────┬─────────┘
+                             │
+              ┌──────────────┼──────────────┐
+              │              │              │
+              ▼              ▼              ▼
+        Auth Module    User Module     Resource Modules
+              │                        (Family Tree, Members, Memories)
+      ┌───────┼────────┐
+      │       │        │
+      ▼       ▼        ▼
+   Access   Refresh   Session
+    JWT      Token     Manager
+  (10-15m)  Rotation   (Database)
+      │       │        │
+      └───────┼────────┘
+              │
+              ▼
+           Prisma
+              │
+              ▼
+         PostgreSQL
+```
 
 ---
 
-## 2. Recommended Tech Stack
-* **Framework**: NestJS (v11)
-* **ORM**: Prisma ORM (v7.9) with PostgreSQL
-* **Authentication Engine**: `@nestjs/jwt`, `@nestjs/passport`, `passport-jwt`
-* **Password Hashing**: `bcryptjs` (12 salt rounds)
-* **Token Storage**: HTTP-Only, SameSite, Secure Cookies
-* **Validation**: `class-validator`, `class-transformer`
+## 2. Core Security Pillars
+
+1. **Short-Lived Access Tokens**: Access JWTs expire in **10–15 minutes** to minimize damage if intercepted.
+2. **Session-Backed Refresh Tokens**: Refresh tokens are stored as **SHA-256 hashes** in the database, bound to active sessions (`userAgent`, `ipAddress`, `lastUsedAt`).
+3. **Refresh Token Rotation & Reuse Detection**:
+   * Every refresh request invalidates the previous refresh token and issues a new pair.
+   * If a previously revoked refresh token is presented (potential token theft), the entire session family is immediately revoked, forcing all devices to re-authenticate.
+4. **Multi-Device Session Management**: Users can view all active devices/sessions and remotely revoke individual sessions (`Logout Device`) or all sessions (`Logout All Devices`).
+5. **Resource-Level Authorization**: Permission checks go beyond global roles to evaluate whether a user owns or is granted access to a specific family node, photo memory, or document vault.
 
 ---
 
@@ -21,10 +54,9 @@ The system uses a **NestJS Native JWT + Passport** architecture with **HTTP-Only
 
 ```prisma
 enum Role {
-  OWNER
+  SUPER_ADMIN
   ADMIN
-  MEMBER
-  VIEWER
+  USER
 }
 
 enum UserStatus {
@@ -34,132 +66,200 @@ enum UserStatus {
 }
 
 model User {
-  id            String     @id @default(uuid())
-  email         String     @unique
-  fullName      String
-  password      String?
-  avatarUrl     String?
-  phoneNumber   String?
-  bio           String?
-  role          Role       @default(MEMBER)
-  status        UserStatus @default(ACTIVE)
-  emailVerified Boolean    @default(false)
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  id                String                   @id @default(uuid())
+  email             String                   @unique
+  fullName          String
+  passwordHash      String
+  avatarUrl         String?
+  phoneNumber       String?
+  bio               String?
+  role              Role                     @default(USER)
+  status            UserStatus               @default(PENDING)
+  emailVerifiedAt   DateTime?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
 
-  sessions      Session[]
+  sessions          Session[]
+  resetTokens       PasswordResetToken[]
+  verifyTokens      EmailVerificationToken[]
 
   @@map("users")
 }
 
 model Session {
-  id           String   @id @default(uuid())
-  userId       String
-  refreshToken String   @unique
-  userAgent    String?
-  ipAddress    String?
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
+  id               String    @id @default(uuid())
+  userId           String
+  refreshTokenHash String    @unique
+  userAgent        String?
+  ipAddress        String?
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  lastUsedAt       DateTime  @default(now())
+  createdAt        DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
 }
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+model EmailVerificationToken {
+  id         String    @id @default(uuid())
+  userId     String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("email_verification_tokens")
+}
 ```
 
 ---
 
-## 4. API Endpoints Specification
+## 4. Endpoints & Flow Specifications
 
-### 4.1 Sign Up
-* **Endpoint**: `POST /auth/signup`
-* **Access**: Public
-* **Payload (`SignUpDto`)**:
-  ```typescript
-  export class SignUpDto {
-    email: string;      // Valid email format
-    fullName: string;   // Min length 2
-    password: string;   // Min length 8, strong password rule
-  }
-  ```
-* **Response (`201 Created`)**: Returns created user profile (excluding password hash).
+### 4.1 Signup Flow (`POST /auth/signup`)
+```
+POST /auth/signup ──► Validate Payload ──► Check Existing Email ──► Hash Password (bcrypt 12)
+                          │
+                          ▼
+                Create User (PENDING) ──► Generate Verification Token Hash ──► Send Email ──► Response
+```
 
----
+### 4.2 Signin Flow (`POST /auth/signin`)
+```
+POST /auth/signin ──► Validate Credentials ──► Check Account Status ──► Check Email Verification
+                          │
+                          ▼
+                Create Database Session ──► Issue Access JWT (15 min) + Refresh Token
+                          │
+                          ▼
+             Store Refresh Token HASH in DB ──► Set HttpOnly Cookies (access_token, refresh_token)
+```
 
-### 4.2 Sign In
-* **Endpoint**: `POST /auth/signin`
-* **Access**: Public
-* **Payload (`SignInDto`)**:
-  ```typescript
-  export class SignInDto {
-    email: string;
-    password: string;
-  }
-  ```
-* **Behavior**:
-  1. Validates email & password against stored hash using `bcrypt.compare`.
-  2. Generates short-lived Access JWT (15 min) and long-lived Refresh Token (7 days).
-  3. Saves refresh session in `Session` table.
-  4. Sets `access_token` and `refresh_token` in `HttpOnly`, `SameSite=Lax`, `Secure` cookies.
-* **Response (`200 OK`)**: User profile payload.
+### 4.3 Token Refresh & Rotation (`POST /auth/refresh`)
+```
+POST /auth/refresh ──► Read Cookie ──► Validate Token & Hash ──► Check Session Active?
+                          │                                           │
+                        [YES]                                       [NO / Reused]
+                          │                                           │
+        Rotate Token (Revoke Old, Issue New)                  Revoke Session Family & Force Login
+                          │
+                Set New HttpOnly Cookies
+```
 
----
+### 4.4 Logout Operations
+* `POST /auth/logout`: Revokes the current session record (`revokedAt = now()`) and clears cookies.
+* `POST /auth/logout-all`: Revokes all active sessions for the authenticated user across all devices.
 
-### 4.3 Refresh Token
-* **Endpoint**: `POST /auth/refresh`
-* **Access**: Public (requires valid refresh cookie)
-* **Behavior**: Rotates refresh token and returns new Access JWT.
-
----
-
-### 4.4 Logout
-* **Endpoint**: `POST /auth/logout`
-* **Access**: Protected (`JwtAuthGuard`)
-* **Behavior**: Clears HTTP-only cookies and deletes session record from database.
+### 4.5 Password & Verification System
+* `POST /auth/forgot-password`: Generates one-time reset token link sent via email.
+* `POST /auth/reset-password`: Verifies token, sets new password hash, and **revokes all existing sessions** for safety.
+* `POST /auth/change-password`: Authenticated password change that optionally revokes other active sessions.
+* `POST /auth/verify-email`: Verifies token and sets `emailVerifiedAt = now()`, updating status to `ACTIVE`.
+* `POST /auth/resend-verification`: Resends activation email.
 
 ---
 
-### 4.5 Current User Profile (`Me`)
-* **Endpoint**: `GET /auth/me`
-* **Access**: Protected (`JwtAuthGuard`)
-* **Response**: Returns authenticated user profile.
+## 5. Three-Tier Authorization Strategy
+
+Security checks follow a mandatory 3-tier cascade before any business logic executes:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ 1. AUTHENTICATION (JwtAuthGuard)                        │
+│    Who are you? (Validates Access JWT & active Session) │
+└──────────────────────────┬──────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────┐
+│ 2. ROLE AUTHORIZATION (RolesGuard)                      │
+│    What global role do you have? (SUPER_ADMIN, USER)    │
+└──────────────────────────┬──────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────┐
+│ 3. RESOURCE AUTHORIZATION (PermissionsGuard)            │
+│    Can you access THIS specific family/person/memory?   │
+└──────────────────────────┬──────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────┐
+│ 4. BUSINESS LOGIC EXECUTION                             │
+└─────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## 5. Security & Permission Architecture
+## 6. Final Module Architecture (`src/auth/`)
 
-### 5.1 NestJS Guards & Decorators
-
-1. **`JwtAuthGuard`**:
-   - Extracts JWT from HTTP-only cookie or `Authorization: Bearer <token>` header.
-   - Verifies JWT signature and attaches `req.user`.
-
-2. **`RolesGuard` & `@Roles(...)` Decorator**:
-   - Enforces Role-Based Access Control.
-   - Example usage on routes:
-     ```typescript
-     @UseGuards(JwtAuthGuard, RolesGuard)
-     @Roles(Role.ADMIN, Role.OWNER)
-     @Get('/admin/users')
-     getUsers() { ... }
-     ```
-
-3. **`@CurrentUser()` Parameter Decorator**:
-   - Injects authenticated `User` object directly into controller route handlers:
-     ```typescript
-     @Get('profile')
-     getProfile(@CurrentUser() user: User) {
-       return user;
-     }
-     ```
+```
+src/auth/
+├── auth.module.ts
+├── auth.controller.ts
+├── auth.service.ts
+├── dto/
+│   ├── signup.dto.ts
+│   ├── signin.dto.ts
+│   ├── refresh-token.dto.ts
+│   ├── change-password.dto.ts
+│   ├── reset-password.dto.ts
+│   ├── verify-email.dto.ts
+│   └── resend-verification.dto.ts
+├── guards/
+│   ├── jwt-auth.guard.ts
+│   ├── roles.guard.ts
+│   └── permissions.guard.ts
+├── strategies/
+│   ├── jwt.strategy.ts
+│   └── refresh-token.strategy.ts
+├── decorators/
+│   ├── current-user.decorator.ts
+│   ├── roles.decorator.ts
+│   └── permissions.decorator.ts
+├── services/
+│   ├── token.service.ts
+│   ├── session.service.ts
+│   ├── password.service.ts
+│   └── verification.service.ts
+└── types/
+    └── auth.types.ts
+```
 
 ---
 
-## 6. Implementation Roadmap
+## 7. 18-Phase Implementation Roadmap
 
-1. **Phase 1: Dependencies**: Install `@nestjs/jwt`, `@nestjs/passport`, `passport-jwt`, `bcryptjs`, `cookie-parser`.
-2. **Phase 2: Database Schema**: Apply `Session` model update to `prisma/schema.prisma`.
-3. **Phase 3: Auth Module Setup**: Create `AuthModule`, `AuthService`, `AuthController`.
-4. **Phase 4: Guards & Strategies**: Implement `JwtStrategy`, `JwtAuthGuard`, `RolesGuard`, `@CurrentUser` decorator.
-5. **Phase 5: DTOs & Validation**: Add `SignUpDto`, `SignInDto` with `class-validator` rules.
-6. **Phase 6: End-to-End Verification**: Run unit and integration tests for authentication endpoints.
+* **PHASE 01**: Environment & Dependencies (`@nestjs/jwt`, `passport`, `bcryptjs`, `cookie-parser`) ✅ *(Completed)*
+* **PHASE 02**: User + Session Prisma Schema (`schema.prisma` updates & migrations)
+* **PHASE 03**: Auth Module Scaffolding
+* **PHASE 04**: Password Hashing Service (`bcryptjs` wrapper)
+* **PHASE 05**: Signup Logic & DTO Validation
+* **PHASE 06**: Login & Credential Verification
+* **PHASE 07**: Short-lived Access JWT Issue
+* **PHASE 08**: Refresh Token Generation, Session Storage & Rotation Logic
+* **PHASE 09**: HttpOnly Cookie Security Setup (`SameSite=Lax`, `Secure`, `HttpOnly`)
+* **PHASE 10**: `JwtAuthGuard` + `JwtStrategy` Configuration
+* **PHASE 11**: Custom `@CurrentUser()` Decorator
+* **PHASE 12**: Global Roles Guard (`RolesGuard`) & Resource Permission Guard (`PermissionsGuard`)
+* **PHASE 13**: Logout Endpoint & Session Revocation (`/auth/logout`, `/auth/logout-all`)
+* **PHASE 14**: Email Verification Token Flow (`/auth/verify-email`)
+* **PHASE 15**: Password Reset & Password Change Endpoints
+* **PHASE 16**: Security Hardening (Rate-limiting, CORS, Header Security)
+* **PHASE 17**: Auth Unit Tests
+* **PHASE 18**: Integration & E2E Tests
