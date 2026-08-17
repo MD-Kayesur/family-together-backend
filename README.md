@@ -23,12 +23,17 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+**FamilyRoots Backend** is a privacy-first, multi-generational family tree and archive API built with NestJS, Prisma ORM 7, and PostgreSQL.
+
+### 📚 API Documentation & Interactive Swagger UI
+When the server is running (`npm run start:dev`), access the interactive Swagger OpenAPI documentation at:
+👉 **`http://localhost:3000/api/docs`**
 
 ## Project setup
 
 ```bash
 $ npm install
+$ cp .env.example .env
 ```
 
 ## Compile and run the project
@@ -43,6 +48,7 @@ $ npm run start:dev
 # production mode
 $ npm run start:prod
 ```
+
 
 ## Run tests
 
