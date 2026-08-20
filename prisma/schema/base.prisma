@@ -1,0 +1,95 @@
+// ----------------------------------------------------
+// Base Configuration & Authentication Models
+// ----------------------------------------------------
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../../generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  OWNER
+  MEMBER
+  VIEWER
+  USER
+}
+
+enum UserStatus {
+  ACTIVE
+  PENDING
+  SUSPENDED
+}
+
+model User {
+  id              String                   @id @default(uuid())
+  email           String                   @unique
+  fullName        String
+  password        String?
+  avatarUrl       String?
+  phoneNumber     String?
+  bio             String?
+  role            Role                     @default(USER)
+  status          UserStatus               @default(PENDING)
+  emailVerified   Boolean                  @default(false)
+  emailVerifiedAt DateTime?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  sessions        Session[]
+  resetTokens     PasswordResetToken[]
+  verifyTokens    EmailVerificationToken[]
+
+  person          Person?
+  claims          PersonClaim[]
+
+  @@map("users")
+}
+
+model Session {
+  id               String    @id @default(uuid())
+  userId           String
+  refreshTokenHash String    @unique
+  userAgent        String?
+  ipAddress        String?
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  lastUsedAt       DateTime  @default(now())
+  createdAt        DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+model EmailVerificationToken {
+  id         String    @id @default(uuid())
+  userId     String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("email_verification_tokens")
+}

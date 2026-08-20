@@ -1,0 +1,42 @@
+// ----------------------------------------------------
+// Family & Membership Domain Models
+// ----------------------------------------------------
+
+enum FamilyRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+model Family {
+  id          String         @id @default(uuid())
+  name        String
+  description String?
+  avatarUrl   String?        @map("avatar_url")
+  createdBy   String         @map("created_by")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+  deletedAt   DateTime?      @map("deleted_at")
+
+  members       FamilyMember[]
+  relationships Relationship[]
+
+  @@map("families")
+}
+
+model FamilyMember {
+  id        String     @id @default(uuid())
+  familyId  String     @map("family_id")
+  personId  String     @map("person_id")
+  role      FamilyRole @default(MEMBER)
+  joinedAt  DateTime   @default(now()) @map("joined_at")
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([familyId, personId])
+  @@map("family_members")
+}

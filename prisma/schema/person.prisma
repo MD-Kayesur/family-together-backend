@@ -1,0 +1,89 @@
+// ----------------------------------------------------
+// Person & Discovery Domain Models
+// ----------------------------------------------------
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  UNKNOWN
+}
+
+enum DiscoveryVisibility {
+  PUBLIC
+  FAMILY
+  SELECTED
+  PRIVATE
+}
+
+enum ClaimStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+// Person Model (Decoupled from User)
+model Person {
+  id                  String              @id @default(uuid())
+  userId              String?             @unique @map("user_id")
+  firstName           String              @map("first_name")
+  middleName          String?             @map("middle_name")
+  lastName            String?             @map("last_name")
+  nickname            String?
+  gender              Gender              @default(UNKNOWN)
+  dateOfBirth         DateTime?           @map("date_of_birth") @db.Date
+  dateOfDeath         DateTime?           @map("date_of_death") @db.Date
+  isAlive             Boolean             @default(true) @map("is_alive")
+  birthPlace          String?             @map("birth_place")
+  occupation          String?
+  phone               String?
+  email               String?
+  city                String?
+  country             String?
+  bio                 String?             @db.Text
+  photoUrl            String?             @map("photo_url")
+  discoveryVisibility DiscoveryVisibility @default(PUBLIC) @map("discovery_visibility")
+
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @updatedAt @map("updated_at")
+  deletedAt           DateTime?           @map("deleted_at")
+
+  user                User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  familyMemberships   FamilyMember[]
+  fromRelationships   Relationship[]      @relation("FromPerson")
+  toRelationships     Relationship[]      @relation("ToPerson")
+  claims              PersonClaim[]       @relation("ClaimedPerson")
+  aliases             PersonAlias[]
+
+  @@map("persons")
+}
+
+model PersonClaim {
+  id          String      @id @default(uuid())
+  personId    String      @map("person_id")
+  userId      String      @map("user_id")
+  status      ClaimStatus @default(PENDING)
+  requestedAt DateTime    @default(now()) @map("requested_at")
+  reviewedAt  DateTime?   @map("reviewed_at")
+  reviewedBy  String?     @map("reviewed_by")
+  notes       String?
+
+  person Person @relation("ClaimedPerson", fields: [personId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("person_claims")
+}
+
+model PersonAlias {
+  id              String   @id @default(uuid())
+  personId        String   @map("person_id")
+  alias           String
+  normalizedAlias String   @map("normalized_alias")
+  aliasType       String?  @map("alias_type")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@map("person_aliases")
+}
