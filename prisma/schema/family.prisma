@@ -21,6 +21,8 @@ model Family {
 
   members       FamilyMember[]
   relationships Relationship[]
+  memories      Memory[]
+  events        Event[]
 
   @@map("families")
 }
