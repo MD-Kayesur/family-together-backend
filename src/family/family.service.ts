@@ -15,6 +15,8 @@ export class FamilyService {
         },
         memories: true,
         events: true,
+        documents: true,
+        invitations: true,
       },
     });
 
@@ -23,30 +25,37 @@ export class FamilyService {
         data: {
           name: 'The Rahman Family',
           description:
-            'Established in roots of resilience and growth. The Rahman family sanctuary is dedicated to preserving our shared history.',
+            'Established in roots of resilience and growth. The Rahman family sanctuary is dedicated to preserving our shared history, celebrating current milestones, and connecting generations across the globe.',
           createdBy: 'system',
         },
         include: {
           members: { include: { person: true } },
           memories: true,
           events: true,
+          documents: true,
+          invitations: true,
         },
       });
     }
 
-    const totalMembers = await this.prisma.familyMember.count();
+    const totalMembers = await this.prisma.person.count();
+    const connectedUsers = await this.prisma.user.count();
     const totalMemories = await this.prisma.memory.count();
     const totalEvents = await this.prisma.event.count();
     const totalRelationships = await this.prisma.relationship.count();
+    const totalDocuments = await this.prisma.document.count();
+    const pendingInvites = await this.prisma.invitation.count({ where: { status: 'PENDING' } });
 
     return {
       family,
       stats: {
-        totalMembers: totalMembers || 42,
-        connectedUsers: 12,
-        relationships: totalRelationships || 86,
-        pendingInvites: 2,
-        totalMemories: totalMemories || 45,
+        totalMembers: totalMembers || 5,
+        connectedUsers: connectedUsers || 1,
+        relationships: totalRelationships || 3,
+        pendingInvites: pendingInvites || 0,
+        totalMemories: totalMemories || 1,
+        totalDocuments: totalDocuments || 3,
+        totalEvents: totalEvents || 2,
       },
     };
   }
@@ -141,4 +150,168 @@ export class FamilyService {
       },
     });
   }
+
+  async getRelationships() {
+    const rels = await this.prisma.relationship.findMany({
+      include: {
+        fromPerson: true,
+        toPerson: true,
+        relationshipType: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return rels.map((r) => ({
+      id: r.id,
+      from: `${r.fromPerson?.firstName || ''} ${r.fromPerson?.lastName || ''}`.trim(),
+      to: `${r.toPerson?.firstName || ''} ${r.toPerson?.lastName || ''}`.trim(),
+      type: `${r.relationshipType?.name || 'Related'}`,
+      status: r.status || 'VERIFIED',
+      fromPersonId: r.fromPersonId,
+      toPersonId: r.toPersonId,
+    }));
+  }
+
+  async createRelationship(data: { fromPersonId: string; toPersonId: string; typeCode?: string }) {
+    const family = await this.prisma.family.findFirst();
+    let relType = await this.prisma.relationshipType.findFirst({
+      where: { code: data.typeCode || 'PARENT_CHILD' },
+    });
+
+    if (!relType) {
+      relType = await this.prisma.relationshipType.create({
+        data: {
+          code: data.typeCode || 'PARENT_CHILD',
+          name: 'Parent - Child',
+          category: 'BIOLOGICAL',
+        },
+      });
+    }
+
+    return this.prisma.relationship.create({
+      data: {
+        familyId: family?.id || 'default',
+        fromPersonId: data.fromPersonId,
+        toPersonId: data.toPersonId,
+        relationshipTypeId: relType.id,
+        createdBy: 'system',
+      },
+    });
+  }
+
+  async getDocuments() {
+    return this.prisma.document.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createDocument(data: { name: string; category?: string; size?: string; uploadedBy?: string }) {
+    const family = await this.prisma.family.findFirst();
+    return this.prisma.document.create({
+      data: {
+        familyId: family?.id || 'default',
+        name: data.name,
+        category: data.category || 'Legal Records',
+        size: data.size || '2.5 MB',
+        uploadedBy: data.uploadedBy || 'Family Member',
+      },
+    });
+  }
+
+  async deleteDocument(id: string) {
+    const doc = await this.prisma.document.findUnique({ where: { id } });
+    if (!doc) throw new NotFoundException('Document not found');
+    await this.prisma.document.delete({ where: { id } });
+    return { success: true, message: 'Document deleted' };
+  }
+
+  async getInvitations() {
+    return this.prisma.invitation.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createInvitation(data: { name: string; email: string; role?: string; note?: string }) {
+    const family = await this.prisma.family.findFirst();
+    return this.prisma.invitation.create({
+      data: {
+        familyId: family?.id || 'default',
+        name: data.name,
+        email: data.email,
+        role: data.role || 'MEMBER',
+        note: data.note || '',
+        status: 'PENDING',
+      },
+    });
+  }
+
+  async updateInvitationStatus(id: string, status: string) {
+    const inv = await this.prisma.invitation.findUnique({ where: { id } });
+    if (!inv) throw new NotFoundException('Invitation request not found');
+
+    return this.prisma.invitation.update({
+      where: { id },
+      data: { status },
+    });
+  }
+
+  async getActivityLogs() {
+    const members = await this.prisma.person.findMany({ take: 3, orderBy: { createdAt: 'desc' } });
+    const memories = await this.prisma.memory.findMany({ take: 2, orderBy: { createdAt: 'desc' } });
+
+    const logs: any[] = [];
+    members.forEach((m) => {
+      logs.push({
+        id: `act_mem_${m.id}`,
+        title: `${m.firstName} ${m.lastName} was added to the family sanctuary.`,
+        timestamp: m.createdAt,
+        type: 'MEMBER',
+      });
+    });
+
+    memories.forEach((mem) => {
+      logs.push({
+        id: `act_memo_${mem.id}`,
+        title: `${mem.sharedBy} archived a memory: "${mem.title}".`,
+        timestamp: mem.createdAt,
+        type: 'MEMORY',
+      });
+    });
+
+    return logs;
+  }
+
+  async updateSanctuarySettings(data: { name?: string; description?: string }) {
+    const family = await this.prisma.family.findFirst();
+    if (!family) throw new NotFoundException('Family not found');
+
+    return this.prisma.family.update({
+      where: { id: family.id },
+      data,
+    });
+  }
+
+  async getAdminStats() {
+    const totalUsers = await this.prisma.user.count();
+    const activeUsers = await this.prisma.user.count({ where: { status: 'ACTIVE' } });
+    const totalPersons = await this.prisma.person.count();
+    const totalRelationships = await this.prisma.relationship.count();
+    const totalFamilies = await this.prisma.family.count();
+
+    const highActivityFamilies = [
+      { id: 'fam_1', name: 'The Rahman Family Tree', leader: 'Tariq Rahman', nodeCount: totalPersons || 5 },
+      { id: 'fam_2', name: 'Chen Family Heritage', leader: 'David Chen', nodeCount: 142 },
+      { id: 'fam_3', name: 'Smith Family Legacy', leader: 'Sarah Smith', nodeCount: 98 },
+    ];
+
+    return {
+      totalUsers: totalUsers || 12450,
+      activeLogins: activeUsers || 8230,
+      relationshipsCreated: totalRelationships || 45600,
+      avgTreeDepth: '5.2 gens',
+      totalFamilies: totalFamilies || 1,
+      highActivityFamilies,
+    };
+  }
 }
+
