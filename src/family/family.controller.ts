@@ -67,4 +67,82 @@ export class FamilyController {
   ) {
     return this.familyService.createEvent(body);
   }
+
+  @Get('relationships')
+  @ApiOperation({ summary: 'Get family relationships matrix' })
+  getRelationships() {
+    return this.familyService.getRelationships();
+  }
+
+  @Post('relationships')
+  @ApiOperation({ summary: 'Create a relationship link between relatives' })
+  createRelationship(
+    @Body() body: { fromPersonId: string; toPersonId: string; typeCode?: string }
+  ) {
+    return this.familyService.createRelationship(body);
+  }
+
+  @Get('documents')
+  @ApiOperation({ summary: 'Get encrypted family documents vault' })
+  getDocuments() {
+    return this.familyService.getDocuments();
+  }
+
+  @Post('documents')
+  @ApiOperation({ summary: 'Upload a document to family vault' })
+  createDocument(
+    @Body() body: { name: string; category?: string; size?: string; uploadedBy?: string }
+  ) {
+    return this.familyService.createDocument(body);
+  }
+
+  @Delete('documents/:id')
+  @ApiOperation({ summary: 'Delete a document from vault' })
+  deleteDocument(@Param('id') id: string) {
+    return this.familyService.deleteDocument(id);
+  }
+
+  @Get('invitations')
+  @ApiOperation({ summary: 'Get pending join requests and invitations' })
+  getInvitations() {
+    return this.familyService.getInvitations();
+  }
+
+  @Post('invitations')
+  @ApiOperation({ summary: 'Send a new invitation request' })
+  createInvitation(
+    @Body() body: { name: string; email: string; role?: string; note?: string }
+  ) {
+    return this.familyService.createInvitation(body);
+  }
+
+  @Patch('invitations/:id')
+  @ApiOperation({ summary: 'Approve or reject join request invitation' })
+  updateInvitationStatus(
+    @Param('id') id: string,
+    @Body() body: { status: string }
+  ) {
+    return this.familyService.updateInvitationStatus(id, body.status);
+  }
+
+  @Get('activity')
+  @ApiOperation({ summary: 'Get recent sanctuary activity logs' })
+  getActivityLogs() {
+    return this.familyService.getActivityLogs();
+  }
+
+  @Patch('settings')
+  @ApiOperation({ summary: 'Update family sanctuary settings' })
+  updateSanctuarySettings(
+    @Body() body: { name?: string; description?: string }
+  ) {
+    return this.familyService.updateSanctuarySettings(body);
+  }
+
+  @Get('admin/stats')
+  @ApiOperation({ summary: 'Get administrative network metrics and stats' })
+  getAdminStats() {
+    return this.familyService.getAdminStats();
+  }
 }
+
