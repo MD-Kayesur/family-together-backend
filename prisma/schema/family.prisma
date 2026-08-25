@@ -23,6 +23,8 @@ model Family {
   relationships Relationship[]
   memories      Memory[]
   events        Event[]
+  documents     Document[]
+  invitations   Invitation[]
 
   @@map("families")
 }

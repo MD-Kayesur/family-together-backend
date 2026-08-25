@@ -33,3 +33,36 @@ model Event {
 
   @@map("events")
 }
+
+model Document {
+  id          String   @id @default(uuid())
+  familyId    String   @map("family_id")
+  name        String
+  category    String   @default("Legal Records")
+  size        String   @default("2.5 MB")
+  fileUrl     String?  @map("file_url")
+  uploadedBy  String   @default("Family Member") @map("uploaded_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@map("documents")
+}
+
+model Invitation {
+  id        String   @id @default(uuid())
+  familyId  String   @map("family_id")
+  name      String
+  email     String
+  role      String   @default("MEMBER")
+  status    String   @default("PENDING")
+  note      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@map("invitations")
+}
+
