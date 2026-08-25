@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { PrismaClient } from "../generated/prisma/client";
+import { PrismaClient } from "../generated/prisma/client.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 const connectionString = process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_OijKbCaX0Im1@ep-tiny-bar-az5kqldq-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require';
@@ -135,6 +135,99 @@ async function main() {
         date: new Date("2026-09-02"),
         location: "Virtual Link",
         isVirtual: true,
+      },
+    ],
+    skipDuplicates: true,
+  });
+
+  // 7. Create Sample Documents
+  await prisma.document.createMany({
+    data: [
+      {
+        familyId: family.id,
+        name: "Rahman_Family_Heritage_Will_1954.pdf",
+        category: "Legal Records",
+        size: "4.2 MB",
+        uploadedBy: "Tariq Rahman",
+      },
+      {
+        familyId: family.id,
+        name: "Grandpa_Birth_Certificate_Scanned.pdf",
+        category: "Vital Records",
+        size: "1.8 MB",
+        uploadedBy: "Aisha Rahman",
+      },
+      {
+        familyId: family.id,
+        name: "Immigration_Passports_Archive.pdf",
+        category: "Immigration",
+        size: "12.5 MB",
+        uploadedBy: "Omar Rahman",
+      },
+    ],
+    skipDuplicates: true,
+  });
+
+  // 8. Create Sample Invitations
+  await prisma.invitation.createMany({
+    data: [
+      {
+        familyId: family.id,
+        name: "Zain Rahman",
+        email: "zain@gmail.com",
+        role: "MEMBER",
+        status: "PENDING",
+        note: "Claims to be cousin from Canada",
+      },
+      {
+        familyId: family.id,
+        name: "Samiha Rahman",
+        email: "samiha@gmail.com",
+        role: "VIEWER",
+        status: "PENDING",
+        note: "Requested view access to family photos",
+      },
+    ],
+    skipDuplicates: true,
+  });
+
+  // 9. Create Sample Relationship Types & Relationships
+  let relType = await prisma.relationshipType.findFirst({
+    where: { code: "PARENT_CHILD" },
+  });
+
+  if (!relType) {
+    relType = await prisma.relationshipType.create({
+      data: {
+        code: "PARENT_CHILD",
+        name: "Parent - Child",
+        category: "BIOLOGICAL",
+      },
+    });
+  }
+
+  await prisma.relationship.createMany({
+    data: [
+      {
+        familyId: family.id,
+        fromPersonId: omarPerson.id,
+        toPersonId: tariqPerson.id,
+        relationshipTypeId: relType.id,
+        createdBy: ownerUser.id,
+      },
+      {
+        familyId: family.id,
+        fromPersonId: fatimaPerson.id,
+        toPersonId: tariqPerson.id,
+        relationshipTypeId: relType.id,
+        createdBy: ownerUser.id,
+      },
+      {
+        familyId: family.id,
+        fromPersonId: tariqPerson.id,
+        toPersonId: aishaPerson.id,
+        relationshipTypeId: relType.id,
+        createdBy: ownerUser.id,
       },
     ],
     skipDuplicates: true,
