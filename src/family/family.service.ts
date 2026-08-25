@@ -71,14 +71,38 @@ export class FamilyService {
     lastName: string;
     gender?: any;
     bio?: string;
-    roleInFamily?: string;
+    middleName?: string;
+    nickname?: string;
+    dob?: string;
+    birthplace?: string;
+    isDeceased?: boolean;
+    dateOfPassing?: string;
+    occupation?: string;
+    location?: string;
+    contactInfo?: string;
+    avatarUrl?: string;
   }) {
+    let combinedBio = data.bio || '';
+    const metaParts = [];
+    if (data.nickname) metaParts.push(`Known as: ${data.nickname}`);
+    if (data.middleName) metaParts.push(`Middle/Maiden: ${data.middleName}`);
+    if (data.dob) metaParts.push(`DOB: ${data.dob}`);
+    if (data.birthplace) metaParts.push(`Born: ${data.birthplace}`);
+    if (data.occupation) metaParts.push(`Profession: ${data.occupation}`);
+    if (data.location) metaParts.push(`Residence: ${data.location}`);
+    if (data.contactInfo) metaParts.push(`Contact: ${data.contactInfo}`);
+    if (data.isDeceased) metaParts.push(`Deceased${data.dateOfPassing ? ` (${data.dateOfPassing})` : ''}`);
+
+    if (metaParts.length > 0) {
+      combinedBio = `${metaParts.join(' • ')}${combinedBio ? `\n${combinedBio}` : ''}`;
+    }
+
     const person = await this.prisma.person.create({
       data: {
         firstName: data.firstName,
         lastName: data.lastName,
         gender: data.gender || 'UNKNOWN',
-        bio: data.bio || '',
+        bio: combinedBio,
       },
     });
 
