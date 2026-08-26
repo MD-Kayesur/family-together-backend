@@ -83,7 +83,7 @@ export class FamilyService {
     avatarUrl?: string;
   }) {
     let combinedBio = data.bio || '';
-    const metaParts = [];
+    const metaParts: string[] = [];
     if (data.nickname) metaParts.push(`Known as: ${data.nickname}`);
     if (data.middleName) metaParts.push(`Middle/Maiden: ${data.middleName}`);
     if (data.dob) metaParts.push(`DOB: ${data.dob}`);
