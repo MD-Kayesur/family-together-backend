@@ -13,6 +13,12 @@ export class FamilyController {
     return this.familyService.getSanctuaryData();
   }
 
+  @Patch('update')
+  @ApiOperation({ summary: 'Update main family sanctuary details' })
+  updateFamily(@Body() body: { name?: string; description?: string }) {
+    return this.familyService.updateFamilyDetails(body);
+  }
+
   @Get('members')
   @ApiOperation({ summary: 'Get all family members' })
   getMembers() {

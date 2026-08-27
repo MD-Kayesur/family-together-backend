@@ -60,6 +60,16 @@ export class FamilyService {
     };
   }
 
+  async updateFamilyDetails(data: { name?: string; description?: string }) {
+    const family = await this.prisma.family.findFirst();
+    if (!family) throw new NotFoundException('Family sanctuary not found');
+
+    return this.prisma.family.update({
+      where: { id: family.id },
+      data,
+    });
+  }
+
   async getMembers() {
     return this.prisma.person.findMany({
       orderBy: { createdAt: 'desc' },
