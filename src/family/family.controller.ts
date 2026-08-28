@@ -56,7 +56,20 @@ export class FamilyController {
 
   @Post('memories')
   @ApiOperation({ summary: 'Add a new family memory' })
-  createMemory(@Body() body: { title: string; description?: string; sharedBy?: string }) {
+  createMemory(
+    @Body()
+    body: {
+      title: string;
+      description?: string;
+      sharedBy?: string;
+      date?: string;
+      location?: string;
+      category?: string;
+      mediaUrl?: string;
+      taggedMembers?: string;
+      privacy?: string;
+    },
+  ) {
     return this.familyService.createMemory(body);
   }
 

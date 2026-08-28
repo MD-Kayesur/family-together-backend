@@ -154,14 +154,38 @@ export class FamilyService {
     });
   }
 
-  async createMemory(data: { title: string; description?: string; sharedBy?: string }) {
+  async createMemory(data: {
+    title: string;
+    description?: string;
+    sharedBy?: string;
+    date?: string;
+    location?: string;
+    category?: string;
+    mediaUrl?: string;
+    taggedMembers?: string;
+    privacy?: string;
+  }) {
     const family = await this.prisma.family.findFirst();
+    let combinedDesc = data.description || '';
+    const metaParts: string[] = [];
+
+    if (data.category) metaParts.push(`Category: ${data.category}`);
+    if (data.date) metaParts.push(`Date: ${data.date}`);
+    if (data.location) metaParts.push(`Location: ${data.location}`);
+    if (data.taggedMembers) metaParts.push(`Tagged: ${data.taggedMembers}`);
+    if (data.privacy) metaParts.push(`Privacy: ${data.privacy}`);
+
+    if (metaParts.length > 0) {
+      combinedDesc = `${metaParts.join(' • ')}${combinedDesc ? `\n\n${combinedDesc}` : ''}`;
+    }
+
     return this.prisma.memory.create({
       data: {
         familyId: family?.id || 'default',
         title: data.title,
-        description: data.description || '',
+        description: combinedDesc,
         sharedBy: data.sharedBy || 'Family Member',
+        mediaUrl: data.mediaUrl || null,
       },
     });
   }
