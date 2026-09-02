@@ -1,7 +1,7 @@
 import { Injectable, ConflictException, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import type { Response, Request } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
-
+import { MailService } from '../mail/mail.service';
 import { PasswordService } from './services/password.service';
 import { TokenService } from './services/token.service';
 import { SessionService } from './services/session.service';
@@ -16,6 +16,7 @@ import { VerifyEmailDto, ResendVerificationDto } from './dto/verify-email.dto';
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
     private readonly sessionService: SessionService,
@@ -41,16 +42,18 @@ export class AuthService {
         avatarUrl: dto.avatarUrl,
         phoneNumber: dto.phoneNumber,
         status: 'PENDING',
+        emailVerified: false,
       },
     });
 
-    const verificationToken = await this.verificationService.createEmailVerificationToken(user.id);
+    const verificationCode = await this.verificationService.createEmailVerificationCode(user.id);
+    await this.mailService.sendVerificationCode(user.email, user.fullName, verificationCode);
 
     return {
-      message: 'Registration successful. Please verify your email to activate your account.',
+      message: 'Registration successful! Please enter the 6-digit verification code sent to your email.',
       userId: user.id,
       email: user.email,
-      verificationToken, // Returned for dev/testing ease
+      verificationCode, // Returned for dev/testing convenience
     };
   }
 
@@ -70,6 +73,29 @@ export class AuthService {
 
     if (user.status === 'SUSPENDED') {
       throw new UnauthorizedException('Your account has been suspended. Please contact support.');
+    }
+
+    if (!user.emailVerified || user.status === 'PENDING') {
+      const existingToken = await this.prisma.emailVerificationToken.findFirst({
+        where: {
+          userId: user.id,
+          verifiedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      let verificationCode: string | undefined;
+      if (!existingToken) {
+        verificationCode = await this.verificationService.createEmailVerificationCode(user.id);
+        await this.mailService.sendVerificationCode(user.email, user.fullName, verificationCode);
+      }
+
+      throw new UnauthorizedException({
+        message: 'Please verify your email address to sign in. Enter the 6-digit code sent to your email.',
+        requiresEmailVerification: true,
+        email: user.email,
+        verificationCode,
+      });
     }
 
     const refreshToken = this.tokenService.generateRefreshToken();
@@ -141,7 +167,14 @@ export class AuthService {
   }
 
   async verifyEmail(dto: VerifyEmailDto) {
-    await this.verificationService.verifyEmailToken(dto.token);
+    if (dto.code && dto.email) {
+      await this.verificationService.verifyEmailCode(dto.email, dto.code);
+    } else if (dto.token) {
+      await this.verificationService.verifyEmailToken(dto.token);
+    } else {
+      throw new BadRequestException('Email and 6-digit verification code are required.');
+    }
+
     return { message: 'Email verified successfully. Account activated!' };
   }
 
@@ -154,14 +187,16 @@ export class AuthService {
       throw new BadRequestException('User with this email does not exist.');
     }
 
-    if (user.emailVerified) {
+    if (user.emailVerified && user.status === 'ACTIVE') {
       return { message: 'Email is already verified.' };
     }
 
-    const verificationToken = await this.verificationService.createEmailVerificationToken(user.id);
+    const verificationCode = await this.verificationService.createEmailVerificationCode(user.id);
+    await this.mailService.sendVerificationCode(user.email, user.fullName, verificationCode);
+
     return {
-      message: 'Verification link sent.',
-      verificationToken,
+      message: 'A new 6-digit verification code has been sent to your email.',
+      verificationCode,
     };
   }
 
