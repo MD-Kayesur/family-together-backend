@@ -1,9 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class FamilyService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
 
   async getSanctuaryData() {
     let family = await this.prisma.family.findFirst({
@@ -79,6 +84,8 @@ export class FamilyService {
   async createMember(data: {
     firstName: string;
     lastName: string;
+    email?: string;
+    password?: string;
     gender?: any;
     bio?: string;
     middleName?: string;
@@ -107,11 +114,77 @@ export class FamilyService {
       combinedBio = `${metaParts.join(' • ')}${combinedBio ? `\n${combinedBio}` : ''}`;
     }
 
+    // Determine email from data.email or parse from contactInfo if provided
+    let userEmail = data.email?.trim();
+    if (!userEmail && data.contactInfo) {
+      const emailMatch = data.contactInfo.match(/[\w.-]+@[\w.-]+\.[a-zA-Z]{2,}/);
+      if (emailMatch) {
+        userEmail = emailMatch[0];
+      }
+    }
+
+    let linkedUserId: string | null = null;
+    const initialPlainPassword = data.password?.trim() || 'Family@123';
+
+    if (userEmail) {
+      const normalizedEmail = userEmail.toLowerCase().trim();
+      const existingUser = await this.prisma.user.findUnique({
+        where: { email: normalizedEmail },
+      });
+
+      if (existingUser) {
+        // Activate existing user account and ensure verified status for immediate access
+        const updated = await this.prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            status: 'ACTIVE',
+            emailVerified: true,
+            emailVerifiedAt: new Date(),
+          },
+        });
+        linkedUserId = updated.id;
+      } else {
+        // Create new active User account with role USER so they can log in immediately
+        const hashedPassword = await bcrypt.hash(initialPlainPassword, 12);
+        const newUser = await this.prisma.user.create({
+          data: {
+            email: normalizedEmail,
+            fullName: `${data.firstName} ${data.lastName}`.trim(),
+            password: hashedPassword,
+            role: 'USER',
+            status: 'ACTIVE',
+            emailVerified: true,
+            emailVerifiedAt: new Date(),
+            avatarUrl: data.avatarUrl,
+            phoneNumber: data.contactInfo,
+            bio: combinedBio,
+          },
+        });
+        linkedUserId = newUser.id;
+
+        // Send login credentials email in background
+        this.mailService
+          .sendMemberWelcomeEmail(
+            normalizedEmail,
+            `${data.firstName} ${data.lastName}`.trim(),
+            normalizedEmail,
+            initialPlainPassword,
+          )
+          .catch((err) => console.error('Failed to send member welcome email:', err));
+      }
+    }
+
     const person = await this.prisma.person.create({
       data: {
+        userId: linkedUserId,
         firstName: data.firstName,
         lastName: data.lastName,
         gender: data.gender || 'UNKNOWN',
+        email: userEmail ? userEmail.toLowerCase().trim() : null,
+        phone: data.contactInfo || null,
+        birthPlace: data.birthplace || null,
+        occupation: data.occupation || null,
+        photoUrl: data.avatarUrl || null,
         bio: combinedBio,
       },
     });
@@ -127,7 +200,17 @@ export class FamilyService {
       });
     }
 
-    return person;
+    return {
+      ...person,
+      linkedUser: userEmail
+        ? {
+            email: userEmail.toLowerCase().trim(),
+            status: 'ACTIVE',
+            role: 'USER',
+            initialPassword: initialPlainPassword,
+          }
+        : null,
+    };
   }
 
   async updateMember(id: string, data: { firstName?: string; lastName?: string; bio?: string }) {

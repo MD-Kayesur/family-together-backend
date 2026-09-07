@@ -100,4 +100,63 @@ export class MailService {
       return false;
     }
   }
+
+  async sendMemberWelcomeEmail(to: string, name: string, email: string, password: string): Promise<boolean> {
+    const from = process.env.EMAIL_FROM || '"FamilyRoots" <rmdkayesur@gmail.com>';
+    const subject = `Welcome to FamilyRoots - Your member account credentials`;
+
+    this.logger.log(
+      `\n======================================================\n📨 [MEMBER ACCOUNT CREATED] To: ${to} (${name})\n📧 Login Email: ${email}\n🔑 Password: ${password}\n======================================================`
+    );
+
+    if (!this.transporter) {
+      this.initTransporter();
+      if (!this.transporter) {
+        this.logger.warn(`No transporter available; skipping email delivery to ${to}`);
+        return true;
+      }
+    }
+
+    try {
+      const info = await this.transporter.sendMail({
+        from,
+        to,
+        subject,
+        text: `Hello ${name || 'there'},\n\nYou have been added as a family member on FamilyRoots! An active account has been created for you so you can access our family sanctuary.\n\nYour Login Credentials:\nEmail: ${email}\nPassword: ${password}\n\nPlease sign in and change your password.\n\nBest regards,\nFamilyRoots`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 540px; margin: 0 auto; padding: 24px; border: 1px solid #e0e0e0; border-radius: 12px; background: #ffffff;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h1 style="color: #2D3748; font-size: 24px; margin: 0;">FamilyRoots</h1>
+              <p style="color: #718096; font-size: 14px; margin-top: 4px;">Private Family Sanctuary</p>
+            </div>
+            
+            <p style="color: #2D3748; font-size: 16px;">Hello <strong>${name || 'there'}</strong>,</p>
+            <p style="color: #4A5568; font-size: 15px; line-height: 1.5;">
+              You have been added as a member of our family tree! Your account has been activated with access to your private Member Portal.
+            </p>
+            
+            <div style="background: #F7FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 20px; margin: 24px 0;">
+              <h3 style="margin: 0 0 12px 0; color: #2D3748; font-size: 15px;">Your Account Credentials:</h3>
+              <p style="margin: 4px 0; color: #4A5568; font-size: 14px;"><strong>Email:</strong> ${email}</p>
+              <p style="margin: 4px 0; color: #4A5568; font-size: 14px;"><strong>Password:</strong> <span style="font-family: monospace; background: #EDF2F7; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${password}</span></p>
+            </div>
+
+            <p style="color: #718096; font-size: 13px; line-height: 1.4;">
+              You can log in anytime and update your email, profile information, or password directly from your account settings.
+            </p>
+
+            <hr style="border: none; border-top: 1px solid #EDF2F7; margin: 24px 0;" />
+            <p style="color: #A0AEC0; font-size: 12px; text-align: center; margin: 0;">
+              © ${new Date().getFullYear()} FamilyRoots. All rights reserved.
+            </p>
+          </div>
+        `,
+      });
+      this.logger.log(`Member welcome email dispatched successfully to ${to}! MessageId: ${info.messageId}`);
+      return true;
+    } catch (error: any) {
+      this.logger.error(`Failed to dispatch member welcome email to ${to}: ${error.message}`);
+      return false;
+    }
+  }
 }

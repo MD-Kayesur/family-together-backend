@@ -26,9 +26,28 @@ export class FamilyController {
   }
 
   @Post('members')
-  @ApiOperation({ summary: 'Add a new family member' })
+  @ApiOperation({ summary: 'Add a new family member with optional platform login' })
   createMember(
-    @Body() body: { firstName: string; lastName: string; gender?: string; bio?: string; roleInFamily?: string }
+    @Body()
+    body: {
+      firstName: string;
+      lastName: string;
+      email?: string;
+      password?: string;
+      gender?: string;
+      bio?: string;
+      roleInFamily?: string;
+      middleName?: string;
+      nickname?: string;
+      dob?: string;
+      birthplace?: string;
+      isDeceased?: boolean;
+      dateOfPassing?: string;
+      occupation?: string;
+      location?: string;
+      contactInfo?: string;
+      avatarUrl?: string;
+    },
   ) {
     return this.familyService.createMember(body);
   }

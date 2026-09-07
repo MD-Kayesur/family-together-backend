@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, ConflictException, UnauthorizedException, BadRequestException, NotFoundException } from '@nestjs/common';
 import type { Response, Request } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
@@ -249,6 +249,75 @@ export class AuthService {
     });
 
     return { message: 'Password changed successfully' };
+  }
+
+  async updateProfile(
+    userId: string,
+    data: {
+      fullName?: string;
+      email?: string;
+      phoneNumber?: string;
+      bio?: string;
+      avatarUrl?: string;
+    },
+  ) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    if (data.email && data.email.toLowerCase().trim() !== user.email.toLowerCase()) {
+      const existing = await this.prisma.user.findUnique({
+        where: { email: data.email.toLowerCase().trim() },
+      });
+      if (existing) {
+        throw new ConflictException('This email is already associated with another account.');
+      }
+    }
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(data.fullName !== undefined ? { fullName: data.fullName.trim() } : {}),
+        ...(data.email !== undefined ? { email: data.email.toLowerCase().trim() } : {}),
+        ...(data.phoneNumber !== undefined ? { phoneNumber: data.phoneNumber.trim() } : {}),
+        ...(data.bio !== undefined ? { bio: data.bio.trim() } : {}),
+        ...(data.avatarUrl !== undefined ? { avatarUrl: data.avatarUrl.trim() } : {}),
+      },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        role: true,
+        status: true,
+        emailVerified: true,
+        phoneNumber: true,
+        bio: true,
+        avatarUrl: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    // Also update linked person profile if any
+    const person = await this.prisma.person.findFirst({ where: { userId } });
+    if (person) {
+      await this.prisma.person.update({
+        where: { id: person.id },
+        data: {
+          email: updatedUser.email,
+          ...(data.fullName
+            ? {
+                firstName: data.fullName.split(' ')[0] || person.firstName,
+                lastName: data.fullName.split(' ').slice(1).join(' ') || person.lastName,
+              }
+            : {}),
+        },
+      });
+    }
+
+    return {
+      message: 'Account details updated successfully',
+      user: updatedUser,
+    };
   }
 
   private setAuthCookies(res: Response, accessToken: string, refreshToken: string) {

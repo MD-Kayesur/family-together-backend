@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Body, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
@@ -138,5 +138,25 @@ export class AuthController {
     @Body() dto: ChangePasswordDto,
   ) {
     return this.authService.changePassword(userId, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiCookieAuth('access_token')
+  @Patch('profile')
+  @ApiOperation({ summary: 'Update current user profile and credentials' })
+  @ApiResponse({ status: 200, description: 'Profile updated successfully' })
+  updateProfile(
+    @CurrentUser('id') userId: string,
+    @Body()
+    dto: {
+      fullName?: string;
+      email?: string;
+      phoneNumber?: string;
+      bio?: string;
+      avatarUrl?: string;
+    },
+  ) {
+    return this.authService.updateProfile(userId, dto);
   }
 }
