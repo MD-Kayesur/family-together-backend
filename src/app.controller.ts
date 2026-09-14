@@ -12,7 +12,7 @@ export class AppController {
   @Header('Content-Type', 'text/html')
   @ApiOperation({ summary: 'Backend Interactive Dashboard' })
   getDashboard(): string {
-    const frontendUrl = process.env.FRONTEND_URL || 'https://family-together-frontend.vercel.app';
+    const frontendUrl = process.env.FRONTEND_URL || 'https://family-together-eta.vercel.app';
 
     return `<!DOCTYPE html>
 <html lang="en">
