@@ -68,6 +68,14 @@ export class UsersService {
       data.password = await bcrypt.hash(data.password, 12);
     }
 
+    if (data.role && typeof data.role === 'string') {
+      data.role = data.role.toUpperCase();
+    }
+
+    if (data.status && typeof data.status === 'string') {
+      data.status = data.status.toUpperCase();
+    }
+
     return this.prisma.user.update({
       where: { id },
       data,
