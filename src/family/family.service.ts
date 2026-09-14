@@ -78,10 +78,38 @@ export class FamilyService {
   async getMembers() {
     return this.prisma.person.findMany({
       orderBy: { createdAt: 'desc' },
+      include: { user: true },
+    });
+  }
+
+  async searchMembers(query: string) {
+    if (!query || !query.trim()) {
+      return this.prisma.person.findMany({
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        include: { user: true },
+      });
+    }
+
+    const q = query.trim().toLowerCase();
+    return this.prisma.person.findMany({
+      where: {
+        OR: [
+          { firstName: { contains: q, mode: 'insensitive' } },
+          { lastName: { contains: q, mode: 'insensitive' } },
+          { email: { contains: q, mode: 'insensitive' } },
+          { nickname: { contains: q, mode: 'insensitive' } },
+          { bio: { contains: q, mode: 'insensitive' } },
+        ],
+      },
+      take: 10,
+      orderBy: { createdAt: 'desc' },
+      include: { user: true },
     });
   }
 
   async createMember(data: {
+    existingPersonId?: string;
     firstName: string;
     lastName: string;
     email?: string;
@@ -99,6 +127,45 @@ export class FamilyService {
     contactInfo?: string;
     avatarUrl?: string;
   }) {
+    if (data.existingPersonId) {
+      const existingPerson = await this.prisma.person.findUnique({
+        where: { id: data.existingPersonId },
+        include: { user: true },
+      });
+
+      if (!existingPerson) {
+        throw new NotFoundException('Selected existing person profile not found');
+      }
+
+      const family = await this.prisma.family.findFirst();
+      if (family) {
+        const existingMemberLink = await this.prisma.familyMember.findUnique({
+          where: {
+            familyId_personId: {
+              familyId: family.id,
+              personId: existingPerson.id,
+            },
+          },
+        });
+
+        if (!existingMemberLink) {
+          await this.prisma.familyMember.create({
+            data: {
+              familyId: family.id,
+              personId: existingPerson.id,
+              role: 'MEMBER',
+            },
+          });
+        }
+      }
+
+      return {
+        ...existingPerson,
+        isLinkedExisting: true,
+        message: 'Linked existing person profile cleanly. Duplicate entry prevented!',
+      };
+    }
+
     let combinedBio = data.bio || '';
     const metaParts: string[] = [];
     if (data.nickname) metaParts.push(`Known as: ${data.nickname}`);
