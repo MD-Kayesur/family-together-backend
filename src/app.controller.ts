@@ -12,6 +12,8 @@ export class AppController {
   @Header('Content-Type', 'text/html')
   @ApiOperation({ summary: 'Backend Interactive Dashboard' })
   getDashboard(): string {
+    const frontendUrl = process.env.FRONTEND_URL || 'https://family-together-frontend.vercel.app';
+
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -235,11 +237,11 @@ export class AppController {
 <body>
   <!-- Header Bar -->
   <header class="header-bar">
-    <a href="/" class="brand">
+    <a href="${frontendUrl}" class="brand">
       <span class="material-symbols-outlined">account_tree</span>
       <span>FamilyRoots</span>
     </a>
-    <a href="/api/docs#/Auth" class="login-btn">Log In</a>
+    <a href="${frontendUrl}/signin" class="login-btn">Log In</a>
   </header>
 
   <!-- Hero Container -->
@@ -247,27 +249,27 @@ export class AppController {
     <h1 class="main-title">FamilyRoots API Dashboard</h1>
     <p class="main-subtitle">Privacy-First Family Tree, Lineage & Archive API Engine</p>
 
-    <!-- Role Based API Access -->
-    <div class="roles-section-title">Role-Based Dashboard Access</div>
+    <!-- Role Based Web App Redirects -->
+    <div class="roles-section-title">Role-Based Web Dashboards</div>
     <div class="roles-grid">
-      <a href="/api/docs#/Users" class="role-pill">SUPER ADMIN</a>
-      <a href="/api/docs#/Users" class="role-pill">ADMIN</a>
-      <a href="/api/docs#/Family%20Sanctuary" class="role-pill">OWNER</a>
-      <a href="/api/docs#/Auth" class="role-pill">MEMBER / USER</a>
+      <a href="${frontendUrl}/admin-dashboard/super" class="role-pill">SUPER ADMIN</a>
+      <a href="${frontendUrl}/admin-dashboard" class="role-pill">ADMIN</a>
+      <a href="${frontendUrl}/owner-dashboard" class="role-pill">OWNER</a>
+      <a href="${frontendUrl}/user-dashboard" class="role-pill">MEMBER / USER</a>
     </div>
 
-    <!-- Active System Modules Grid -->
+    <!-- Active System Sanctuary Modules -->
     <div class="roles-section-title">Active Sanctuary Modules</div>
     <div class="modules-grid">
-      <a href="/api/docs#/Family%20Sanctuary" class="module-pill">FAMILY SANCTUARY</a>
-      <a href="/api/docs#/Family%20Sanctuary" class="module-pill">MEMBERS & DEDUPLICATION</a>
-      <a href="/api/docs#/Family%20Sanctuary" class="module-pill">RELATIONSHIPS</a>
-      <a href="/api/docs#/Family%20Sanctuary" class="module-pill">MEMORIES VAULT</a>
+      <a href="${frontendUrl}/owner-dashboard/family" class="module-pill">FAMILY SANCTUARY</a>
+      <a href="${frontendUrl}/owner-dashboard/members" class="module-pill">MEMBERS & DEDUPLICATION</a>
+      <a href="${frontendUrl}/owner-dashboard/relationships" class="module-pill">RELATIONSHIPS</a>
+      <a href="${frontendUrl}/owner-dashboard/memories" class="module-pill">MEMORIES VAULT</a>
 
-      <a href="/api/docs#/Family%20Sanctuary" class="module-pill">EVENTS CALENDAR</a>
-      <a href="/api/docs#/Family%20Sanctuary" class="module-pill">DOCUMENTS ARCHIVE</a>
-      <a href="/api/docs#/Family%20Sanctuary" class="module-pill">INVITATIONS</a>
-      <a href="/api/docs#/Auth" class="module-pill">AUTH & SECURITY</a>
+      <a href="${frontendUrl}/owner-dashboard/events" class="module-pill">EVENTS CALENDAR</a>
+      <a href="${frontendUrl}/owner-dashboard/documents" class="module-pill">DOCUMENTS ARCHIVE</a>
+      <a href="${frontendUrl}/owner-dashboard/invitations" class="module-pill">INVITATIONS</a>
+      <a href="${frontendUrl}/signin" class="module-pill">AUTH & SECURITY</a>
 
       <a href="/api/docs" class="module-pill wide cyan">SWAGGER OPENAPI DOCS</a>
       <a href="/health" class="module-pill wide emerald">SYSTEM HEALTH STATUS</a>
