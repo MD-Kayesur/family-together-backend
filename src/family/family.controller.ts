@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { FamilyService } from './family.service';
 
@@ -25,11 +25,18 @@ export class FamilyController {
     return this.familyService.getMembers();
   }
 
+  @Get('members/search')
+  @ApiOperation({ summary: 'Search and suggest existing family member profiles for deduplication' })
+  searchMembers(@Query('q') query: string) {
+    return this.familyService.searchMembers(query || '');
+  }
+
   @Post('members')
-  @ApiOperation({ summary: 'Add a new family member with optional platform login' })
+  @ApiOperation({ summary: 'Add a new family member or link an existing profile with optional platform login' })
   createMember(
     @Body()
     body: {
+      existingPersonId?: string;
       firstName: string;
       lastName: string;
       email?: string;
