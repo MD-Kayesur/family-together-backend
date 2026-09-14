@@ -17,7 +17,7 @@ export class AppController {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FamilyRoots API Dashboard</title>
+  <title>FamilyRoots API Sanctuary Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,600;0,700;0,800;1,700&display=swap" rel="stylesheet">
@@ -32,8 +32,8 @@ export class AppController {
       font-family: 'Plus Jakarta Sans', sans-serif;
       min-height: 100vh;
       width: 100%;
-      background: linear-gradient(rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.25)),
-                  url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80') center/cover no-repeat fixed;
+      background: linear-gradient(rgba(15, 23, 42, 0.75), rgba(15, 23, 42, 0.85)),
+                  url('https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=1920&q=80') center/cover no-repeat fixed;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -56,20 +56,20 @@ export class AppController {
       gap: 10px;
       text-decoration: none;
       color: #ffffff;
-      font-size: 1.25rem;
+      font-size: 1.35rem;
       font-weight: 800;
       letter-spacing: -0.5px;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      text-shadow: 0 2px 10px rgba(0,0,0,0.4);
     }
     .login-btn {
-      background: #e76f80;
+      background: #6366f1;
       color: #ffffff;
       padding: 12px 34px;
       border-radius: 50px;
       text-decoration: none;
       font-weight: 700;
       font-size: 1rem;
-      box-shadow: 0 4px 15px rgba(231, 111, 128, 0.4);
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
       transition: all 0.25s ease;
       display: inline-flex;
       align-items: center;
@@ -77,8 +77,8 @@ export class AppController {
     }
     .login-btn:hover {
       transform: translateY(-2px);
-      background: #d85c6f;
-      box-shadow: 0 6px 20px rgba(231, 111, 128, 0.6);
+      background: #4f46e5;
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
     }
 
     /* Hero Section */
@@ -86,38 +86,81 @@ export class AppController {
       width: 100%;
       max-width: 1100px;
       text-align: center;
-      margin: 40px 0;
+      margin: 30px 0;
     }
     .main-title {
-      font-size: clamp(2.8rem, 6vw, 4.5rem);
+      font-size: clamp(2.5rem, 5.5vw, 4.2rem);
       font-weight: 800;
       color: #ffffff;
       letter-spacing: -1px;
-      text-shadow: 0 4px 25px rgba(0, 0, 0, 0.4);
+      text-shadow: 0 4px 25px rgba(0, 0, 0, 0.5);
+      margin-bottom: 10px;
+    }
+    .main-subtitle {
+      font-size: 1.1rem;
+      color: #cbd5e1;
+      font-weight: 600;
       margin-bottom: 35px;
     }
 
-    /* Modules Grid */
+    /* Roles Bar */
+    .roles-section-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #818cf8;
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
+    .roles-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      width: 100%;
+      max-width: 1000px;
+      margin: 0 auto 30px auto;
+    }
+    .role-pill {
+      background: linear-gradient(135deg, #4f46e5, #6366f1);
+      color: #ffffff;
+      padding: 14px 20px;
+      border-radius: 50px;
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 0.95rem;
+      letter-spacing: 0.5px;
+      text-align: center;
+      box-shadow: 0 6px 18px rgba(79, 70, 229, 0.35);
+      transition: all 0.25s ease;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .role-pill:hover {
+      transform: translateY(-3px) scale(1.02);
+      background: linear-gradient(135deg, #4338ca, #4f46e5);
+      box-shadow: 0 10px 22px rgba(79, 70, 229, 0.5);
+    }
+
+    /* System Modules Grid */
     .modules-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 18px;
+      gap: 16px;
       width: 100%;
       max-width: 1000px;
       margin: 0 auto;
     }
     .module-pill {
-      background: #ff7597;
+      background: #ec4899;
       color: #ffffff;
-      padding: 16px 24px;
+      padding: 15px 22px;
       border-radius: 50px;
       text-decoration: none;
       font-weight: 800;
       font-style: italic;
-      font-size: 1.1rem;
+      font-size: 0.95rem;
       letter-spacing: 0.5px;
       text-align: center;
-      box-shadow: 0 6px 20px rgba(255, 117, 151, 0.4);
+      box-shadow: 0 6px 20px rgba(236, 72, 153, 0.35);
       transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       border: 1px solid rgba(255, 255, 255, 0.2);
       display: flex;
@@ -126,24 +169,40 @@ export class AppController {
     }
     .module-pill:hover {
       transform: translateY(-4px) scale(1.03);
-      background: #ff5c84;
-      box-shadow: 0 10px 25px rgba(255, 117, 151, 0.6);
+      background: #db2777;
+      box-shadow: 0 10px 25px rgba(236, 72, 153, 0.55);
     }
     .module-pill.wide {
       grid-column: span 2;
+    }
+    .module-pill.cyan {
+      background: #06b6d4;
+      box-shadow: 0 6px 20px rgba(6, 182, 212, 0.35);
+    }
+    .module-pill.cyan:hover {
+      background: #0891b2;
+      box-shadow: 0 10px 25px rgba(6, 182, 212, 0.55);
+    }
+    .module-pill.emerald {
+      background: #10b981;
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
+    }
+    .module-pill.emerald:hover {
+      background: #059669;
+      box-shadow: 0 10px 25px rgba(16, 185, 129, 0.55);
     }
 
     /* Footer Section */
     .footer-container {
       text-align: center;
-      margin-top: 40px;
+      margin-top: 35px;
     }
     .footer-text {
-      font-size: 1.1rem;
+      font-size: 1rem;
       font-weight: 600;
       color: rgba(255, 255, 255, 0.95);
       text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .footer-text span {
       text-decoration: underline;
@@ -151,15 +210,15 @@ export class AppController {
       font-style: italic;
     }
     .subtitle-text {
-      font-size: 1rem;
-      color: #26e4f3;
+      font-size: 0.95rem;
+      color: #38bdf8;
       font-weight: 700;
       font-style: italic;
       text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
     }
 
     @media (max-width: 900px) {
-      .modules-grid {
+      .roles-grid, .modules-grid {
         grid-template-columns: repeat(2, 1fr);
       }
       .module-pill.wide {
@@ -167,7 +226,7 @@ export class AppController {
       }
     }
     @media (max-width: 500px) {
-      .modules-grid {
+      .roles-grid, .modules-grid {
         grid-template-columns: 1fr;
       }
     }
@@ -186,36 +245,43 @@ export class AppController {
   <!-- Hero Container -->
   <main class="hero-container">
     <h1 class="main-title">FamilyRoots API Dashboard</h1>
+    <p class="main-subtitle">Privacy-First Family Tree, Lineage & Archive API Engine</p>
 
-    <!-- Buttons Grid -->
+    <!-- Role Based API Access -->
+    <div class="roles-section-title">Role-Based Dashboard Access</div>
+    <div class="roles-grid">
+      <a href="/api/docs#/Users" class="role-pill">SUPER ADMIN</a>
+      <a href="/api/docs#/Users" class="role-pill">ADMIN</a>
+      <a href="/api/docs#/Family%20Sanctuary" class="role-pill">OWNER</a>
+      <a href="/api/docs#/Auth" class="role-pill">MEMBER / USER</a>
+    </div>
+
+    <!-- Active System Modules Grid -->
+    <div class="roles-section-title">Active Sanctuary Modules</div>
     <div class="modules-grid">
-      <a href="/api/docs#/Users" class="module-pill">USER</a>
-      <a href="/api/docs#/Users" class="module-pill">REELS</a>
-      <a href="/api/docs#/Users" class="module-pill">ADMIN</a>
-      <a href="/api/docs" class="module-pill">PUBLIC</a>
+      <a href="/api/docs#/Family%20Sanctuary" class="module-pill">FAMILY SANCTUARY</a>
+      <a href="/api/docs#/Family%20Sanctuary" class="module-pill">MEMBERS & DEDUPLICATION</a>
+      <a href="/api/docs#/Family%20Sanctuary" class="module-pill">RELATIONSHIPS</a>
+      <a href="/api/docs#/Family%20Sanctuary" class="module-pill">MEMORIES VAULT</a>
 
-      <a href="/health" class="module-pill">META</a>
-      <a href="/api/docs" class="module-pill">SITE</a>
-      <a href="/api/docs" class="module-pill">CREATOR</a>
-      <a href="/api/docs#/Auth" class="module-pill">AUTH</a>
+      <a href="/api/docs#/Family%20Sanctuary" class="module-pill">EVENTS CALENDAR</a>
+      <a href="/api/docs#/Family%20Sanctuary" class="module-pill">DOCUMENTS ARCHIVE</a>
+      <a href="/api/docs#/Family%20Sanctuary" class="module-pill">INVITATIONS</a>
+      <a href="/api/docs#/Auth" class="module-pill">AUTH & SECURITY</a>
 
-      <a href="/api/docs" class="module-pill wide">SUMMARY</a>
-      <a href="/api/docs" class="module-pill wide">NOTIFICATIONS</a>
-
-      <a href="/api/docs" class="module-pill wide">SWAGGER OPENAPI DOCS</a>
-      <a href="/health" class="module-pill wide">SYSTEM HEALTH STATUS</a>
+      <a href="/api/docs" class="module-pill wide cyan">SWAGGER OPENAPI DOCS</a>
+      <a href="/health" class="module-pill wide emerald">SYSTEM HEALTH STATUS</a>
     </div>
   </main>
 
   <!-- Footer -->
   <footer class="footer-container">
     <p class="footer-text">Developed by : <span>FamilyRoots SaaS Engine</span></p>
-    <p class="subtitle-text">NestJS & PostgreSQL Architecture</p>
+    <p class="subtitle-text">NestJS v11 & PostgreSQL Prisma ORM 7</p>
   </footer>
 </body>
 </html>`;
   }
-
 
   @Get('health')
   @ApiOperation({ summary: 'System health check' })
@@ -228,4 +294,3 @@ export class AppController {
     };
   }
 }
-
