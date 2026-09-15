@@ -1,53 +1,49 @@
 # 🛡️ FamilyRoots — Backend API Server
 
-> **Scalable, Multi-Tenant, Privacy-First Family Tree & Lineage Archive REST API.**  
-> Powered by NestJS 11, Prisma ORM 7 (SQL Driver Adapter), PostgreSQL, JWT Auth, and OpenAPI (Swagger).
+> **Scalable, Multi-Tenant, Privacy-First Family Tree & Lineage Archive REST API Server.**
 
 [![Live API](https://img.shields.io/badge/Live%20API-Vercel-6366f1?style=for-the-badge&logo=vercel)](https://family-together-backend.vercel.app)
 [![Swagger Specs](https://img.shields.io/badge/Swagger%20UI-OpenAPI-85ea2d?style=for-the-badge&logo=swagger)](https://family-together-backend.vercel.app/api/docs)
-[![NestJS](https://img.shields.io/badge/NestJS-11.x-ea2845?style=for-the-badge&logo=nestjs)](https://nestjs.com/)
-[![Prisma ORM](https://img.shields.io/badge/Prisma%20ORM-7.x-2d3748?style=for-the-badge&logo=prisma)](https://www.prisma.io/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16.x-4169e1?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
+[![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
 ---
 
 ## 📋 Table of Contents
-- [Overview](#-overview)
-- [Live Endpoints & Interactive Documentation](#-live-endpoints--interactive-documentation)
+- [Project Overview](#-project-overview)
+- [Live Endpoints & Interactive OpenAPI Docs](#-live-endpoints--interactive-openapi-docs)
 - [Key Architectural Features](#-key-architectural-features)
-- [User Roles & Security Guards](#-user-roles--security-guards)
-- [Database Schema (Prisma 7)](#-database-schema-prisma-7)
-- [API Modules Overview](#-api-modules-overview)
+- [User Roles & Authorization Guards](#-user-roles--authorization-guards)
+- [Database Models & Schema](#-database-models--schema)
+- [API Modules Structure](#-api-modules-structure)
 - [Environment Configuration](#-environment-configuration)
-- [Local Setup & Development](#-local-setup--development)
-- [Database Migration Commands](#-database-migration-commands)
+- [Getting Started & Local Development](#-getting-started--local-development)
+- [Database Commands](#-database-commands)
 - [API Endpoint Reference](#-api-endpoint-reference)
 - [Production Deployment](#-production-deployment)
 - [License](#-license)
 
 ---
 
-## 🚀 Overview
+## 🚀 Project Overview
 
-The **FamilyRoots Backend** provides high-performance, secure backend services for managing family sanctuaries, multi-generational lineage trees, memory vaults, relative deduplication, and account activation workflows.
+The **FamilyRoots Backend API Server** provides secure, high-performance services for managing family sanctuaries, multi-generational lineage trees, memory vaults, real-time relative deduplication, and automated account activation workflows.
 
-### 🌐 Live Production Server
-- **Production API:** `https://family-together-backend.vercel.app/api`
-- **Interactive Swagger UI:** 👉 **[https://family-together-backend.vercel.app/api/docs](https://family-together-backend.vercel.app/api/docs)**
+### 🌐 Live Production API & Swagger Docs
+- **Production API URL:** `https://family-together-backend.vercel.app/api`
+- **Interactive Swagger Documentation:** 👉 **[https://family-together-backend.vercel.app/api/docs](https://family-together-backend.vercel.app/api/docs)**
 
 ---
 
-## 📚 Live Endpoints & Interactive Documentation
+## 📚 Live Endpoints & Interactive OpenAPI Docs
 
 When running locally (`npm run start:dev`), test all API endpoints interactively via Swagger UI:
 
 👉 **`http://localhost:3000/api/docs`**
 
-Features provided by Swagger UI:
+Features provided in Swagger UI:
 - Interactive endpoint execution (`Try it out`).
-- Automatic JWT Authorization header injection.
-- Request/Response DTO schema visualization.
+- Automatic JWT Bearer Token authorization header injection.
+- Request/Response DTO schema specifications.
 
 ---
 
@@ -65,15 +61,15 @@ Features provided by Swagger UI:
 - When an Admin creates a family member with a valid email, an automated activation workflow is triggered.
 - Generates account activation codes and notifies users in real-time via the navbar notification service.
 
-### 🔐 4. Modern Prisma ORM 7 Driver Adapter Architecture
-- Configured with PostgreSQL Driver Adapter (`@prisma/adapter-pg`) for optimized connection pooling and serverless execution.
-- Multi-file schema organization (`prisma/schema/*.prisma`).
+### 🔐 4. High-Performance SQL Driver Adapter Connection
+- Configured with custom database connection adapters for optimized connection pooling and serverless execution.
+- Multi-file database schema organization (`prisma/schema/*.prisma`).
 
 ---
 
-## 👥 User Roles & Security Guards
+## 👥 User Roles & Authorization Guards
 
-System authorization is enforced using NestJS Execution Guards and custom `@Roles()` decorators:
+System authorization is enforced using strict role guards and permission decorators:
 
 ```ts
 export enum Role {
@@ -93,13 +89,13 @@ export enum Role {
 
 ---
 
-## 🗄️ Database Schema (Prisma 7)
+## 🗄️ Database Models & Schema
 
-FamilyRoots uses Prisma ORM 7's multi-file schema feature (`prisma/schema/`):
+FamilyRoots utilizes structured multi-file database schema definitions (`prisma/schema/`):
 
 ```
 prisma/schema/
-├── base.prisma          # User, Role Enums, Account Credentials
+├── base.prisma          # User Account, Role Enums, Credentials
 ├── family.prisma        # Family Sanctuary & Workspace Tenant Models
 ├── person.prisma        # FamilyMember & Lineage Node Schemas
 ├── relationship.prisma  # Parent-Child, Spouse, Sibling Relationships
@@ -115,15 +111,15 @@ prisma/schema/
 
 ---
 
-## 🧩 API Modules Overview
+## 🧩 API Modules Structure
 
 ```
 src/
-├── auth/          # JWT Authentication, Registration, Login, Token Refresh
+├── auth/          # Authentication, Registration, Login, Token Refresh
 ├── users/         # User Management, Role Updates, Account Activation
 ├── family/        # Family Sanctuary Creation, Member Management, Deduplication
 ├── mail/          # Email Activation & Notification Service
-├── prisma/        # Prisma 7 Database Service & Connection Pool
+├── prisma/        # Database Service & Connection Pool
 └── redis/         # Caching & Session Store Handler
 ```
 
@@ -139,14 +135,14 @@ PORT=3000
 NODE_ENV=development
 CORS_ORIGIN=http://localhost:3000,https://family-together-eta.vercel.app
 
-# PostgreSQL Connection String (Neon / Supabase / Prisma Postgres)
+# PostgreSQL Database Connection String
 DATABASE_URL="postgresql://user:password@ep-example.region.aws.neon.tech/familyroots?sslmode=require"
 
 # JWT Authentication Secrets
 JWT_SECRET=your_super_secret_jwt_key_here
 JWT_EXPIRATION=7d
 
-# Email Configuration (Nodemailer / Resend)
+# Email Notification Service
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your_email@gmail.com
@@ -155,12 +151,12 @@ SMTP_PASS=your_app_password
 
 ---
 
-## 🚀 Local Setup & Development
+## 🚀 Getting Started & Local Development
 
 ### Prerequisites
-- **Node.js**: v18.x or v20.x or higher
+- **Node.js**: v18.x or higher
 - **npm**: v9.x or higher
-- **PostgreSQL**: Local or cloud instance (Neon / Supabase)
+- **PostgreSQL**: Database instance
 
 ### Installation
 
@@ -175,32 +171,32 @@ SMTP_PASS=your_app_password
    npm install
    ```
 
-3. **Generate Prisma Client:**
+3. **Generate Database Client:**
    ```bash
    npx prisma generate
    ```
 
-4. **Run development server:**
+4. **Start development server:**
    ```bash
    npm run start:dev
    ```
-   Open **`http://localhost:3000/api/docs`** for interactive Swagger documentation.
+   Open **`http://localhost:3000/api/docs`** for interactive Swagger API documentation.
 
 ---
 
-## 🗃️ Database Migration Commands
+## 🗃️ Database Commands
 
 ```bash
-# Push schema changes to database
+# Push schema updates to database
 npx prisma db push
 
-# Generate fresh Prisma Client
+# Generate Client
 npx prisma generate
 
-# Open Prisma Studio GUI
+# Open Database Studio GUI
 npx prisma studio
 
-# Seed initial admin user & sample family data
+# Seed initial system data
 npx ts-node prisma/seed.ts
 ```
 
@@ -223,10 +219,9 @@ npx ts-node prisma/seed.ts
 
 ## 📦 Production Deployment
 
-The backend server is deployed on **Vercel Serverless Functions**:
+Deploy the backend server to Vercel Production:
 
 ```bash
-# Deploy backend to Vercel Production
 vercel --prod --yes
 ```
 
