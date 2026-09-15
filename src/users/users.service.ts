@@ -1,17 +1,21 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
 
   async create(createUserDto: any) {
     const { password, ...rest } = createUserDto;
     const plainPassword = password || 'SanctuaryPass123!';
     const hashedPassword = await bcrypt.hash(plainPassword, 12);
 
-    return this.prisma.user.create({
+    const user = await this.prisma.user.create({
       data: {
         ...rest,
         password: hashedPassword,
@@ -24,6 +28,15 @@ export class UsersService {
         status: true,
       },
     });
+
+    // Send email with credentials/welcome info to valid email address
+    if (user.email) {
+      this.mailService
+        .sendMemberWelcomeEmail(user.email, user.fullName, user.email, plainPassword)
+        .catch((err) => console.error('Failed to send user welcome email:', err));
+    }
+
+    return user;
   }
 
   async findAll() {
