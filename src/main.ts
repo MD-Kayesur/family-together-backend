@@ -12,8 +12,8 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
 
-  app.use(json({ limit: '500mb' }));
-  app.use(urlencoded({ extended: true, limit: '500mb' }));
+  app.use(json({ limit: '5gb' }));
+  app.use(urlencoded({ extended: true, limit: '5gb' }));
 
   app.use(cookieParser());
 
