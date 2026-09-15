@@ -15,8 +15,16 @@ describe('AppController', () => {
   });
 
   describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+    it('should return HTML dashboard', () => {
+      expect(appController.getDashboard()).toContain('FamilyRoots API Dashboard');
+    });
+  });
+
+  describe('health', () => {
+    it('should return system health status', () => {
+      const health = appController.getHealth();
+      expect(health.status).toBe('ok');
+      expect(health.service).toBe('family-together-backend');
     });
   });
 });

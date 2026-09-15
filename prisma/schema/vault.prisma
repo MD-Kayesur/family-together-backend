@@ -1,0 +1,68 @@
+// ----------------------------------------------------
+// Vault, Memories & Events Domain Models
+// ----------------------------------------------------
+
+model Memory {
+  id          String   @id @default(uuid())
+  familyId    String   @map("family_id")
+  title       String
+  description String?  @db.Text
+  mediaUrl    String?  @map("media_url")
+  photoCount  Int      @default(1) @map("photo_count")
+  sharedBy    String   @map("shared_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@map("memories")
+}
+
+model Event {
+  id          String   @id @default(uuid())
+  familyId    String   @map("family_id")
+  title       String
+  date        DateTime @db.Date
+  location    String?
+  description String?  @db.Text
+  isVirtual   Boolean  @default(false) @map("is_virtual")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@map("events")
+}
+
+model Document {
+  id          String   @id @default(uuid())
+  familyId    String   @map("family_id")
+  name        String
+  category    String   @default("Legal Records")
+  size        String   @default("2.5 MB")
+  fileUrl     String?  @map("file_url")
+  uploadedBy  String   @default("Family Member") @map("uploaded_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@map("documents")
+}
+
+model Invitation {
+  id        String   @id @default(uuid())
+  familyId  String   @map("family_id")
+  name      String
+  email     String
+  role      String   @default("MEMBER")
+  status    String   @default("PENDING")
+  note      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@map("invitations")
+}
+

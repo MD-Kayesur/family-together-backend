@@ -29,7 +29,7 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'User record found' })
   @ApiResponse({ status: 404, description: 'User not found' })
   findOne(@Param('id') id: string) {
-    return this.usersService.findOne(+id);
+    return this.usersService.findOne(id);
   }
 
   @Patch(':id')
@@ -37,7 +37,7 @@ export class UsersController {
   @ApiParam({ name: 'id', description: 'User unique identifier' })
   @ApiResponse({ status: 200, description: 'User updated successfully' })
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(+id, updateUserDto);
+    return this.usersService.update(id, updateUserDto);
   }
 
   @Delete(':id')
@@ -45,7 +45,7 @@ export class UsersController {
   @ApiParam({ name: 'id', description: 'User unique identifier' })
   @ApiResponse({ status: 200, description: 'User account removed' })
   remove(@Param('id') id: string) {
-    return this.usersService.remove(+id);
+    return this.usersService.remove(id);
   }
 }
 
