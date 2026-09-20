@@ -298,10 +298,74 @@ export class FamilyService {
     return { success: true, message: 'Member deleted successfully' };
   }
 
+  private parseMediaUrls(mediaUrl: string | null): string[] {
+    if (!mediaUrl) return [];
+    try {
+      const trimmed = mediaUrl.trim();
+      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((item) => typeof item === 'string' && item.length > 0);
+        }
+      }
+      return [trimmed];
+    } catch {
+      return [mediaUrl];
+    }
+  }
+
+  private async processMediaResiliently(mediaUrls?: string[], singleMediaUrl?: string): Promise<string[]> {
+    const rawList: string[] = [];
+
+    if (Array.isArray(mediaUrls) && mediaUrls.length > 0) {
+      rawList.push(...mediaUrls.filter((u) => typeof u === 'string' && u.trim().length > 0));
+    } else if (singleMediaUrl && singleMediaUrl.trim().length > 0) {
+      rawList.push(...this.parseMediaUrls(singleMediaUrl));
+    }
+
+    if (rawList.length === 0) return [];
+
+    // Process multiple media items with Promise.race and try/catch isolation
+    // If any single media item fails or times out, the other items are safely preserved and added
+    const results = await Promise.allSettled(
+      rawList.map(async (itemUrl) => {
+        try {
+          return await Promise.race([
+            Promise.resolve(itemUrl.trim()),
+            new Promise<string>((_, reject) =>
+              setTimeout(() => reject(new Error('Media validation timeout')), 4000),
+            ),
+          ]);
+        } catch (err) {
+          console.warn(`[Promise.race] Media item failed or timed out, continuing with remaining items:`, err);
+          return null;
+        }
+      }),
+    );
+
+    return results
+      .filter((r): r is PromiseFulfilledResult<string | null> => r.status === 'fulfilled' && !!r.value)
+      .map((r) => r.value as string);
+  }
+
   async getMemories() {
-    return this.prisma.memory.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
+    try {
+      const memories = await this.prisma.memory.findMany({
+        orderBy: { createdAt: 'desc' },
+      });
+
+      return memories.map((mem) => {
+        const mediaUrls = this.parseMediaUrls(mem.mediaUrl);
+        return {
+          ...mem,
+          mediaUrls,
+          mediaUrl: mediaUrls[0] || mem.mediaUrl || null,
+        };
+      });
+    } catch (err) {
+      console.error('Error in getMemories:', err);
+      throw err;
+    }
   }
 
   async createMemory(data: {
@@ -312,42 +376,71 @@ export class FamilyService {
     location?: string;
     category?: string;
     mediaUrl?: string;
+    mediaUrls?: string[];
     taggedMembers?: string;
     privacy?: string;
   }) {
-    const family = await this.prisma.family.findFirst();
-    let combinedDesc = data.description || '';
-    const metaParts: string[] = [];
+    try {
+      const family = await this.prisma.family.findFirst();
+      let combinedDesc = data.description || '';
+      const metaParts: string[] = [];
 
-    if (data.category) metaParts.push(`Category: ${data.category}`);
-    if (data.date) metaParts.push(`Date: ${data.date}`);
-    if (data.location) metaParts.push(`Location: ${data.location}`);
-    if (data.taggedMembers) metaParts.push(`Tagged: ${data.taggedMembers}`);
-    if (data.privacy) metaParts.push(`Privacy: ${data.privacy}`);
+      if (data.category) metaParts.push(`Category: ${data.category}`);
+      if (data.date) metaParts.push(`Date: ${data.date}`);
+      if (data.location) metaParts.push(`Location: ${data.location}`);
+      if (data.taggedMembers) metaParts.push(`Tagged: ${data.taggedMembers}`);
+      if (data.privacy) metaParts.push(`Privacy: ${data.privacy}`);
 
-    if (metaParts.length > 0) {
-      combinedDesc = `${metaParts.join(' • ')}${combinedDesc ? `\n\n${combinedDesc}` : ''}`;
+      if (metaParts.length > 0) {
+        combinedDesc = `${metaParts.join(' • ')}${combinedDesc ? `\n\n${combinedDesc}` : ''}`;
+      }
+
+      // Process multiple media items with resilient Promise.race / try-catch
+      const resolvedMediaUrls = await this.processMediaResiliently(data.mediaUrls, data.mediaUrl);
+      const storedMediaUrl =
+        resolvedMediaUrls.length > 0 ? JSON.stringify(resolvedMediaUrls) : data.mediaUrl || null;
+
+      const created = await this.prisma.memory.create({
+        data: {
+          familyId: family?.id || 'default',
+          title: data.title,
+          description: combinedDesc,
+          sharedBy: data.sharedBy || 'Family Member',
+          mediaUrl: storedMediaUrl,
+          photoCount: resolvedMediaUrls.length > 0 ? resolvedMediaUrls.length : 1,
+        },
+      });
+
+      return {
+        ...created,
+        mediaUrls: resolvedMediaUrls,
+        mediaUrl: resolvedMediaUrls[0] || created.mediaUrl || null,
+      };
+    } catch (err) {
+      console.error('Error in createMemory:', err);
+      throw err;
     }
-
-    return this.prisma.memory.create({
-      data: {
-        familyId: family?.id || 'default',
-        title: data.title,
-        description: combinedDesc,
-        sharedBy: data.sharedBy || 'Family Member',
-        mediaUrl: data.mediaUrl || null,
-      },
-    });
   }
 
   async getMemoryById(id: string) {
-    const memory = await this.prisma.memory.findUnique({
-      where: { id },
-    });
-    if (!memory) {
-      throw new NotFoundException(`Memory with ID ${id} not found`);
+    try {
+      const memory = await this.prisma.memory.findUnique({
+        where: { id },
+      });
+      if (!memory) {
+        throw new NotFoundException(`Memory with ID ${id} not found`);
+      }
+
+      const mediaUrls = this.parseMediaUrls(memory.mediaUrl);
+      return {
+        ...memory,
+        mediaUrls,
+        mediaUrl: mediaUrls[0] || memory.mediaUrl || null,
+      };
+    } catch (err) {
+      console.error(`Error in getMemoryById (${id}):`, err);
+      throw err;
     }
-    return memory;
   }
 
   async updateMemory(
@@ -360,34 +453,56 @@ export class FamilyService {
       location?: string;
       category?: string;
       mediaUrl?: string;
+      mediaUrls?: string[];
       taggedMembers?: string;
       privacy?: string;
     },
   ) {
-    const memory = await this.getMemoryById(id);
+    try {
+      const memory = await this.getMemoryById(id);
 
-    let combinedDesc = data.description !== undefined ? data.description : '';
-    const metaParts: string[] = [];
+      let combinedDesc = data.description !== undefined ? data.description : '';
+      const metaParts: string[] = [];
 
-    if (data.category) metaParts.push(`Category: ${data.category}`);
-    if (data.date) metaParts.push(`Date: ${data.date}`);
-    if (data.location) metaParts.push(`Location: ${data.location}`);
-    if (data.taggedMembers) metaParts.push(`Tagged: ${data.taggedMembers}`);
-    if (data.privacy) metaParts.push(`Privacy: ${data.privacy}`);
+      if (data.category) metaParts.push(`Category: ${data.category}`);
+      if (data.date) metaParts.push(`Date: ${data.date}`);
+      if (data.location) metaParts.push(`Location: ${data.location}`);
+      if (data.taggedMembers) metaParts.push(`Tagged: ${data.taggedMembers}`);
+      if (data.privacy) metaParts.push(`Privacy: ${data.privacy}`);
 
-    if (metaParts.length > 0) {
-      combinedDesc = `${metaParts.join(' • ')}${combinedDesc ? `\n\n${combinedDesc}` : ''}`;
+      if (metaParts.length > 0) {
+        combinedDesc = `${metaParts.join(' • ')}${combinedDesc ? `\n\n${combinedDesc}` : ''}`;
+      }
+
+      let storedMediaUrl = memory.mediaUrl;
+      let resolvedMediaUrls: string[] = memory.mediaUrls || [];
+
+      if (data.mediaUrls !== undefined || data.mediaUrl !== undefined) {
+        resolvedMediaUrls = await this.processMediaResiliently(data.mediaUrls, data.mediaUrl);
+        storedMediaUrl =
+          resolvedMediaUrls.length > 0 ? JSON.stringify(resolvedMediaUrls) : data.mediaUrl || null;
+      }
+
+      const updated = await this.prisma.memory.update({
+        where: { id },
+        data: {
+          title: data.title !== undefined ? data.title : memory.title,
+          description: combinedDesc || memory.description,
+          sharedBy: data.sharedBy !== undefined ? data.sharedBy : memory.sharedBy,
+          mediaUrl: storedMediaUrl,
+          photoCount: resolvedMediaUrls.length > 0 ? resolvedMediaUrls.length : memory.photoCount || 1,
+        },
+      });
+
+      return {
+        ...updated,
+        mediaUrls: resolvedMediaUrls,
+        mediaUrl: resolvedMediaUrls[0] || updated.mediaUrl || null,
+      };
+    } catch (err) {
+      console.error(`Error in updateMemory (${id}):`, err);
+      throw err;
     }
-
-    return this.prisma.memory.update({
-      where: { id },
-      data: {
-        title: data.title !== undefined ? data.title : memory.title,
-        description: combinedDesc || memory.description,
-        sharedBy: data.sharedBy !== undefined ? data.sharedBy : memory.sharedBy,
-        mediaUrl: data.mediaUrl !== undefined ? data.mediaUrl : memory.mediaUrl,
-      },
-    });
   }
 
   async deleteMemory(id: string) {

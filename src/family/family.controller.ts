@@ -92,6 +92,7 @@ export class FamilyController {
       location?: string;
       category?: string;
       mediaUrl?: string;
+      mediaUrls?: string[];
       taggedMembers?: string;
       privacy?: string;
     },
@@ -118,6 +119,7 @@ export class FamilyController {
       location?: string;
       category?: string;
       mediaUrl?: string;
+      mediaUrls?: string[];
       taggedMembers?: string;
       privacy?: string;
     },
