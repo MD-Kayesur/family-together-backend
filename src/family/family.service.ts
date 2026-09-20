@@ -652,7 +652,7 @@ export class FamilyService {
         });
 
         const timeout = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error(`Timeout saving document: ${docData.name}`)), 15000),
+          setTimeout(() => reject(new Error(`Timeout saving document: ${docData.name}`)), 60000),
         );
 
         const savedDoc = await Promise.race([saveOperation, timeout]);
