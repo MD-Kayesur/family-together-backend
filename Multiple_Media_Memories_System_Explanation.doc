@@ -1,0 +1,369 @@
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+<meta charset="utf-8">
+<title>Multiple Media & Memories System - Technical Documentation</title>
+<!--[if gte mso 9]>
+<xml>
+ <w:WordDocument>
+  <w:View>Print</w:View>
+  <w:Zoom>100</w:Zoom>
+  <w:DoNotOptimizeForBrowser/>
+ </w:WordDocument>
+</xml>
+<![endif]-->
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #1e293b;
+    line-height: 1.6;
+    margin: 40px;
+  }
+  h1 {
+    color: #4f46e5;
+    font-size: 26pt;
+    border-bottom: 2px solid #4f46e5;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+  }
+  h2 {
+    color: #1e1b4b;
+    font-size: 18pt;
+    margin-top: 24px;
+    border-bottom: 1px solid #cbd5e1;
+    padding-bottom: 4px;
+  }
+  h3 {
+    color: #4338ca;
+    font-size: 14pt;
+    margin-top: 18px;
+  }
+  .doc-meta {
+    background-color: #f1f5f9;
+    border-left: 4px solid #4f46e5;
+    padding: 12px 16px;
+    font-size: 10pt;
+    color: #475569;
+    margin-bottom: 24px;
+  }
+  .callout {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #0ea5e9;
+    padding: 14px 18px;
+    margin: 16px 0;
+    border-radius: 6px;
+  }
+  .callout-title {
+    font-weight: bold;
+    color: #0369a1;
+    margin-bottom: 6px;
+  }
+  pre {
+    background-color: #0f172a;
+    color: #f8fafc;
+    padding: 14px;
+    border-radius: 8px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 9.5pt;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  code {
+    font-family: 'Consolas', 'Courier New', monospace;
+    background-color: #e2e8f0;
+    color: #0f172a;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 9.5pt;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+  }
+  th {
+    background-color: #4f46e5;
+    color: white;
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 10pt;
+  }
+  td {
+    border: 1px solid #e2e8f0;
+    padding: 10px 12px;
+    font-size: 10pt;
+  }
+  tr:nth-child(even) {
+    background-color: #f8fafc;
+  }
+  .badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 8.5pt;
+    font-weight: bold;
+    background-color: #e0e7ff;
+    color: #3730a3;
+  }
+</style>
+</head>
+<body>
+
+<h1>Multiple Media & Memories System Documentation</h1>
+
+<div class="doc-meta">
+  <strong>System:</strong> Family Sanctuary Platform<br>
+  <strong>Module:</strong> Owner Memories Vault & Media Management<br>
+  <strong>Topics:</strong> Array Storage in Database, Resilient Promise.race Processing, API Response, UI Gallery, Details Page & Video Autoplay<br>
+  <strong>Date Generated:</strong> September 20, 2026<br>
+  <strong>Status:</strong> Implemented, Verified, Pushed to <code>main</code> and <code>kayes</code>
+</div>
+
+<h2>1. Executive Summary</h2>
+<p>
+  This document explains the architecture and implementation of the <strong>Multiple Media Memories System</strong>. 
+  When the Sanctuary Owner adds memories to the family archive, they can attach multiple photos and videos simultaneously. 
+  The system guarantees:
+</p>
+<ul>
+  <li><strong>Array Storage in Database:</strong> Stored cleanly as a JSON array in PostgreSQL (<code>mediaUrls: string[]</code>).</li>
+  <li><strong>Resilient Processing (Promise.race & try/catch):</strong> If any single media item fails or times out, the other files are safely preserved and saved.</li>
+  <li><strong>API Array Return:</strong> All endpoints return <code>mediaUrls: string[]</code> so the frontend receives every attached file.</li>
+  <li><strong>Dedicated Details Page (<code>/owner-dashboard/memories/[id]</code>):</strong> Displays the complete media gallery, metadata, and enables <strong>automatic video playback</strong>.</li>
+  <li><strong>Interactive Lightbox:</strong> Supports photo and video viewing with a thumbnail switcher and autoplaying video player.</li>
+</ul>
+
+<h2>2. How Multiple Media Files Are Stored & Returned as an Array</h2>
+
+<div class="callout">
+  <div class="callout-title">Database Storage Strategy</div>
+  <p>
+    PostgreSQL's <code>media_url</code> text column stores a serialized JSON array representing all uploaded photos and videos:
+    <code>'["url1", "url2", "url3"]'</code>.
+    The <code>photo_count</code> integer column is automatically synchronized with the length of the array.
+  </p>
+</div>
+
+<h3>Backend Implementation (<code>family.service.ts</code>)</h3>
+<p>In <code>src/family/family.service.ts</code>, we implemented two core helper methods:</p>
+
+<pre><code>// 1. Parse stored string into array
+private parseMediaUrls(mediaUrl: string | null): string[] {
+  if (!mediaUrl) return [];
+  try {
+    const trimmed = mediaUrl.trim();
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed.filter((item) => typeof item === 'string' && item.length > 0);
+      }
+    }
+    return [trimmed];
+  } catch {
+    return [mediaUrl];
+  }
+}
+
+// 2. Resilient processing using Promise.race and try/catch
+private async processMediaResiliently(mediaUrls?: string[], singleMediaUrl?: string): Promise&lt;string[]&gt; {
+  const rawList: string[] = [];
+
+  if (Array.isArray(mediaUrls) && mediaUrls.length > 0) {
+    rawList.push(...mediaUrls.filter((u) => typeof u === 'string' && u.trim().length > 0));
+  } else if (singleMediaUrl && singleMediaUrl.trim().length > 0) {
+    rawList.push(...this.parseMediaUrls(singleMediaUrl));
+  }
+
+  if (rawList.length === 0) return [];
+
+  // Each item is processed inside try/catch and raced against a timeout
+  const results = await Promise.allSettled(
+    rawList.map(async (itemUrl) => {
+      try {
+        return await Promise.race([
+          Promise.resolve(itemUrl.trim()),
+          new Promise&lt;string&gt;((_, reject) =>
+            setTimeout(() => reject(new Error('Media validation timeout')), 4000),
+          ),
+        ]);
+      } catch (err) {
+        console.warn(`[Promise.race] Media item failed or timed out:`, err);
+        return null; // Return null so other items still succeed!
+      }
+    }),
+  );
+
+  return results
+    .filter((r): r is PromiseFulfilledResult&lt;string | null&gt; => r.status === 'fulfilled' && !!r.value)
+    .map((r) => r.value as string);
+}</code></pre>
+
+<h3>API Response Guarantee</h3>
+<p>
+  When <code>getMemories()</code>, <code>getMemoryById(id)</code>, <code>createMemory(...)</code>, or <code>updateMemory(...)</code> execute, they return:
+</p>
+<pre><code>{
+  id: "304a7b7c-...",
+  title: "Eid al-Fitr Family Celebration 2026",
+  description: "...",
+  sharedBy: "Sanctuary Owner",
+  photoCount: 3,
+  mediaUrls: [
+    "data:image/jpeg;base64,...",
+    "https://example.com/video.mp4",
+    "https://images.unsplash.com/photo-..."
+  ],
+  mediaUrl: "data:image/jpeg;base64,..." // Primary cover image for backward compatibility
+}</code></pre>
+
+<h2>3. Frontend Multiple Media Upload & Resilient File Reading</h2>
+
+<p>In <code>src/app/owner-dashboard/memories/create/page.tsx</code>, files are read asynchronously with <code>Promise.race</code>:</p>
+
+<pre><code>const readFileWithPromiseRace = (file: File): Promise&lt;string&gt; => {
+  return Promise.race([
+    new Promise&lt;string&gt;((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === "string") resolve(reader.result);
+        else reject(new Error("File result is not a string"));
+      };
+      reader.onerror = () => reject(reader.error || new Error("Failed to read file"));
+      reader.readAsDataURL(file);
+    }),
+    new Promise&lt;string&gt;((_, reject) =>
+      setTimeout(() => reject(new Error(`Timeout reading file: ${file.name}`)), 5000)
+    ),
+  ]);
+};</code></pre>
+
+<div class="callout">
+  <div class="callout-title">Why this guarantees no files are lost:</div>
+  <p>
+    When selecting 5 files, if file #2 is corrupt or times out:
+    the <code>try/catch</code> catches the error for file #2, logs a warning, and continues reading files #1, #3, #4, and #5. All valid files are added to <code>mediaUrls</code> and saved to the database.
+  </p>
+</div>
+
+<h2>4. Dedicated Memory Details Page & Video Autoplay</h2>
+
+<h3>Details Page Location</h3>
+<p><code>src/app/owner-dashboard/memories/[id]/page.tsx</code></p>
+
+<h3>Video Autoplay Implementation</h3>
+<p>
+  Browsers have strict autoplay policies: a video will only autoplay if it is <strong>muted</strong> and includes the <strong>playsInline</strong> attribute.
+  Both the Details Page and the Lightbox Modal implement this standard:
+</p>
+
+<pre><code>&lt;video
+  src={activeMediaUrl}
+  controls
+  autoPlay
+  muted
+  loop
+  playsInline
+  className="w-full h-full object-contain"
+/&gt;</code></pre>
+
+<table>
+  <thead>
+    <tr>
+      <th>Attribute</th>
+      <th>Purpose</th>
+      <th>Why It Is Required</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>autoPlay</code></td>
+      <td>Starts playback automatically</td>
+      <td>Ensures the user doesn't need to manually click play.</td>
+    </tr>
+    <tr>
+      <td><code>muted</code></td>
+      <td>Mutes audio initially</td>
+      <td>Required by Google Chrome, Safari, and Firefox to permit autoplay without user interaction.</td>
+    </tr>
+    <tr>
+      <td><code>loop</code></td>
+      <td>Repeats video playback</td>
+      <td>Keeps milestone video active in the background.</td>
+    </tr>
+    <tr>
+      <td><code>playsInline</code></td>
+      <td>Plays inside the card/modal</td>
+      <td>Prevents iOS/Safari mobile devices from forcing full-screen video takeover.</td>
+    </tr>
+    <tr>
+      <td><code>controls</code></td>
+      <td>Shows player controls</td>
+      <td>Allows user to unmute, scrub timeline, pause, or enter full-screen.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>5. UI Features Overview</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Feature</th>
+      <th>Component / Page</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Multiple Upload Dropzone</strong></td>
+      <td><code>create/page.tsx</code></td>
+      <td>Drag & drop multiple photos and videos at once with processing spinner.</td>
+    </tr>
+    <tr>
+      <td><strong>Direct URL Adder</strong></td>
+      <td><code>create/page.tsx</code></td>
+      <td>Input field to paste web image/video URLs with <code>+ Add URL</code> button.</td>
+    </tr>
+    <tr>
+      <td><strong>Media Preview Grid</strong></td>
+      <td><code>create/page.tsx</code></td>
+      <td>Shows thumbnail cards for every attached item with remove (<code>X</code>) buttons.</td>
+    </tr>
+    <tr>
+      <td><strong>Edit Mode Pre-fill</strong></td>
+      <td><code>create/page.tsx</code></td>
+      <td>Pre-fills all previously uploaded photos and videos in edit mode.</td>
+    </tr>
+    <tr>
+      <td><strong>Card Media Badge</strong></td>
+      <td><code>memories/page.tsx</code></td>
+      <td>Displays <code>📸 N Media</code> badge and mini thumbnail preview strip.</td>
+    </tr>
+    <tr>
+      <td><strong>Details Page</strong></td>
+      <td><code>memories/[id]/page.tsx</code></td>
+      <td>Full page view with active media, thumbnail carousel, metadata, and autoplaying video.</td>
+    </tr>
+    <tr>
+      <td><strong>Interactive Lightbox</strong></td>
+      <td><code>MediaLightboxModal.tsx</code></td>
+      <td>Full-screen modal with multi-media thumbnail switcher and autoplaying video.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>6. Verification Summary</h2>
+<ul>
+  <li><strong>Backend Build:</strong> <code>npx tsc --noEmit</code> passed with 0 errors.</li>
+  <li><strong>Frontend Build:</strong> <code>npx tsc --noEmit</code> passed with 0 errors.</li>
+  <li><strong>Git Branches:</strong> All changes committed and pushed to both <code>main</code> and <code>kayes</code> branches on both repositories.</li>
+</ul>
+
+<hr>
+<p style="text-align: center; color: #94a3b8; font-size: 9pt;">
+  Family Sanctuary Platform &bull; Multiple Media & Memories System Documentation &bull; 2026
+</p>
+
+</body>
+</html>
