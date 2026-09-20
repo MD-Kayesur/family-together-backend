@@ -54,13 +54,13 @@ export class FamilyService {
     return {
       family,
       stats: {
-        totalMembers: totalMembers || 5,
-        connectedUsers: connectedUsers || 1,
-        relationships: totalRelationships || 3,
-        pendingInvites: pendingInvites || 0,
-        totalMemories: totalMemories || 1,
-        totalDocuments: totalDocuments || 3,
-        totalEvents: totalEvents || 2,
+        totalMembers: totalMembers,
+        connectedUsers: connectedUsers,
+        relationships: totalRelationships,
+        pendingInvites: pendingInvites,
+        totalMemories: totalMemories,
+        totalDocuments: totalDocuments,
+        totalEvents: totalEvents,
       },
     };
   }
@@ -666,10 +666,25 @@ export class FamilyService {
   }
 
   async deleteDocument(id: string) {
-    const doc = await this.prisma.document.findUnique({ where: { id } });
-    if (!doc) throw new NotFoundException('Document not found');
-    await this.prisma.document.delete({ where: { id } });
-    return { success: true, message: 'Document deleted' };
+    try {
+      const doc = await this.prisma.document.findUnique({ where: { id } });
+      if (!doc) {
+        return { success: true, message: 'Document already deleted or not found' };
+      }
+      await this.prisma.document.delete({ where: { id } });
+      return { success: true, message: 'Document deleted' };
+    } catch (err: any) {
+      console.error(`Error deleting document ${id}:`, err);
+      if (err?.code === 'P2025') {
+        return { success: true, message: 'Document already deleted' };
+      }
+      throw err;
+    }
+  }
+
+  async deleteAllDocuments() {
+    await this.prisma.document.deleteMany({});
+    return { success: true, message: 'All documents deleted from vault' };
   }
 
   async getInvitations() {

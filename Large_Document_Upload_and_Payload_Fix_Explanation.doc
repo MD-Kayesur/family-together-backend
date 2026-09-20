@@ -1,72 +1,94 @@
-# Large Document Upload & 413 Payload Too Large Resolution Explanation
+# Vault Document Management: Upload, Deletion & Persistence Explanation
 
-## 1. Overview & Root Cause Analysis
+## 1. Issue Analysis: Why Did Deleted Documents Reappear on Reload?
 
-### What Caused the `413 Payload Too Large` Error?
-When uploading multiple documents or large PDF / image files to `POST http://localhost:8000/family/documents/multiple`, the browser sends documents as base64 data URLs.
-By default:
-1. **NestJS / Express Default Body Limit**: Express `json()` and `urlencoded()` parsers have a default payload limit of **100 KB** (`100kb`).
-2. Any document or batch upload exceeding 100 KB immediately triggers HTTP status code **`413 Payload Too Large`** at the Express middleware layer before reaching the NestJS controller or service.
-3. In addition, browser file readers and database write operations had short timeout thresholds (15s) which could cause slow network or large file writes to abort prematurely.
+When documents were deleted in the UI and the page was reloaded, they sometimes reappeared due to three critical factors:
+
+### A. Browser Native Dialog Suppression (`window.confirm`)
+- Previously, deleting a document relied on browser-native `window.confirm('Are you sure you want to delete...?')`.
+- When a user tried to delete multiple documents in succession, modern browsers (Chrome, Edge, Firefox) automatically display:
+  `[ ] Prevent this page from creating additional dialogs`
+  or suppress rapid consecutive `confirm()` calls by returning `false`.
+- When `confirm()` silently returned `false`, the frontend never dispatched `deleteDocument(id)` to the backend. The document remained in PostgreSQL, and reappeared as soon as the page was reloaded.
+
+### B. Lack of Bulk Deletion ("Clear Vault") Route
+- There was no bulk `DELETE /family/documents` route in the API. If a user wanted to clear all documents, each file had to be individually deleted through the browser.
+
+### C. Falsy Fallback in Sanctuary Stats
+- In `getSanctuaryData()`, the document count stat was previously defined as:
+  ```typescript
+  totalDocuments: totalDocuments || 3
+  ```
+  In JavaScript, `0 || 3` evaluates to `3`. So whenever all documents were cleared (count = 0), the overview stats still displayed `3 documents`.
 
 ---
 
 ## 2. Solutions Implemented
 
-### A. Backend Payload Limit Configuration (`family-together-backend/src/main.ts`)
-We configured Express `json` and `urlencoded` middleware with a **100 MB** limit:
-```typescript
-import { json, urlencoded } from 'express';
+### A. Non-Blocking In-App Confirmation Modals (`DocumentsTab.tsx`)
+- Replaced browser `window.confirm` with custom Tailwind/CSS confirmation modals.
+- These modals:
+  - Cannot be suppressed or blocked by browsers.
+  - Provide a clear preview of the file being deleted.
+  - Display interactive loading spinners during deletion.
+  - Ensure the deletion mutation is always reliably dispatched to the backend.
 
-// Increase payload limit to 100MB for multiple/large document uploads
-app.use(json({ limit: '100mb' }));
-app.use(urlencoded({ limit: '100mb', extended: true }));
-```
-- **100 MB Limit**: Allows multiple high-resolution PDFs, scans, and images to be sent in a single batch without triggering HTTP 413.
+### B. Bulk Deletion & "Clear Vault" Feature
+- **Backend Route** (`FamilyController` & `FamilyService`):
+  ```typescript
+  @Delete('documents')
+  @ApiOperation({ summary: 'Delete all documents from family vault' })
+  deleteAllDocuments() {
+    return this.familyService.deleteAllDocuments();
+  }
+  ```
+  ```typescript
+  async deleteAllDocuments() {
+    await this.prisma.document.deleteMany({});
+    return { success: true, message: 'All documents deleted from vault' };
+  }
+  ```
+- **Frontend Mutation** (`familyApi.ts`):
+  Added `useDeleteAllDocumentsMutation` to execute `DELETE /family/documents` and invalidate `Documents` and `Sanctuary` tags.
+- **Frontend UI** (`DocumentsTab.tsx`):
+  Added a "Clear Vault" button in the header card with a confirmation modal to delete all documents with a single click.
 
-### B. Extended Timeout Safeguards (`family-together-backend/src/family/family.service.ts`)
-In `createMultipleDocuments`:
-```typescript
-const timeout = new Promise((_, reject) =>
-  setTimeout(() => reject(new Error(`Timeout saving document: ${docData.name}`)), 60000),
-);
+### C. Resilient Single-Document Deletion (`family.service.ts`)
+- Wrapped Prisma's `document.delete` in error handling that gracefully handles `P2025` (record already removed) so no unhandled 500 exceptions occur.
 
-const savedDoc = await Promise.race([saveOperation, timeout]);
-```
-- The timeout was extended from **15 seconds** to **60 seconds** to accommodate large file writes into PostgreSQL over remote network connections.
-- Each document is encapsulated in an individual `try...catch` block so if any single file fails or times out, the rest of the documents in the batch still save successfully without crashing the server.
+### D. Fixed Sanctuary Stats Counter
+- Changed `totalDocuments: totalDocuments` so that `0` is preserved and correctly reflects an empty vault.
 
-### C. Frontend File Reading Timeout Optimization (`family-together-frontend/src/components/dashboard/tabs/DocumentsTab.tsx`)
-In `readFileAsDataUrl`:
-```typescript
-const timeoutPromise = new Promise<string>((_, reject) =>
-  setTimeout(() => reject(new Error(`Reading timed out for: ${file.name}`)), 60000)
-);
-```
-- Extended the FileReader timeout to **60 seconds** to ensure large files are read into base64 format without timing out on slower devices or large PDF uploads.
+### E. Array Response Verification
+- `GET /family/documents` always returns a clean array `DocumentRecord[]`.
+- When all documents are deleted, it returns `[]` (empty array).
+- Documents deleted from the database never reappear on reload.
 
 ---
 
-## 3. Verification & Live Testing
+## 3. Automated Lifecycle Test Results
 
-### Test Executed:
-- A live automated test script sent a **3.00 MB** PDF document payload to `http://localhost:8000/family/documents/multiple`.
-- **Result**:
-  - HTTP Status: **201 Created**
-  - Document successfully saved to database:
-    ```json
-    {
-      "id": "b1557b49-a53f-43eb-a78a-ba2099fe6298",
-      "name": "Large_Vault_Document_Test.pdf",
-      "size": "3.0 MB",
-      "hasFileUrl": true,
-      "fileUrlLength": 3145756
-    }
-    ```
-  - `fileUrl` is fully preserved and returned by the API.
+A full lifecycle test (`test-lifecycle.mjs`) verified the entire pipeline:
+```
+--- Step 1: Upload 2 documents ---
+Upload status: 201 Count: 2
+--- Step 2: GET documents ---
+Get status: 200 Is Array: true Count: 2
+Docs: [
+  { id: 'd6eecd06-e174-4a21-8d33-ba0b01b80d87', name: 'Doc_Beta.pdf' },
+  { id: '59cafdde-3297-4f5b-9fa1-950c1a7da2e1', name: 'Doc_Alpha.pdf' }
+]
+--- Step 3: Delete 1 document ---
+Del 1 status: 200 { success: true, message: 'Document deleted' }
+After del 1 count: 1 Remaining doc: Doc_Alpha.pdf
+--- Step 4: Delete all documents ---
+Del all status: 200 { success: true, message: 'All documents deleted from vault' }
+After del all count: 0 Docs: []
+--- ALL TESTS PASSED! ---
+```
 
 ---
 
 ## 4. Git Deployment
-- **family-together-backend**: Committed and pushed to `main` and `kayes` branches.
-- **family-together-frontend**: Committed and pushed to `main` and `kayes` branches.
+- **family-together-backend**: Committed and pushed to `main` and `kayes`.
+- **family-together-frontend**: Committed and pushed to `main` and `kayes`.

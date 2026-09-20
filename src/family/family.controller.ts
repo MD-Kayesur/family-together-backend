@@ -197,6 +197,12 @@ export class FamilyController {
     return this.familyService.createMultipleDocuments(list);
   }
 
+  @Delete('documents')
+  @ApiOperation({ summary: 'Delete all documents from family vault' })
+  deleteAllDocuments() {
+    return this.familyService.deleteAllDocuments();
+  }
+
   @Delete('documents/:id')
   @ApiOperation({ summary: 'Delete a document from vault' })
   deleteDocument(@Param('id') id: string) {
