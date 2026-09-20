@@ -1,8 +1,8 @@
-# Vault Document Management: Upload, Deletion & Persistence Explanation
+# Vault Document Management: Upload, Deletion, Multi-File Support & Persistence Explanation
 
 ## 1. Issue Analysis: Why Did Deleted Documents Reappear on Reload?
 
-When documents were deleted in the UI and the page was reloaded, they sometimes reappeared due to three critical factors:
+When documents were deleted in the UI and the page was reloaded, they previously reappeared due to three critical factors:
 
 ### A. Browser Native Dialog Suppression (`window.confirm`)
 - Previously, deleting a document relied on browser-native `window.confirm('Are you sure you want to delete...?')`.
@@ -66,29 +66,80 @@ When documents were deleted in the UI and the page was reloaded, they sometimes 
 
 ---
 
-## 3. Automated Lifecycle Test Results
+## 3. Multi-File Single Document Architecture & Viewer Logic
 
-A full lifecycle test (`test-lifecycle.mjs`) verified the entire pipeline:
+### A. The Requirement
+When selecting multiple files (e.g. 4 files):
+- Instead of creating 4 separate document cards, save all 4 files into **ONE single document record** in the vault.
+- When the user opens/views that document, the viewer displays all 4 files with an interactive switcher and tab bar instead of separate cards.
+
+### B. Backend Implementation (`family.service.ts`)
+1. **Multi-File Storage**:
+   When multiple files are submitted, `Document.fileUrl` stores a JSON-encoded array of attachments:
+   ```json
+   [
+     { "name": "Passport_Scan.jpg", "size": "0.4 MB", "fileUrl": "data:image/jpeg;base64,..." },
+     { "name": "Visa_Stamp.jpg", "size": "0.4 MB", "fileUrl": "data:image/jpeg;base64,..." },
+     { "name": "Entry_Permit.jpg", "size": "0.4 MB", "fileUrl": "data:image/jpeg;base64,..." },
+     { "name": "Citizenship_Certificate.pdf", "size": "0.4 MB", "fileUrl": "https://..." }
+   ]
+   ```
+2. **`parseDocumentFiles` Method**:
+   Parses `fileUrl` whether it is a single URL or a JSON array of attachments.
+   Returns:
+   - `fileUrl`: primary file URL
+   - `fileUrls`: string array of all URLs
+   - `files`: array of `{ name, size, fileUrl }`
+   - `fileCount`: number of files attached (e.g. 4)
+
+### C. Frontend Viewer & Upload UI (`PdfViewportModal.tsx` & `DocumentsTab.tsx`)
+1. **Upload Form**:
+   - Allows an optional custom document title (e.g. "Immigration Dossier").
+   - Attaches all selected files into one single document payload.
+   - Calculates combined total size (e.g. `1.6 MB • 4 Files`).
+2. **Document Cards**:
+   - Displays a single card with a `4 Files Attached` badge and file name chips.
+3. **`PdfViewportModal` Multi-File Viewer**:
+   - **Pagination**: `< Previous` `File 1 of 4` `Next >`
+   - **File Tabs**: Horizontal scrollable tab strip showing each file name and size.
+   - **Per-File Controls**: Zoom, download, and print operate on the currently active file.
+   - **Automatic Type Detection**: Renders `<img>` for images and `<iframe>` for PDFs seamlessly.
+
+---
+
+## 4. Automated Lifecycle & Multi-File Test Results
+
+1. **Deletion & Array Lifecycle Test**:
 ```
 --- Step 1: Upload 2 documents ---
 Upload status: 201 Count: 2
 --- Step 2: GET documents ---
 Get status: 200 Is Array: true Count: 2
-Docs: [
-  { id: 'd6eecd06-e174-4a21-8d33-ba0b01b80d87', name: 'Doc_Beta.pdf' },
-  { id: '59cafdde-3297-4f5b-9fa1-950c1a7da2e1', name: 'Doc_Alpha.pdf' }
-]
 --- Step 3: Delete 1 document ---
 Del 1 status: 200 { success: true, message: 'Document deleted' }
-After del 1 count: 1 Remaining doc: Doc_Alpha.pdf
+After del 1 count: 1
 --- Step 4: Delete all documents ---
 Del all status: 200 { success: true, message: 'All documents deleted from vault' }
 After del all count: 0 Docs: []
 --- ALL TESTS PASSED! ---
 ```
 
+2. **Multi-File Single Document Test**:
+```
+CREATE SINGLE DOC STATUS: 201
+Created doc ID: eaaf3f04-6a02-43b4-a966-54019601c314
+Created doc name: Immigration_Dossier_2026.pdf
+Created doc fileCount: 4
+Created doc files names: [
+  'Passport_Scan.jpg',
+  'Visa_Stamp.jpg',
+  'Entry_Permit.jpg',
+  'Citizenship_Certificate.pdf'
+]
+```
+
 ---
 
-## 4. Git Deployment
+## 5. Git Deployment
 - **family-together-backend**: Committed and pushed to `main` and `kayes`.
 - **family-together-frontend**: Committed and pushed to `main` and `kayes`.

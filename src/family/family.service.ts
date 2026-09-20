@@ -580,17 +580,89 @@ export class FamilyService {
     });
   }
 
+  private parseDocumentFiles(
+    fileUrl: string | null,
+    fallbackName: string,
+    fallbackSize: string,
+  ): {
+    fileUrl: string;
+    fileUrls: string[];
+    files: Array<{ name: string; size?: string; fileUrl: string }>;
+    fileCount: number;
+  } {
+    const dummyUrl = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+    if (!fileUrl) {
+      return {
+        fileUrl: dummyUrl,
+        fileUrls: [dummyUrl],
+        files: [{ name: fallbackName, size: fallbackSize, fileUrl: dummyUrl }],
+        fileCount: 1,
+      };
+    }
+
+    try {
+      const trimmed = fileUrl.trim();
+      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const files: Array<{ name: string; size?: string; fileUrl: string }> = [];
+          const fileUrls: string[] = [];
+
+          parsed.forEach((item, index) => {
+            if (typeof item === 'string' && item.length > 0) {
+              files.push({
+                name: `${fallbackName} (File ${index + 1})`,
+                size: fallbackSize,
+                fileUrl: item,
+              });
+              fileUrls.push(item);
+            } else if (item && typeof item === 'object' && item.fileUrl) {
+              files.push({
+                name: item.name || `${fallbackName} (File ${index + 1})`,
+                size: item.size || fallbackSize,
+                fileUrl: item.fileUrl,
+              });
+              fileUrls.push(item.fileUrl);
+            }
+          });
+
+          if (files.length > 0) {
+            return {
+              fileUrl: files[0].fileUrl,
+              fileUrls,
+              files,
+              fileCount: files.length,
+            };
+          }
+        }
+      }
+    } catch {
+      // Not a JSON string, fallback to single URL
+    }
+
+    return {
+      fileUrl: fileUrl,
+      fileUrls: [fileUrl],
+      files: [{ name: fallbackName, size: fallbackSize, fileUrl }],
+      fileCount: 1,
+    };
+  }
+
   async getDocuments() {
     const docs = await this.prisma.document.findMany({
       orderBy: { createdAt: 'desc' },
     });
 
-    return docs.map((doc) => ({
-      ...doc,
-      fileUrl:
-        doc.fileUrl ||
-        `https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf`,
-    }));
+    return docs.map((doc) => {
+      const parsed = this.parseDocumentFiles(doc.fileUrl, doc.name, doc.size);
+      return {
+        ...doc,
+        fileUrl: parsed.fileUrl,
+        fileUrls: parsed.fileUrls,
+        files: parsed.files,
+        fileCount: parsed.fileCount,
+      };
+    });
   }
 
   async createDocument(data: {
@@ -598,22 +670,41 @@ export class FamilyService {
     category?: string;
     size?: string;
     fileUrl?: string;
+    fileUrls?: string[];
+    files?: Array<{ name: string; size?: string; fileUrl: string }>;
     uploadedBy?: string;
   }) {
     try {
       const family = await this.prisma.family.findFirst();
-      return await this.prisma.document.create({
+      let storedFileUrl = data.fileUrl;
+
+      if (Array.isArray(data.files) && data.files.length > 0) {
+        storedFileUrl = JSON.stringify(data.files);
+      } else if (Array.isArray(data.fileUrls) && data.fileUrls.length > 0) {
+        storedFileUrl = JSON.stringify(data.fileUrls);
+      }
+
+      const created = await this.prisma.document.create({
         data: {
           familyId: family?.id || 'default',
           name: data.name,
           category: data.category || 'Legal Records',
           size: data.size || '2.5 MB',
           fileUrl:
-            data.fileUrl ||
+            storedFileUrl ||
             `https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf`,
           uploadedBy: data.uploadedBy || 'Family Member',
         },
       });
+
+      const parsed = this.parseDocumentFiles(created.fileUrl, created.name, created.size);
+      return {
+        ...created,
+        fileUrl: parsed.fileUrl,
+        fileUrls: parsed.fileUrls,
+        files: parsed.files,
+        fileCount: parsed.fileCount,
+      };
     } catch (error) {
       console.error('Error creating document:', error);
       throw error;
@@ -626,6 +717,8 @@ export class FamilyService {
       category?: string;
       size?: string;
       fileUrl?: string;
+      fileUrls?: string[];
+      files?: Array<{ name: string; size?: string; fileUrl: string }>;
       uploadedBy?: string;
     }>,
   ) {
@@ -638,6 +731,13 @@ export class FamilyService {
       try {
         if (!docData || !docData.name) continue;
 
+        let storedFileUrl = docData.fileUrl;
+        if (Array.isArray((docData as any).files) && (docData as any).files.length > 0) {
+          storedFileUrl = JSON.stringify((docData as any).files);
+        } else if (Array.isArray((docData as any).fileUrls) && (docData as any).fileUrls.length > 0) {
+          storedFileUrl = JSON.stringify((docData as any).fileUrls);
+        }
+
         const saveOperation = this.prisma.document.create({
           data: {
             familyId,
@@ -645,7 +745,7 @@ export class FamilyService {
             category: docData.category || 'Legal Records',
             size: docData.size || '2.5 MB',
             fileUrl:
-              docData.fileUrl ||
+              storedFileUrl ||
               `https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf`,
             uploadedBy: docData.uploadedBy || 'Family Member',
           },
@@ -656,7 +756,19 @@ export class FamilyService {
         );
 
         const savedDoc = await Promise.race([saveOperation, timeout]);
-        results.push(savedDoc);
+        const parsed = this.parseDocumentFiles(
+          (savedDoc as any).fileUrl,
+          (savedDoc as any).name,
+          (savedDoc as any).size,
+        );
+
+        results.push({
+          ...(savedDoc as any),
+          fileUrl: parsed.fileUrl,
+          fileUrls: parsed.fileUrls,
+          files: parsed.files,
+          fileCount: parsed.fileCount,
+        });
       } catch (err) {
         console.error(`Error saving individual document ${docData?.name}:`, err);
       }

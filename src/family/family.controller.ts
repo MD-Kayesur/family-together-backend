@@ -171,10 +171,17 @@ export class FamilyController {
   @ApiOperation({ summary: 'Upload document(s) to family vault' })
   createDocument(
     @Body()
-    body:
-      | { name: string; category?: string; size?: string; fileUrl?: string; uploadedBy?: string }
-      | { documents: Array<{ name: string; category?: string; size?: string; fileUrl?: string; uploadedBy?: string }> }
-      | Array<{ name: string; category?: string; size?: string; fileUrl?: string; uploadedBy?: string }>,
+      | {
+          name: string;
+          category?: string;
+          size?: string;
+          fileUrl?: string;
+          fileUrls?: string[];
+          files?: Array<{ name: string; size?: string; fileUrl: string }>;
+          uploadedBy?: string;
+        }
+      | { documents: Array<{ name: string; category?: string; size?: string; fileUrl?: string; files?: any[]; uploadedBy?: string }> }
+      | Array<{ name: string; category?: string; size?: string; fileUrl?: string; files?: any[]; uploadedBy?: string }>,
   ) {
     if (Array.isArray(body)) {
       return this.familyService.createMultipleDocuments(body);
