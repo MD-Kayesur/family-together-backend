@@ -1,0 +1,96 @@
+# FamilyRoots Backend & API — Member Family Tree & Relative Permission Architecture
+
+## 1. Executive Summary & Verification
+
+### Question 1: "in member dashboard as member tree?"
+**YES.** The member dashboard features an interactive Family Tree view. 
+- Whereas the Owner tree view displays the sanctuary in its entirety with global administrative powers, the **Member Tree** is personalized and centered on the authenticated user's node (`isCurrentUser: true`).
+- The member can navigate their direct family line (parents, grandparents, spouse, children, siblings).
+
+---
+
+### Question 2: "and has permission for add user or member his relative?"
+**YES.** A member has full permission to add their relatives to the family sanctuary:
+1. **Adding Relatives**: Members can add immediate relatives (Father, Mother, Spouse, Child, Sibling).
+2. **Automatic Relationship Binding**: When a member adds a relative, the backend creates the `Person` record and automatically creates a `Relationship` record linking the member's `personId` to the new relative's `personId`.
+3. **Optional User Login Creation**: The member can specify an email address. The backend provisions an active `User` account with role `USER` / `MEMBER` and sends login credentials to the relative via email.
+4. **Security & Guardrails**:
+   - Members cannot delete or overwrite the sanctuary owner's profile or unrelated nodes.
+   - Members cannot elevate users to `OWNER` or `ADMIN` roles.
+   - All relative additions are securely scoped to the member's family sanctuary.
+
+---
+
+## 2. API Endpoints & Request Flow
+
+### 1. Adding a Relative with Automatic Relationship
+- **Endpoint**: `POST /family/members`
+- **Payload**:
+  ```json
+  {
+    "firstName": "Fatima",
+    "lastName": "Rahman",
+    "gender": "FEMALE",
+    "dob": "1995-04-12",
+    "email": "fatima@example.com",
+    "password": "InitialPassword123",
+    "relativeToPersonId": "member-person-uuid",
+    "relationshipType": "SPOUSE"
+  }
+  ```
+- **Backend Flow**:
+  1. Validates the requesting user's sanctuary membership.
+  2. Creates or links the `Person` record.
+  3. Creates the `FamilyMember` association.
+  4. If `email` is provided, provisions a `User` account with role `USER` and triggers the welcome email.
+  5. Automatically creates the `Relationship` record linking `relativeToPersonId` and the new `person.id`.
+
+### 2. Fetching the Member-Scoped Family Tree
+- **Endpoint**: `GET /family/members` and `GET /family/relationships`
+- Returns the sanctuary members and relationships.
+- The frontend family tree canvas highlights the current user's node and organizes the tree around their direct lineage.
+
+---
+
+## 3. Database Schema Overview
+
+```prisma
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  fullName      String
+  role          UserRole  @default(USER)
+  status        UserStatus @default(ACTIVE)
+  person        Person?
+}
+
+model Person {
+  id            String    @id @default(uuid())
+  userId        String?   @unique
+  user          User?     @relation(fields: [userId], references: [id])
+  firstName     String
+  lastName      String
+  gender        Gender    @default(UNKNOWN)
+  bio           String?
+  relationshipsFrom Relationship[] @relation("FromPerson")
+  relationshipsTo   Relationship[] @relation("ToPerson")
+  familyMembers     FamilyMember[]
+}
+
+model Relationship {
+  id                 String           @id @default(uuid())
+  familyId           String
+  fromPersonId       String
+  toPersonId         String
+  relationshipTypeId String
+  fromPerson         Person           @relation("FromPerson", fields: [fromPersonId], references: [id])
+  toPerson           Person           @relation("ToPerson", fields: [toPersonId], references: [id])
+  relationshipType   RelationshipType @relation(fields: [relationshipTypeId], references: [id])
+}
+```
+
+---
+
+## 4. Status & Next Steps
+- **Backend**: Both `POST /family/members` and `POST /family/relationships` are fully operational in [family.controller.ts](file:///d:/Projects/family-together-backend/src/family/family.controller.ts) and [family.service.ts](file:///d:/Projects/family-together-backend/src/family/family.service.ts).
+- **Frontend**: The user dashboard can be updated to include the `tree` tab and the "Add Relative" action modal whenever the user confirms.
