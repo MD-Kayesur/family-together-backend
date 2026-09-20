@@ -168,11 +168,33 @@ export class FamilyController {
   }
 
   @Post('documents')
-  @ApiOperation({ summary: 'Upload a document to family vault' })
+  @ApiOperation({ summary: 'Upload document(s) to family vault' })
   createDocument(
-    @Body() body: { name: string; category?: string; size?: string; uploadedBy?: string }
+    @Body()
+    body:
+      | { name: string; category?: string; size?: string; fileUrl?: string; uploadedBy?: string }
+      | { documents: Array<{ name: string; category?: string; size?: string; fileUrl?: string; uploadedBy?: string }> }
+      | Array<{ name: string; category?: string; size?: string; fileUrl?: string; uploadedBy?: string }>,
   ) {
-    return this.familyService.createDocument(body);
+    if (Array.isArray(body)) {
+      return this.familyService.createMultipleDocuments(body);
+    }
+    if ((body as any)?.documents && Array.isArray((body as any).documents)) {
+      return this.familyService.createMultipleDocuments((body as any).documents);
+    }
+    return this.familyService.createDocument(body as any);
+  }
+
+  @Post('documents/multiple')
+  @ApiOperation({ summary: 'Upload multiple documents to family vault' })
+  createMultipleDocuments(
+    @Body()
+    body:
+      | { documents: Array<{ name: string; category?: string; size?: string; fileUrl?: string; uploadedBy?: string }> }
+      | Array<{ name: string; category?: string; size?: string; fileUrl?: string; uploadedBy?: string }>,
+  ) {
+    const list = Array.isArray(body) ? body : (body as any)?.documents || [];
+    return this.familyService.createMultipleDocuments(list);
   }
 
   @Delete('documents/:id')

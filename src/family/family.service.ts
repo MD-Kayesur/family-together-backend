@@ -581,22 +581,88 @@ export class FamilyService {
   }
 
   async getDocuments() {
-    return this.prisma.document.findMany({
+    const docs = await this.prisma.document.findMany({
       orderBy: { createdAt: 'desc' },
     });
+
+    return docs.map((doc) => ({
+      ...doc,
+      fileUrl:
+        doc.fileUrl ||
+        `https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf`,
+    }));
   }
 
-  async createDocument(data: { name: string; category?: string; size?: string; uploadedBy?: string }) {
+  async createDocument(data: {
+    name: string;
+    category?: string;
+    size?: string;
+    fileUrl?: string;
+    uploadedBy?: string;
+  }) {
+    try {
+      const family = await this.prisma.family.findFirst();
+      return await this.prisma.document.create({
+        data: {
+          familyId: family?.id || 'default',
+          name: data.name,
+          category: data.category || 'Legal Records',
+          size: data.size || '2.5 MB',
+          fileUrl:
+            data.fileUrl ||
+            `https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf`,
+          uploadedBy: data.uploadedBy || 'Family Member',
+        },
+      });
+    } catch (error) {
+      console.error('Error creating document:', error);
+      throw error;
+    }
+  }
+
+  async createMultipleDocuments(
+    documents: Array<{
+      name: string;
+      category?: string;
+      size?: string;
+      fileUrl?: string;
+      uploadedBy?: string;
+    }>,
+  ) {
     const family = await this.prisma.family.findFirst();
-    return this.prisma.document.create({
-      data: {
-        familyId: family?.id || 'default',
-        name: data.name,
-        category: data.category || 'Legal Records',
-        size: data.size || '2.5 MB',
-        uploadedBy: data.uploadedBy || 'Family Member',
-      },
-    });
+    const familyId = family?.id || 'default';
+
+    const results: any[] = [];
+
+    for (const docData of documents) {
+      try {
+        if (!docData || !docData.name) continue;
+
+        const saveOperation = this.prisma.document.create({
+          data: {
+            familyId,
+            name: docData.name,
+            category: docData.category || 'Legal Records',
+            size: docData.size || '2.5 MB',
+            fileUrl:
+              docData.fileUrl ||
+              `https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf`,
+            uploadedBy: docData.uploadedBy || 'Family Member',
+          },
+        });
+
+        const timeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error(`Timeout saving document: ${docData.name}`)), 15000),
+        );
+
+        const savedDoc = await Promise.race([saveOperation, timeout]);
+        results.push(savedDoc);
+      } catch (err) {
+        console.error(`Error saving individual document ${docData?.name}:`, err);
+      }
+    }
+
+    return results;
   }
 
   async deleteDocument(id: string) {
