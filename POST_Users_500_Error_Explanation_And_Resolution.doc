@@ -1,0 +1,393 @@
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+<meta charset="utf-8">
+<title>POST /users 500 Error - Root Cause Analysis & Resolution Guide</title>
+<!--[if gte mso 9]>
+<xml>
+ <w:WordDocument>
+  <w:View>Print</w:View>
+  <w:Zoom>100</w:Zoom>
+  <w:DoNotOptimizeForBrowser/>
+ </w:WordDocument>
+</xml>
+<![endif]-->
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #1e293b;
+    line-height: 1.6;
+    margin: 40px;
+  }
+  h1 {
+    color: #4f46e5;
+    font-size: 24pt;
+    border-bottom: 2px solid #4f46e5;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+  }
+  h2 {
+    color: #1e1b4b;
+    font-size: 16pt;
+    margin-top: 24px;
+    border-bottom: 1px solid #cbd5e1;
+    padding-bottom: 4px;
+  }
+  h3 {
+    color: #4338ca;
+    font-size: 13pt;
+    margin-top: 16px;
+  }
+  .doc-meta {
+    background-color: #f1f5f9;
+    border-left: 4px solid #4f46e5;
+    padding: 12px 16px;
+    margin-bottom: 24px;
+    font-size: 10pt;
+    color: #475569;
+  }
+  .alert-box {
+    background-color: #fef2f2;
+    border: 1px solid #f87171;
+    border-left: 4px solid #ef4444;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin: 16px 0;
+    color: #991b1b;
+  }
+  .success-box {
+    background-color: #f0fdf4;
+    border: 1px solid #86efac;
+    border-left: 4px solid #22c55e;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin: 16px 0;
+    color: #166534;
+  }
+  .code-block {
+    background-color: #0f172a;
+    color: #f8fafc;
+    padding: 14px;
+    border-radius: 6px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 9.5pt;
+    white-space: pre-wrap;
+    margin: 12px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+  }
+  th, td {
+    border: 1px solid #cbd5e1;
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 10pt;
+  }
+  th {
+    background-color: #f8fafc;
+    color: #0f172a;
+    font-weight: bold;
+  }
+  tr:nth-child(even) {
+    background-color: #f8fafc;
+  }
+  .badge-error {
+    background-color: #fee2e2;
+    color: #991b1b;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 8.5pt;
+  }
+  .badge-success {
+    background-color: #dcfce7;
+    color: #166534;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 8.5pt;
+  }
+  ul, ol {
+    margin-left: 20px;
+    margin-bottom: 12px;
+  }
+  li {
+    margin-bottom: 6px;
+  }
+</style>
+</head>
+<body>
+
+<h1>POST /users 500 Error - Analysis, Root Cause & Solution Guide</h1>
+
+<div class="doc-meta">
+  <strong>Project:</strong> FamilyRoots / Family Sanctuary Application<br>
+  <strong>Module:</strong> Backend User Management (NestJS + Prisma ORM + PostgreSQL)<br>
+  <strong>Error Code:</strong> HTTP 500 (Internal Server Error) / Prisma P2002 / Postgres 23505<br>
+  <strong>Date:</strong> September 20, 2026<br>
+  <strong>Author:</strong> Antigravity Pair Programming Assistant
+</div>
+
+<h2>1. Executive Summary & Problem Statement</h2>
+<p>
+During user creation operations via the frontend dashboard or direct REST API requests to <code>POST http://localhost:8000/users</code>, the server unexpectedly crashed with an <strong>HTTP 500 (Internal Server Error)</strong>.
+</p>
+<div class="alert-box">
+  <strong>Original Server Exception:</strong><br>
+  <code>PrismaClientKnownRequestError: Unique constraint failed on the fields: (`email`)</code><br>
+  <code>constraint: '23505', message: 'duplicate key value violates unique constraint "users_email_key"'</code>
+</div>
+<p>
+This document details:
+</p>
+<ul>
+  <li><strong>Why this error happened</strong> (the mechanical and architectural cause).</li>
+  <li><strong>Where a user experiences this error</strong> in the application interface.</li>
+  <li><strong>How it was solved</strong> on both the NestJS backend and Next.js frontend layers.</li>
+  <li><strong>Best practices</strong> to ensure robust data integrity and user-friendly error handling.</li>
+</ul>
+
+<h2>2. Detailed Root Cause Analysis: Why Did This Error Show?</h2>
+<h3>2.1 Database Unique Constraint</h3>
+<p>
+In the PostgreSQL database schema (managed by Prisma in <code>prisma/schema/vault.prisma</code>), the <code>User</code> model defines the <code>email</code> field as unique:
+</p>
+<div class="code-block">model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  fullName      String
+  password      String
+  role          UserRole  @default(USER)
+  ...
+}</div>
+<p>
+When PostgreSQL executes an <code>INSERT INTO "users"</code> statement with an email that is identical to an existing record, the database enforces the unique index <code>users_email_key</code> and rejects the operation with error code <strong>23505</strong> (<code>unique_violation</code>).
+</p>
+
+<h3>2.2 Why Did It Return 500 Instead of 400 or 409?</h3>
+<p>
+In the previous implementation of <code>UsersService.create()</code> (located in <code>src/users/users.service.ts</code>), the method called Prisma directly without checking if the email already existed and without wrapping the database call in an exception handler:
+</p>
+<div class="code-block">// PREVIOUS UNPROTECTED CODE:
+async create(createUserDto: any) {
+  const { password, ...rest } = createUserDto;
+  const plainPassword = password || 'SanctuaryPass123!';
+  const hashedPassword = await bcrypt.hash(plainPassword, 12);
+
+  // Directly attempted INSERT without pre-check or try/catch:
+  const user = await this.prisma.user.create({
+    data: { ...rest, password: hashedPassword }
+  });
+  ...
+}</div>
+<p>
+When Prisma threw <code>PrismaClientKnownRequestError (code P2002)</code>, NestJS treated it as an <strong>unhandled exception</strong>. By default, NestJS's built-in <code>ExceptionsHandler</code> catches unhandled exceptions and converts them into:
+</p>
+<div class="code-block">{
+  "statusCode": 500,
+  "message": "Internal server error"
+}</div>
+<p>
+This caused the browser console to log:
+<br>
+<code>POST http://localhost:8000/users 500 (Internal Server Error)</code>
+</p>
+
+<h2>3. Where Does a User Encounter This Error?</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Interaction Location</th>
+      <th>User Action</th>
+      <th>Trigger Condition</th>
+      <th>Previous Result</th>
+      <th>Resolved Result</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Owner Dashboard</strong><br><code>/owner-dashboard/users</code></td>
+      <td>Clicking <em>"+ Add User"</em> and submitting the user creation modal</td>
+      <td>Entering an email address that belongs to an existing family member, owner, or previous user</td>
+      <td><span class="badge-error">500 Server Error</span><br>"Failed to create user account."</td>
+      <td><span class="badge-success">Immediate Warning</span><br>"A user account with this email already exists."</td>
+    </tr>
+    <tr>
+      <td><strong>Double Submission</strong></td>
+      <td>Clicking the Submit button multiple times rapidly</td>
+      <td>The first request creates the user; the second duplicate request fails</td>
+      <td><span class="badge-error">500 Server Error</span></td>
+      <td><span class="badge-success">409 Conflict</span><br>Gracefully handled</td>
+    </tr>
+    <tr>
+      <td><strong>Direct API Request</strong><br><code>POST /users</code></td>
+      <td>External script or Postman sending creation payload</td>
+      <td>Duplicate email payload</td>
+      <td><span class="badge-error">500 Internal Error</span></td>
+      <td><span class="badge-success">409 Conflict</span><br>Standard REST response</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>4. How Was It Solved? Complete Implementation</h2>
+
+<div class="success-box">
+  <strong>Dual-Layer Defense Strategy:</strong><br>
+  1. <strong>Backend (NestJS):</strong> Added email normalization, pre-flight existence query, and defensive catch block converting <code>P2002</code> into standard <code>ConflictException</code> (HTTP 409).<br>
+  2. <strong>Frontend (Next.js):</strong> Added client-side real-time duplicate detection against loaded users list to alert users before network requests.
+</div>
+
+<h3>4.1 Backend Solution (UsersService)</h3>
+<p>File: <code>src/users/users.service.ts</code></p>
+<div class="code-block">import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
+
+@Injectable()
+export class UsersService {
+  ...
+
+  async create(createUserDto: any) {
+    const { password, email, ...rest } = createUserDto;
+    const normalizedEmail = email ? email.trim().toLowerCase() : '';
+
+    if (!normalizedEmail) {
+      throw new BadRequestException('Email address is required.');
+    }
+
+    // Step 1: Check if user already exists
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (existingUser) {
+      throw new ConflictException(
+        `A user account with email "${normalizedEmail}" already exists.`,
+      );
+    }
+
+    const plainPassword = password || 'SanctuaryPass123!';
+    const hashedPassword = await bcrypt.hash(plainPassword, 12);
+
+    // Step 2: Safe insertion with defensive error boundary
+    try {
+      const user = await this.prisma.user.create({
+        data: {
+          ...rest,
+          email: normalizedEmail,
+          password: hashedPassword,
+        },
+        select: {
+          id: true,
+          email: true,
+          fullName: true,
+          role: true,
+          status: true,
+        },
+      });
+
+      if (user.email) {
+        this.mailService
+          .sendMemberWelcomeEmail(user.email, user.fullName, user.email, plainPassword)
+          .catch((err) => console.error('Failed to send user welcome email:', err));
+      }
+
+      return user;
+    } catch (error: any) {
+      // Catch concurrent race condition duplicate key errors
+      if (
+        error?.code === 'P2002' ||
+        error?.message?.includes('Unique constraint failed') ||
+        error?.message?.includes('duplicate key')
+      ) {
+        throw new ConflictException(
+          `A user account with email "${normalizedEmail}" already exists.`,
+        );
+      }
+      throw error;
+    }
+  }
+
+  // Also applied to update():
+  async update(id: string, updateUserDto: any) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('User not found');
+
+    const data: any = { ...updateUserDto };
+    if (data.email) {
+      data.email = data.email.trim().toLowerCase();
+      const existingWithEmail = await this.prisma.user.findUnique({
+        where: { email: data.email },
+      });
+      if (existingWithEmail && existingWithEmail.id !== id) {
+        throw new ConflictException(
+          `A user account with email "${data.email}" already exists.`,
+        );
+      }
+    }
+    ...
+  }
+}</div>
+
+<h3>4.2 Frontend Solution (User Accounts Page)</h3>
+<p>File: <code>src/app/owner-dashboard/users/page.tsx</code></p>
+<div class="code-block">const handleCreateUser = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setFormError("");
+  setFormSuccess("");
+
+  if (!fullName.trim() || !email.trim()) {
+    setFormError("Full name and email are required.");
+    return;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email.trim())) {
+    setFormError("Please enter a valid email address (e.g. user@example.com).");
+    return;
+  }
+
+  // Instant Client-Side Duplicate Verification:
+  const existingUser = usersList.find(
+    (u) => u.email.toLowerCase() === email.trim().toLowerCase()
+  );
+  if (existingUser) {
+    setFormError(
+      `A user account with email "${email.trim()}" already exists (Role: ${existingUser.role}). You can update their role directly from the table below.`
+    );
+    return;
+  }
+
+  try {
+    await createUser({
+      fullName: fullName.trim(),
+      email: email.trim(),
+      password: password.trim() || "SanctuaryPass123!",
+      role,
+    }).unwrap();
+
+    refetch();
+    setFormSuccess(`User account created successfully as ${role}!`);
+    ...
+  } catch (err: any) {
+    // Shows the exact server 409 message cleanly
+    setFormError(
+      err?.data?.message || err?.message || "Failed to create user account."
+    );
+  }
+};</div>
+
+<h2>5. Summary of Verification & Status</h2>
+<ul>
+  <li><strong>Build Check:</strong> Backend compiles with 0 errors via <code>npm run build</code>.</li>
+  <li><strong>Type Check:</strong> Frontend compiles with 0 errors via <code>npx tsc --noEmit</code>.</li>
+  <li><strong>HTTP Status Code:</strong> Changed from unexpected <code>500 Internal Server Error</code> to standard <code>409 Conflict</code> with descriptive human-readable message.</li>
+  <li><strong>User Experience:</strong> The user is never left with an opaque error screen or confusion about why an email cannot be registered twice.</li>
+</ul>
+
+</body>
+</html>

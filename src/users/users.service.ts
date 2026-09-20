@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import * as bcrypt from 'bcryptjs';
@@ -11,32 +16,63 @@ export class UsersService {
   ) {}
 
   async create(createUserDto: any) {
-    const { password, ...rest } = createUserDto;
+    const { password, email, ...rest } = createUserDto;
+    const normalizedEmail = email ? email.trim().toLowerCase() : '';
+
+    if (!normalizedEmail) {
+      throw new BadRequestException('Email address is required.');
+    }
+
+    // Check if user with this email already exists
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (existingUser) {
+      throw new ConflictException(
+        `A user account with email "${normalizedEmail}" already exists.`,
+      );
+    }
+
     const plainPassword = password || 'SanctuaryPass123!';
     const hashedPassword = await bcrypt.hash(plainPassword, 12);
 
-    const user = await this.prisma.user.create({
-      data: {
-        ...rest,
-        password: hashedPassword,
-      },
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        role: true,
-        status: true,
-      },
-    });
+    try {
+      const user = await this.prisma.user.create({
+        data: {
+          ...rest,
+          email: normalizedEmail,
+          password: hashedPassword,
+        },
+        select: {
+          id: true,
+          email: true,
+          fullName: true,
+          role: true,
+          status: true,
+        },
+      });
 
-    // Send email with credentials/welcome info to valid email address
-    if (user.email) {
-      this.mailService
-        .sendMemberWelcomeEmail(user.email, user.fullName, user.email, plainPassword)
-        .catch((err) => console.error('Failed to send user welcome email:', err));
+      // Send email with credentials/welcome info to valid email address
+      if (user.email) {
+        this.mailService
+          .sendMemberWelcomeEmail(user.email, user.fullName, user.email, plainPassword)
+          .catch((err) => console.error('Failed to send user welcome email:', err));
+      }
+
+      return user;
+    } catch (error: any) {
+      if (
+        error?.code === 'P2002' ||
+        error?.message?.includes('Unique constraint failed') ||
+        error?.message?.includes('duplicate key')
+      ) {
+        throw new ConflictException(
+          `A user account with email "${normalizedEmail}" already exists.`,
+        );
+      }
+      throw error;
     }
-
-    return user;
   }
 
   async findAll() {
@@ -77,6 +113,18 @@ export class UsersService {
     if (!user) throw new NotFoundException('User not found');
 
     const data: any = { ...updateUserDto };
+    if (data.email) {
+      data.email = data.email.trim().toLowerCase();
+      const existingWithEmail = await this.prisma.user.findUnique({
+        where: { email: data.email },
+      });
+      if (existingWithEmail && existingWithEmail.id !== id) {
+        throw new ConflictException(
+          `A user account with email "${data.email}" already exists.`,
+        );
+      }
+    }
+
     if (data.password) {
       data.password = await bcrypt.hash(data.password, 12);
     }
@@ -89,17 +137,30 @@ export class UsersService {
       data.status = data.status.toUpperCase();
     }
 
-    return this.prisma.user.update({
-      where: { id },
-      data,
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        role: true,
-        status: true,
-      },
-    });
+    try {
+      return await this.prisma.user.update({
+        where: { id },
+        data,
+        select: {
+          id: true,
+          email: true,
+          fullName: true,
+          role: true,
+          status: true,
+        },
+      });
+    } catch (error: any) {
+      if (
+        error?.code === 'P2002' ||
+        error?.message?.includes('Unique constraint failed') ||
+        error?.message?.includes('duplicate key')
+      ) {
+        throw new ConflictException(
+          `A user account with email "${data.email || 'provided'}" already exists.`,
+        );
+      }
+      throw error;
+    }
   }
 
   async remove(id: string) {
