@@ -5,6 +5,8 @@
 model Memory {
   id          String   @id @default(uuid())
   familyId    String   @map("family_id")
+  userId      String?  @map("user_id")
+  userEmail   String?  @map("user_email")
   title       String
   description String?  @db.Text
   mediaUrl    String?  @map("media_url")

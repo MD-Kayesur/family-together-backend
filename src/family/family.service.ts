@@ -429,9 +429,24 @@ export class FamilyService {
       .map((r) => r.value as string);
   }
 
-  async getMemories() {
+  async getMemories(params?: { userId?: string; userEmail?: string }) {
     try {
+      const whereClause: any = {};
+
+      if (params?.userId || params?.userEmail) {
+        whereClause.OR = [
+          ...(params.userId ? [{ userId: params.userId }] : []),
+          ...(params.userEmail
+            ? [{ userEmail: { equals: params.userEmail, mode: 'insensitive' } }]
+            : []),
+        ];
+      } else {
+        // Strict privacy isolation: Return empty array if no user identity is provided to prevent memory leaks
+        return [];
+      }
+
       const memories = await this.prisma.memory.findMany({
+        where: whereClause,
         orderBy: { createdAt: 'desc' },
       });
 
@@ -453,6 +468,8 @@ export class FamilyService {
     title: string;
     description?: string;
     sharedBy?: string;
+    userId?: string;
+    userEmail?: string;
     date?: string;
     location?: string;
     category?: string;
@@ -484,6 +501,8 @@ export class FamilyService {
       const created = await this.prisma.memory.create({
         data: {
           familyId: family?.id || 'default',
+          userId: data.userId || null,
+          userEmail: data.userEmail || null,
           title: data.title,
           description: combinedDesc,
           sharedBy: data.sharedBy || 'Family Member',

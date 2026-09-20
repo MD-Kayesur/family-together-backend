@@ -77,9 +77,12 @@ export class FamilyController {
   }
 
   @Get('memories')
-  @ApiOperation({ summary: 'Get family memories gallery' })
-  getMemories() {
-    return this.familyService.getMemories();
+  @ApiOperation({ summary: 'Get family memories gallery with user isolation' })
+  getMemories(
+    @Query('userId') userId?: string,
+    @Query('userEmail') userEmail?: string,
+  ) {
+    return this.familyService.getMemories({ userId, userEmail });
   }
 
   @Post('memories')
@@ -90,6 +93,8 @@ export class FamilyController {
       title: string;
       description?: string;
       sharedBy?: string;
+      userId?: string;
+      userEmail?: string;
       date?: string;
       location?: string;
       category?: string;

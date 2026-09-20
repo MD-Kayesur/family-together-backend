@@ -1,0 +1,125 @@
+# Architecture & Audit Report: Parent User / Creator Tracking for Users & Members
+
+## 1. Direct Answer & Current State Verification
+
+### Question:
+> *"When any user creates a member or user, do you save that user like this: he has added a user, meaning user also his parent user who has created? If has like this insure me."*
+
+### Direct Answer:
+**Currently: NO, not directly on the User or Person record.**
+
+Here is the exact current state of the database and backend logic:
+
+1. **On the `User` Model (`users` table)**:
+   - The `User` model currently only stores:
+     - `id`, `email`, `fullName`, `password`, `role`, `status`, `createdAt`, `updatedAt`
+   - **There is NO `createdById` / `parentId` field** on the `User` table. When an Owner or Admin creates a user via the Users tab or during member creation, the newly created `User` account does not store which user created it.
+
+2. **On the `Person` Model (`persons` table)**:
+   - The `Person` model stores:
+     - `id`, `userId`, `firstName`, `lastName`, `gender`, `dob`, `bio`, `photoUrl`, `createdAt`
+   - **There is NO `createdById` field** on the `Person` record itself.
+
+3. **What IS Currently Saved (Family Tree Lineage Relationships)**:
+   - When a member adds a relative using the "Add Relative" flow (`relativeToPersonId` + `relationshipType` like `PARENT_CHILD`):
+     - The backend creates a record in the `relationships` table linking `fromPersonId` and `toPersonId`.
+     - The `relationships` table DOES have a `created_by` field.
+   - However, this is a **genealogical relationship** (biological or family lineage), **NOT a user account hierarchy / parent user tracking**.
+
+---
+
+## 2. Gap Analysis: What Is Missing?
+
+| Entity | Field Needed | Purpose | Status in Codebase |
+| :--- | :--- | :--- | :---: |
+| `User` | `createdById` | Tracks which user account (parent user/creator) registered or invited this user | **Missing** |
+| `User` | Self-relation `createdBy` & `createdUsers` | Allows querying "all users created by User X" | **Missing** |
+| `Person` | `createdById` | Tracks which user created the family member profile | **Missing** |
+| `UsersController` | `@CurrentUser()` | Automatically captures the logged-in user ID when creating a user | **Missing** (Endpoint currently public/unscoped) |
+| `FamilyController` | `@CurrentUser()` | Automatically captures the logged-in user ID when creating a member | **Missing** (Endpoint currently accepts body only) |
+
+---
+
+## 3. Recommended Implementation Architecture
+
+To support parent-child user tracking and creator auditability, we can implement the following clean 4-step architecture:
+
+### Step 1: Update Prisma Schema (`base.prisma`)
+Add `createdById` self-relation to the `User` model:
+```prisma
+model User {
+  id              String                   @id @default(uuid())
+  email           String                   @unique
+  fullName        String
+  password        String?
+  role            Role                     @default(USER)
+  status          UserStatus               @default(PENDING)
+  
+  // Parent User / Creator Tracking
+  createdById     String?                  @map("created_by_id")
+  createdBy       User?                    @relation("UserCreatedUsers", fields: [createdById], references: [id], onDelete: SetNull)
+  createdUsers    User[]                   @relation("UserCreatedUsers")
+
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  ...
+}
+```
+
+### Step 2: Update `Person` Model (`person.prisma`)
+Add `createdById` to track which user created the person profile:
+```prisma
+model Person {
+  id              String              @id @default(uuid())
+  userId          String?             @unique @map("user_id")
+  
+  // Creator tracking
+  createdById     String?             @map("created_by_id")
+  
+  firstName       String              @map("first_name")
+  lastName        String?             @map("last_name")
+  ...
+}
+```
+
+### Step 3: Inject Current User in Controllers
+Extract the authenticated user from JWT token:
+```typescript
+@Post('users')
+@UseGuards(JwtAuthGuard)
+create(
+  @CurrentUser() currentUser: User,
+  @Body() createUserDto: CreateUserDto
+) {
+  return this.usersService.create(createUserDto, currentUser.id);
+}
+```
+
+### Step 4: Save `createdById` in Services
+In `users.service.ts`:
+```typescript
+async create(createUserDto: any, creatorUserId?: string) {
+  const user = await this.prisma.user.create({
+    data: {
+      ...rest,
+      email: normalizedEmail,
+      password: hashedPassword,
+      createdById: creatorUserId || null, // Saves the parent user who created them
+    },
+  });
+  return user;
+}
+```
+
+---
+
+## 4. Key Benefits of Parent User / Creator Tracking
+
+1. **Sub-Account & Delegation Management**:
+   - Sanctuary Owners and Admins can view and manage only the users/members they personally created or invited.
+2. **Access Control & Permissions**:
+   - A user can be granted permission to edit or remove only the profiles and sub-accounts they created.
+3. **Audit Trail**:
+   - Complete clarity on who introduced each user or family member to the sanctuary.
+4. **Genealogy Tree + User Tree Synchronization**:
+   - Clear distinction between **genealogical parents** (biological ancestry in the tree) and **account parent users** (the user who registered them on the platform).
