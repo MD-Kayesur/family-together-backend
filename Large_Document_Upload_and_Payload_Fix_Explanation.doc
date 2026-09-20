@@ -1,0 +1,72 @@
+# Large Document Upload & 413 Payload Too Large Resolution Explanation
+
+## 1. Overview & Root Cause Analysis
+
+### What Caused the `413 Payload Too Large` Error?
+When uploading multiple documents or large PDF / image files to `POST http://localhost:8000/family/documents/multiple`, the browser sends documents as base64 data URLs.
+By default:
+1. **NestJS / Express Default Body Limit**: Express `json()` and `urlencoded()` parsers have a default payload limit of **100 KB** (`100kb`).
+2. Any document or batch upload exceeding 100 KB immediately triggers HTTP status code **`413 Payload Too Large`** at the Express middleware layer before reaching the NestJS controller or service.
+3. In addition, browser file readers and database write operations had short timeout thresholds (15s) which could cause slow network or large file writes to abort prematurely.
+
+---
+
+## 2. Solutions Implemented
+
+### A. Backend Payload Limit Configuration (`family-together-backend/src/main.ts`)
+We configured Express `json` and `urlencoded` middleware with a **100 MB** limit:
+```typescript
+import { json, urlencoded } from 'express';
+
+// Increase payload limit to 100MB for multiple/large document uploads
+app.use(json({ limit: '100mb' }));
+app.use(urlencoded({ limit: '100mb', extended: true }));
+```
+- **100 MB Limit**: Allows multiple high-resolution PDFs, scans, and images to be sent in a single batch without triggering HTTP 413.
+
+### B. Extended Timeout Safeguards (`family-together-backend/src/family/family.service.ts`)
+In `createMultipleDocuments`:
+```typescript
+const timeout = new Promise((_, reject) =>
+  setTimeout(() => reject(new Error(`Timeout saving document: ${docData.name}`)), 60000),
+);
+
+const savedDoc = await Promise.race([saveOperation, timeout]);
+```
+- The timeout was extended from **15 seconds** to **60 seconds** to accommodate large file writes into PostgreSQL over remote network connections.
+- Each document is encapsulated in an individual `try...catch` block so if any single file fails or times out, the rest of the documents in the batch still save successfully without crashing the server.
+
+### C. Frontend File Reading Timeout Optimization (`family-together-frontend/src/components/dashboard/tabs/DocumentsTab.tsx`)
+In `readFileAsDataUrl`:
+```typescript
+const timeoutPromise = new Promise<string>((_, reject) =>
+  setTimeout(() => reject(new Error(`Reading timed out for: ${file.name}`)), 60000)
+);
+```
+- Extended the FileReader timeout to **60 seconds** to ensure large files are read into base64 format without timing out on slower devices or large PDF uploads.
+
+---
+
+## 3. Verification & Live Testing
+
+### Test Executed:
+- A live automated test script sent a **3.00 MB** PDF document payload to `http://localhost:8000/family/documents/multiple`.
+- **Result**:
+  - HTTP Status: **201 Created**
+  - Document successfully saved to database:
+    ```json
+    {
+      "id": "b1557b49-a53f-43eb-a78a-ba2099fe6298",
+      "name": "Large_Vault_Document_Test.pdf",
+      "size": "3.0 MB",
+      "hasFileUrl": true,
+      "fileUrlLength": 3145756
+    }
+    ```
+  - `fileUrl` is fully preserved and returned by the API.
+
+---
+
+## 4. Git Deployment
+- **family-together-backend**: Committed and pushed to `main` and `kayes` branches.
+- **family-together-frontend**: Committed and pushed to `main` and `kayes` branches.
