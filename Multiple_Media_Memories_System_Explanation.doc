@@ -304,7 +304,21 @@ private async processMediaResiliently(mediaUrls?: string[], singleMediaUrl?: str
   </tbody>
 </table>
 
-<h2>5. UI Features Overview</h2>
+<h2>5. Lightbox Media Navigation: Arrow Buttons Strictly Slide Media</h2>
+
+<div class="callout">
+  <div class="callout-title">Arrow Navigation Behavior:</div>
+  <p>
+    The prominent <strong>&lt;</strong> and <strong>&gt;</strong> arrow buttons on the media container are tied directly to <code>mediaItemIndex</code> (via <code>handlePrevMedia</code> and <code>handleNextMedia</code>).
+    Clicking these arrows <strong>only slides between the photos and videos of the current memory</strong>. 
+    The memory details (title, milestone story, uploader, date, tags, and category) remain firmly on the active memory and do <strong>not</strong> switch.
+  </p>
+  <p>
+    If the user wants to switch to a different memory entirely, they can use the dedicated memory switcher buttons in the top header bar (<code>Memory X / Y</code>).
+  </p>
+</div>
+
+<h2>6. UI Features Overview</h2>
 
 <table>
   <thead>
@@ -316,9 +330,14 @@ private async processMediaResiliently(mediaUrls?: string[], singleMediaUrl?: str
   </thead>
   <tbody>
     <tr>
+      <td><strong>Media-Only Slider Arrows</strong></td>
+      <td><code>MediaLightboxModal.tsx</code></td>
+      <td>Arrow buttons on the media view strictly slide photos &amp; videos within the active memory without changing memory card details.</td>
+    </tr>
+    <tr>
       <td><strong>Multiple Upload Dropzone</strong></td>
       <td><code>create/page.tsx</code></td>
-      <td>Drag & drop multiple photos and videos at once with processing spinner.</td>
+      <td>Drag &amp; drop multiple photos and videos at once with processing spinner.</td>
     </tr>
     <tr>
       <td><strong>Direct URL Adder</strong></td>
@@ -353,7 +372,7 @@ private async processMediaResiliently(mediaUrls?: string[], singleMediaUrl?: str
   </tbody>
 </table>
 
-<h2>6. Verification Summary</h2>
+<h2>7. Verification Summary</h2>
 <ul>
   <li><strong>Backend Build:</strong> <code>npx tsc --noEmit</code> passed with 0 errors.</li>
   <li><strong>Frontend Build:</strong> <code>npx tsc --noEmit</code> passed with 0 errors.</li>
