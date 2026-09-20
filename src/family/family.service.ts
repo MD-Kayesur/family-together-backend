@@ -340,6 +340,64 @@ export class FamilyService {
     });
   }
 
+  async getMemoryById(id: string) {
+    const memory = await this.prisma.memory.findUnique({
+      where: { id },
+    });
+    if (!memory) {
+      throw new NotFoundException(`Memory with ID ${id} not found`);
+    }
+    return memory;
+  }
+
+  async updateMemory(
+    id: string,
+    data: {
+      title?: string;
+      description?: string;
+      sharedBy?: string;
+      date?: string;
+      location?: string;
+      category?: string;
+      mediaUrl?: string;
+      taggedMembers?: string;
+      privacy?: string;
+    },
+  ) {
+    const memory = await this.getMemoryById(id);
+
+    let combinedDesc = data.description !== undefined ? data.description : '';
+    const metaParts: string[] = [];
+
+    if (data.category) metaParts.push(`Category: ${data.category}`);
+    if (data.date) metaParts.push(`Date: ${data.date}`);
+    if (data.location) metaParts.push(`Location: ${data.location}`);
+    if (data.taggedMembers) metaParts.push(`Tagged: ${data.taggedMembers}`);
+    if (data.privacy) metaParts.push(`Privacy: ${data.privacy}`);
+
+    if (metaParts.length > 0) {
+      combinedDesc = `${metaParts.join(' • ')}${combinedDesc ? `\n\n${combinedDesc}` : ''}`;
+    }
+
+    return this.prisma.memory.update({
+      where: { id },
+      data: {
+        title: data.title !== undefined ? data.title : memory.title,
+        description: combinedDesc || memory.description,
+        sharedBy: data.sharedBy !== undefined ? data.sharedBy : memory.sharedBy,
+        mediaUrl: data.mediaUrl !== undefined ? data.mediaUrl : memory.mediaUrl,
+      },
+    });
+  }
+
+  async deleteMemory(id: string) {
+    await this.getMemoryById(id);
+    await this.prisma.memory.delete({
+      where: { id },
+    });
+    return { success: true, message: 'Memory deleted successfully' };
+  }
+
   async getEvents() {
     return this.prisma.event.findMany({
       orderBy: { date: 'asc' },

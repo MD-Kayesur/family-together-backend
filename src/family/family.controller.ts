@@ -99,6 +99,38 @@ export class FamilyController {
     return this.familyService.createMemory(body);
   }
 
+  @Get('memories/:id')
+  @ApiOperation({ summary: 'Get a single family memory by ID' })
+  getMemoryById(@Param('id') id: string) {
+    return this.familyService.getMemoryById(id);
+  }
+
+  @Patch('memories/:id')
+  @ApiOperation({ summary: 'Update an existing family memory' })
+  updateMemory(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      title?: string;
+      description?: string;
+      sharedBy?: string;
+      date?: string;
+      location?: string;
+      category?: string;
+      mediaUrl?: string;
+      taggedMembers?: string;
+      privacy?: string;
+    },
+  ) {
+    return this.familyService.updateMemory(id, body);
+  }
+
+  @Delete('memories/:id')
+  @ApiOperation({ summary: 'Delete a family memory' })
+  deleteMemory(@Param('id') id: string) {
+    return this.familyService.deleteMemory(id);
+  }
+
   @Get('events')
   @ApiOperation({ summary: 'Get family upcoming events' })
   getEvents() {
