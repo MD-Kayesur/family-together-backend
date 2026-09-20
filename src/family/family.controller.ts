@@ -54,6 +54,8 @@ export class FamilyController {
       location?: string;
       contactInfo?: string;
       avatarUrl?: string;
+      relativeToPersonId?: string;
+      relationshipType?: string;
     },
   ) {
     return this.familyService.createMember(body);
@@ -171,6 +173,7 @@ export class FamilyController {
   @ApiOperation({ summary: 'Upload document(s) to family vault' })
   createDocument(
     @Body()
+    body:
       | {
           name: string;
           category?: string;

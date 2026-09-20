@@ -126,6 +126,8 @@ export class FamilyService {
     location?: string;
     contactInfo?: string;
     avatarUrl?: string;
+    relativeToPersonId?: string;
+    relationshipType?: string;
   }) {
     if (data.existingPersonId) {
       const existingPerson = await this.prisma.person.findUnique({
@@ -156,6 +158,18 @@ export class FamilyService {
               role: 'MEMBER',
             },
           });
+        }
+      }
+
+      if (data.relativeToPersonId) {
+        try {
+          await this.linkRelativeRelationship(
+            data.relativeToPersonId,
+            existingPerson.id,
+            data.relationshipType,
+          );
+        } catch (relErr) {
+          console.error('Failed to link relationship for existing member:', relErr);
         }
       }
 
@@ -267,6 +281,19 @@ export class FamilyService {
       });
     }
 
+    // Automatically establish relationship if relativeToPersonId is provided
+    if (data.relativeToPersonId) {
+      try {
+        await this.linkRelativeRelationship(
+          data.relativeToPersonId,
+          person.id,
+          data.relationshipType,
+        );
+      } catch (relErr) {
+        console.error('Failed to auto-create relationship for relative:', relErr);
+      }
+    }
+
     return {
       ...person,
       linkedUser: userEmail
@@ -278,6 +305,60 @@ export class FamilyService {
           }
         : null,
     };
+  }
+
+  private async linkRelativeRelationship(
+    memberPersonId: string,
+    relativePersonId: string,
+    relationshipType?: string,
+  ) {
+    const relTypeNormalized = (relationshipType || 'PARENT_CHILD').toUpperCase().trim();
+    let fromId = memberPersonId;
+    let toId = relativePersonId;
+    let typeCode = 'PARENT_CHILD';
+
+    if (
+      relTypeNormalized === 'FATHER' ||
+      relTypeNormalized === 'MOTHER' ||
+      relTypeNormalized === 'PARENT'
+    ) {
+      fromId = relativePersonId; // Relative is parent
+      toId = memberPersonId;     // Current member is child
+      typeCode = 'PARENT_CHILD';
+    } else if (
+      relTypeNormalized === 'SON' ||
+      relTypeNormalized === 'DAUGHTER' ||
+      relTypeNormalized === 'CHILD'
+    ) {
+      fromId = memberPersonId;   // Current member is parent
+      toId = relativePersonId;   // Relative is child
+      typeCode = 'PARENT_CHILD';
+    } else if (
+      relTypeNormalized === 'SPOUSE' ||
+      relTypeNormalized === 'PARTNER' ||
+      relTypeNormalized === 'HUSBAND' ||
+      relTypeNormalized === 'WIFE'
+    ) {
+      fromId = memberPersonId;
+      toId = relativePersonId;
+      typeCode = 'SPOUSE';
+    } else if (
+      relTypeNormalized === 'BROTHER' ||
+      relTypeNormalized === 'SISTER' ||
+      relTypeNormalized === 'SIBLING'
+    ) {
+      fromId = memberPersonId;
+      toId = relativePersonId;
+      typeCode = 'SIBLING';
+    } else {
+      typeCode = relTypeNormalized;
+    }
+
+    return this.createRelationship({
+      fromPersonId: fromId,
+      toPersonId: toId,
+      typeCode,
+    });
   }
 
   async updateMember(id: string, data: { firstName?: string; lastName?: string; bio?: string }) {
