@@ -47,71 +47,71 @@ All auth routes can be accessed with either `/auth/...` or `/api/auth/...` prefi
 All family routes can be accessed with either `/family/...` or `/api/family/...` prefix.
 
 ### Sanctuary Overview & Metrics
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/family/sanctuary` | Get main family tree overview, stats, and member counts |
-| `PATCH` | `/family/update` | Update sanctuary family name and description |
-| `PATCH` | `/family/settings` | Update sanctuary settings and preferences |
-| `GET` | `/family/activity` | Get recent audit activity logs across the sanctuary |
-| `GET` | `/family/admin/stats` | Administrative network health and metrics |
+| Method | Endpoint | Description | Allowed Roles | Permissions |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/family/sanctuary` | Get main family tree overview, stats, and member counts | `OWNER`, `ADMIN`, `SUPER_ADMIN`, `MEMBER`, `USER` | Read-only sanctuary dashboard access |
+| `PATCH` | `/family/update` | Update sanctuary family name and description | `OWNER`, `ADMIN`, `SUPER_ADMIN` | Sanctuary core profile management |
+| `PATCH` | `/family/settings` | Update sanctuary settings and preferences | `OWNER`, `ADMIN`, `SUPER_ADMIN` | Sanctuary configuration management |
+| `GET` | `/family/activity` | Get recent audit activity logs across the sanctuary | `OWNER`, `ADMIN`, `SUPER_ADMIN`, `MEMBER`, `USER` | Read activity feed |
+| `GET` | `/family/admin/stats` | Administrative network health and metrics | `ADMIN`, `SUPER_ADMIN` | System platform administration |
 
 ### Family Members & Relative Linking
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/family/members` | Retrieve all family members in sanctuary |
-| `GET` | `/family/members/search?q={query}` | Search profiles for deduplication and relative linking |
-| `POST` | `/family/members` | Add new relative/member or link existing profile with relationship |
-| `PATCH` | `/family/members/:id` | Update family member profile details |
-| `DELETE` | `/family/members/:id` | Remove a family member from sanctuary |
+| Method | Endpoint | Description | Allowed Roles | Permissions |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/family/members` | Retrieve all family members in sanctuary | `MEMBER`, `USER`, `OWNER`, `ADMIN`, `SUPER_ADMIN` | Read member directory |
+| `GET` | `/family/members/search?q={query}` | Search profiles for deduplication and relative linking | `MEMBER`, `USER`, `OWNER`, `ADMIN`, `SUPER_ADMIN` | Search member profiles |
+| `POST` | `/family/members` | Add new relative/member or link existing profile with relationship | `OWNER`, `ADMIN`, `SUPER_ADMIN` (any member), `MEMBER` (relative to self) | Create member & relative links |
+| `PATCH` | `/family/members/:id` | Update family member profile details | `OWNER`, `ADMIN`, `SUPER_ADMIN`, or profile owner | Edit member details |
+| `DELETE` | `/family/members/:id` | Remove a family member from sanctuary | `OWNER`, `ADMIN`, `SUPER_ADMIN` strictly | Delete member profile (denied for ordinary member) |
 
 ### Lineage & Relationships Matrix
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/family/relationships` | Get full graph relationship matrix for family tree canvas |
-| `POST` | `/family/relationships` | Create relationship link between two relatives |
+| Method | Endpoint | Description | Allowed Roles | Permissions |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/family/relationships` | Get full graph relationship matrix for family tree canvas | `MEMBER`, `USER`, `OWNER`, `ADMIN`, `SUPER_ADMIN` | Read relationship connections |
+| `POST` | `/family/relationships` | Create relationship link between two relatives | `OWNER`, `ADMIN`, `SUPER_ADMIN`, `MEMBER`, `USER` | Establish lineage links |
 
 ### Memories Vault (With User Isolation)
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/family/memories?userId={id}&userEmail={email}` | Retrieve user-isolated family memories gallery |
-| `GET` | `/family/memories/:id` | Retrieve single memory details |
-| `POST` | `/family/memories` | Upload new memory story with photos, dates, and locations |
-| `PATCH` | `/family/memories/:id` | Update an existing memory |
-| `DELETE` | `/family/memories/:id` | Delete memory from vault |
+| Method | Endpoint | Description | Allowed Roles | Permissions |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/family/memories?userId={id}&userEmail={email}` | Retrieve user-isolated family memories gallery | `MEMBER`, `USER`, `OWNER`, `ADMIN`, `SUPER_ADMIN` | Read isolated user memories |
+| `GET` | `/family/memories/:id` | Retrieve single memory details | `MEMBER`, `USER`, `OWNER`, `ADMIN`, `SUPER_ADMIN` | Read memory record |
+| `POST` | `/family/memories` | Upload new memory story with photos, dates, and locations | `MEMBER`, `USER`, `OWNER`, `ADMIN`, `SUPER_ADMIN` | Create personal memory |
+| `PATCH` | `/family/memories/:id` | Update an existing memory | Memory Creator, `OWNER`, `ADMIN`, `SUPER_ADMIN` | Edit memory record |
+| `DELETE` | `/family/memories/:id` | Delete memory from vault | Memory Creator, `OWNER`, `ADMIN`, `SUPER_ADMIN` | Delete memory record |
 
 ### Events Calendar
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/family/events` | List upcoming family reunions, birthdays, and anniversaries |
-| `POST` | `/family/events` | Schedule a new family event (virtual or physical) |
+| Method | Endpoint | Description | Allowed Roles | Permissions |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/family/events` | List upcoming family reunions, birthdays, and anniversaries | `MEMBER`, `USER`, `OWNER`, `ADMIN`, `SUPER_ADMIN` | Read calendar events |
+| `POST` | `/family/events` | Schedule a new family event (virtual or physical) | `OWNER`, `ADMIN`, `SUPER_ADMIN`, `MEMBER`, `USER` | Create calendar event |
 
 ### Documents Vault
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/family/documents` | Retrieve encrypted document archive |
-| `POST` | `/family/documents` | Upload single document or files bundle |
-| `POST` | `/family/documents/multiple` | Upload batch documents |
-| `DELETE` | `/family/documents/:id` | Delete a single document |
-| `DELETE` | `/family/documents` | Purge all documents |
+| Method | Endpoint | Description | Allowed Roles | Permissions |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/family/documents` | Retrieve encrypted document archive | `MEMBER`, `USER`, `OWNER`, `ADMIN`, `SUPER_ADMIN` | Read document files & metadata |
+| `POST` | `/family/documents` | Upload single document or files bundle (up to 100MB) | `MEMBER`, `USER`, `OWNER`, `ADMIN`, `SUPER_ADMIN` | Upload document file |
+| `POST` | `/family/documents/multiple` | Upload batch documents | `MEMBER`, `USER`, `OWNER`, `ADMIN`, `SUPER_ADMIN` | Upload batch files |
+| `DELETE` | `/family/documents/:id` | Delete a single document | Document Uploader, `OWNER`, `ADMIN`, `SUPER_ADMIN` | Delete archive file |
+| `DELETE` | `/family/documents` | Purge all documents | `OWNER`, `ADMIN`, `SUPER_ADMIN` strictly | Purge archive vault |
 
 ### Invitations & Join Requests
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/family/invitations` | Get pending member invitations and requests |
-| `POST` | `/family/invitations` | Send an email invite to join family tree |
-| `PATCH` | `/family/invitations/:id` | Accept or reject join request |
+| Method | Endpoint | Description | Allowed Roles | Permissions |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/family/invitations` | Get pending member invitations and requests | `OWNER`, `ADMIN`, `SUPER_ADMIN` | View invitations list |
+| `POST` | `/family/invitations` | Send an email invite to join family tree | `OWNER`, `ADMIN`, `SUPER_ADMIN`, `MEMBER`, `USER` | Send join invitation |
+| `PATCH` | `/family/invitations/:id` | Accept or reject join request | `OWNER`, `ADMIN`, `SUPER_ADMIN` strictly | Approve/reject admission |
 
 ---
 
 ## 4. Users Administration APIs (`/users`)
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/users` | Create user profile record |
-| `GET` | `/users` | Retrieve directory of all registered users |
-| `GET` | `/users/:id` | Find user profile by unique ID |
-| `PATCH` | `/users/:id` | Update user details or assign role |
-| `DELETE` | `/users/:id` | Delete user account |
+| Method | Endpoint | Description | Allowed Roles | Permissions |
+| :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/users` | Create user profile record | `ADMIN`, `SUPER_ADMIN` | System account creation |
+| `GET` | `/users` | Retrieve directory of all registered users | `ADMIN`, `SUPER_ADMIN` | User accounts inspection |
+| `GET` | `/users/:id` | Find user profile by unique ID | `ADMIN`, `SUPER_ADMIN`, or Account Owner | User details retrieval |
+| `PATCH` | `/users/:id` | Update user details or assign role | `ADMIN`, `SUPER_ADMIN`, or Account Owner | Account modification |
+| `DELETE` | `/users/:id` | Delete user account | `ADMIN`, `SUPER_ADMIN` strictly | Account termination |
 
 ---
 

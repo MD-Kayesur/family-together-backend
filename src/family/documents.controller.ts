@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Delete, Body, Param } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { FamilyService } from './family.service';
 
 @ApiTags('Documents Archive')
@@ -8,13 +8,25 @@ export class DocumentsController {
   constructor(private readonly familyService: FamilyService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get encrypted family documents archive vault' })
+  @ApiOperation({
+    summary: 'Get encrypted family documents archive vault',
+    description: `**Purpose:** Retrieves all uploaded historical records, certificates, land deeds, identity files, and scanned family heirlooms.
+**Allowed Roles:** \`MEMBER\`, \`USER\`, \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
+**Permissions:** Read-only access to document metadata and secure download URLs.`,
+  })
+  @ApiResponse({ status: 200, description: 'Documents list retrieved successfully' })
   getDocuments() {
     return this.familyService.getDocuments();
   }
 
   @Post()
-  @ApiOperation({ summary: 'Upload single or batch document(s) to family vault' })
+  @ApiOperation({
+    summary: 'Upload single or batch document(s) to family vault',
+    description: `**Purpose:** Stores new file attachments (PDFs, images, scans up to 100MB) with category, file size, and uploader tracking.
+**Allowed Roles:** \`MEMBER\`, \`USER\`, \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
+**Permissions:** Authorized family members can contribute historical documents.`,
+  })
+  @ApiResponse({ status: 201, description: 'Document uploaded successfully' })
   createDocument(
     @Body()
     body:
@@ -40,7 +52,13 @@ export class DocumentsController {
   }
 
   @Post('multiple')
-  @ApiOperation({ summary: 'Upload multiple batch documents to family vault' })
+  @ApiOperation({
+    summary: 'Upload multiple batch documents to family vault',
+    description: `**Purpose:** Uploads multi-document bundles in a single atomic request (supporting up to 100MB payload).
+**Allowed Roles:** \`MEMBER\`, \`USER\`, \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
+**Permissions:** Batch file contribution permission.`,
+  })
+  @ApiResponse({ status: 201, description: 'Batch documents uploaded successfully' })
   createMultipleDocuments(
     @Body()
     body:
@@ -52,14 +70,26 @@ export class DocumentsController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete a single document from vault' })
+  @ApiOperation({
+    summary: 'Delete a single document from vault',
+    description: `**Purpose:** Removes an individual document from the sanctuary repository.
+**Allowed Roles:** Document Uploader, \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
+**Permissions:** Delete permission restricted to the original uploader or sanctuary owner.`,
+  })
   @ApiParam({ name: 'id', description: 'Unique document identifier' })
+  @ApiResponse({ status: 200, description: 'Document deleted successfully' })
   deleteDocument(@Param('id') id: string) {
     return this.familyService.deleteDocument(id);
   }
 
   @Delete()
-  @ApiOperation({ summary: 'Delete all documents from family vault' })
+  @ApiOperation({
+    summary: 'Delete all documents from family vault',
+    description: `**Purpose:** Purges the entire document archive for the family sanctuary.
+**Allowed Roles:** \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\` strictly.
+**Permissions:** Destructive purge action requiring sanctuary owner or admin authority. Denied for ordinary members.`,
+  })
+  @ApiResponse({ status: 200, description: 'All documents purged successfully' })
   deleteAllDocuments() {
     return this.familyService.deleteAllDocuments();
   }
