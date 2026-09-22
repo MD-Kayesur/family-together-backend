@@ -15,8 +15,8 @@ describe('AppController', () => {
   });
 
   describe('root', () => {
-    it('should return HTML dashboard', () => {
-      expect(appController.getDashboard()).toContain('FamilyRoots API Dashboard');
+    it('should redirect to Swagger docs', () => {
+      expect(appController.getRoot()).toEqual({ url: '/api/docs' });
     });
   });
 
