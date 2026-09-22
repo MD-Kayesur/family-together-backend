@@ -63,14 +63,38 @@ export class AppController {
       letter-spacing: -0.5px;
       text-shadow: 0 2px 10px rgba(0,0,0,0.4);
     }
-    .login-btn {
-      background: #6366f1;
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .frontend-btn {
+      background: rgba(255, 255, 255, 0.12);
       color: #ffffff;
-      padding: 12px 34px;
+      padding: 10px 22px;
       border-radius: 50px;
       text-decoration: none;
       font-weight: 700;
-      font-size: 1rem;
+      font-size: 0.9rem;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(10px);
+      transition: all 0.25s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .frontend-btn:hover {
+      background: rgba(255, 255, 255, 0.22);
+      transform: translateY(-2px);
+    }
+    .login-btn {
+      background: #6366f1;
+      color: #ffffff;
+      padding: 10px 24px;
+      border-radius: 50px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 0.9rem;
       box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
       transition: all 0.25s ease;
       display: inline-flex;
@@ -194,6 +218,61 @@ export class AppController {
       box-shadow: 0 10px 25px rgba(16, 185, 129, 0.55);
     }
 
+    /* Frontend Portal Section */
+    .frontend-section {
+      margin-top: 40px;
+      padding: 22px 28px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      max-width: 1000px;
+      margin-left: auto;
+      margin-right: auto;
+      backdrop-filter: blur(12px);
+    }
+    .frontend-section-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #38bdf8;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+    .frontend-desc {
+      font-size: 0.9rem;
+      color: #cbd5e1;
+      margin-bottom: 16px;
+    }
+    .frontend-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .frontend-pill {
+      background: rgba(255, 255, 255, 0.08);
+      color: #f1f5f9;
+      padding: 11px 16px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 0.85rem;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .frontend-pill:hover {
+      background: rgba(255, 255, 255, 0.18);
+      color: #38bdf8;
+      transform: translateY(-2px);
+      border-color: #38bdf8;
+    }
+    .frontend-pill .material-symbols-outlined {
+      font-size: 16px;
+    }
+
     /* Footer Section */
     .footer-container {
       text-align: center;
@@ -220,7 +299,7 @@ export class AppController {
     }
 
     @media (max-width: 900px) {
-      .roles-grid, .modules-grid {
+      .roles-grid, .modules-grid, .frontend-grid {
         grid-template-columns: repeat(2, 1fr);
       }
       .module-pill.wide {
@@ -228,7 +307,7 @@ export class AppController {
       }
     }
     @media (max-width: 500px) {
-      .roles-grid, .modules-grid {
+      .roles-grid, .modules-grid, .frontend-grid {
         grid-template-columns: 1fr;
       }
     }
@@ -237,42 +316,71 @@ export class AppController {
 <body>
   <!-- Header Bar -->
   <header class="header-bar">
-    <a href="${frontendUrl}" class="brand">
+    <a href="/" class="brand">
       <span class="material-symbols-outlined">account_tree</span>
-      <span>FamilyRoots</span>
+      <span>FamilyRoots Backend API</span>
     </a>
-    <a href="${frontendUrl}/signin" class="login-btn">Log In</a>
+    <div class="header-actions">
+      <a href="${frontendUrl}" target="_blank" rel="noopener noreferrer" class="frontend-btn">
+        <span class="material-symbols-outlined" style="font-size: 18px;">open_in_new</span>
+        Frontend Web App
+      </a>
+      <a href="/api/docs#/Auth" class="login-btn">
+        <span class="material-symbols-outlined" style="font-size: 18px;">key</span>
+        API Auth / Sign In
+      </a>
+    </div>
   </header>
 
   <!-- Hero Container -->
   <main class="hero-container">
-    <h1 class="main-title">FamilyRoots API Dashboard</h1>
-    <p class="main-subtitle">Privacy-First Family Tree, Lineage & Archive API Engine</p>
+    <h1 class="main-title">FamilyRoots API Sanctuary</h1>
+    <p class="main-subtitle">Privacy-First Lineage Engine • NestJS REST APIs & PostgreSQL Vault</p>
 
-    <!-- Role Based Web App Redirects -->
-    <div class="roles-section-title">Role-Based Web Dashboards</div>
+    <!-- Role Based Backend API Endpoints -->
+    <div class="roles-section-title">Backend API Role Endpoints (Swagger Docs)</div>
     <div class="roles-grid">
-      <a href="${frontendUrl}/admin-dashboard/super" class="role-pill">SUPER ADMIN</a>
-      <a href="${frontendUrl}/admin-dashboard" class="role-pill">ADMIN</a>
-      <a href="${frontendUrl}/owner-dashboard" class="role-pill">OWNER</a>
-      <a href="${frontendUrl}/user-dashboard" class="role-pill">MEMBER / USER</a>
+      <a href="/api/docs#/Users" class="role-pill">SUPER ADMIN API</a>
+      <a href="/api/docs#/Users" class="role-pill">ADMIN API</a>
+      <a href="/api/docs#/Family%20Sanctuary" class="role-pill">OWNER SANCTUARY API</a>
+      <a href="/api/docs#/Family%20Sanctuary" class="role-pill">MEMBER API</a>
     </div>
 
     <!-- Active System Sanctuary Modules -->
-    <div class="roles-section-title">Active Sanctuary Modules</div>
+    <div class="roles-section-title">Active Sanctuary REST API Modules</div>
     <div class="modules-grid">
-      <a href="${frontendUrl}/owner-dashboard/family" class="module-pill">FAMILY SANCTUARY</a>
-      <a href="${frontendUrl}/owner-dashboard/members" class="module-pill">MEMBERS & DEDUPLICATION</a>
-      <a href="${frontendUrl}/owner-dashboard/relationships" class="module-pill">RELATIONSHIPS</a>
-      <a href="${frontendUrl}/owner-dashboard/memories" class="module-pill">MEMORIES VAULT</a>
+      <a href="/api/docs#/Family%20Sanctuary" class="module-pill">FAMILY SANCTUARY API</a>
+      <a href="/api/docs#/Family%20Sanctuary" class="module-pill">MEMBERS & DEDUPLICATION</a>
+      <a href="/api/docs#/Family%20Sanctuary" class="module-pill">RELATIONSHIPS API</a>
+      <a href="/api/docs#/Family%20Sanctuary" class="module-pill">MEMORIES VAULT API</a>
 
-      <a href="${frontendUrl}/owner-dashboard/events" class="module-pill">EVENTS CALENDAR</a>
-      <a href="${frontendUrl}/owner-dashboard/documents" class="module-pill">DOCUMENTS ARCHIVE</a>
-      <a href="${frontendUrl}/owner-dashboard/invitations" class="module-pill">INVITATIONS</a>
-      <a href="${frontendUrl}/signin" class="module-pill">AUTH & SECURITY</a>
+      <a href="/api/docs#/Family%20Sanctuary" class="module-pill">EVENTS CALENDAR API</a>
+      <a href="/api/docs#/Family%20Sanctuary" class="module-pill">DOCUMENTS ARCHIVE API</a>
+      <a href="/api/docs#/Family%20Sanctuary" class="module-pill">INVITATIONS API</a>
+      <a href="/api/docs#/Auth" class="module-pill">AUTH & SECURITY API</a>
 
       <a href="/api/docs" class="module-pill wide cyan">SWAGGER OPENAPI DOCS</a>
       <a href="/health" class="module-pill wide emerald">SYSTEM HEALTH STATUS</a>
+    </div>
+
+    <!-- Frontend Web Application Portal Links -->
+    <div class="frontend-section">
+      <div class="frontend-section-title">Client-Side Web Application (UI)</div>
+      <p class="frontend-desc">Looking for the visual React/Next.js interface? Access role dashboards in the web client (requires authentication):</p>
+      <div class="frontend-grid">
+        <a href="${frontendUrl}/admin-dashboard/super" target="_blank" rel="noopener noreferrer" class="frontend-pill">
+          Super Admin UI <span class="material-symbols-outlined">open_in_new</span>
+        </a>
+        <a href="${frontendUrl}/admin-dashboard" target="_blank" rel="noopener noreferrer" class="frontend-pill">
+          Admin UI <span class="material-symbols-outlined">open_in_new</span>
+        </a>
+        <a href="${frontendUrl}/owner-dashboard" target="_blank" rel="noopener noreferrer" class="frontend-pill">
+          Owner Sanctuary UI <span class="material-symbols-outlined">open_in_new</span>
+        </a>
+        <a href="${frontendUrl}/user-dashboard" target="_blank" rel="noopener noreferrer" class="frontend-pill">
+          Member UI <span class="material-symbols-outlined">open_in_new</span>
+        </a>
+      </div>
     </div>
   </main>
 

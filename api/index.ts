@@ -49,6 +49,20 @@ async function bootstrap() {
 }
 
 export default async function handler(req: Request, res: Response) {
-  await bootstrap();
-  server(req, res);
+  try {
+    // Path normalization: Support both /api/auth/signin and /auth/signin
+    if (req.url && req.url.startsWith('/api') && !req.url.startsWith('/api/docs')) {
+      req.url = req.url.replace(/^\/api/, '') || '/';
+    }
+
+    await bootstrap();
+    server(req, res);
+  } catch (err: any) {
+    console.error('Error in Vercel serverless handler:', err);
+    res.status(500).json({
+      error: 'Backend Serverless Initialization Error',
+      message: err?.message || 'Unknown error during NestJS bootstrap',
+      timestamp: new Date().toISOString(),
+    });
+  }
 }
