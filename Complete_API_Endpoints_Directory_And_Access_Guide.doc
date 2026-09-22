@@ -1,0 +1,136 @@
+# FamilyRoots API Sanctuary - Complete Endpoints Directory & Access Guide
+
+## 1. Primary Access Links
+
+### Interactive Swagger UI (OpenAPI Explorer)
+You can view, test, and authenticate with all system APIs visually in your browser:
+- **Direct Root URL (Auto-Redirects to Swagger)**:
+  - Local Development: `http://localhost:5000/` or `http://localhost:3000/`
+  - Vercel Deployment: `https://<your-backend-domain>/`
+- **Direct Swagger Documentation URLs**:
+  - `http://localhost:5000/api/docs` or `https://<your-backend-domain>/api/docs`
+  - `http://localhost:5000/docs` or `https://<your-backend-domain>/docs`
+
+### Raw OpenAPI Specifications (For Postman, Insomnia, Code Generators)
+- **JSON Specification**: `http://localhost:5000/api/docs-json` or `https://<your-backend-domain>/api/docs-json`
+- **YAML Specification**: `http://localhost:5000/api/docs-yaml` or `https://<your-backend-domain>/api/docs-yaml`
+
+### System Health Endpoint
+- `http://localhost:5000/health` or `https://<your-backend-domain>/health`
+
+---
+
+## 2. Authentication & Session APIs (`/auth`)
+
+All auth routes can be accessed with either `/auth/...` or `/api/auth/...` prefix.
+
+| Method | Endpoint | Description | Auth Required |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/auth/signup` | Register new user account | Public |
+| `POST` | `/auth/signin` | Sign in with email and password (sets HttpOnly cookies) | Public |
+| `POST` | `/auth/refresh` | Rotate refresh token and issue new access token | Public (Cookie / Refresh Token) |
+| `POST` | `/auth/logout` | Revoke current user session and clear cookies | Bearer JWT / Cookie |
+| `POST` | `/auth/logout-all` | Revoke all active devices and sessions for user | Bearer JWT / Cookie |
+| `GET` | `/auth/me` | Fetch currently authenticated user profile | Bearer JWT / Cookie |
+| `GET` | `/auth/sessions` | List active sessions and device agents | Bearer JWT / Cookie |
+| `PATCH` | `/auth/profile` | Update profile information (name, bio, avatar, phone) | Bearer JWT / Cookie |
+| `POST` | `/auth/change-password` | Update current user account password | Bearer JWT / Cookie |
+| `POST` | `/auth/verify-email` | Verify email token to activate account | Public |
+| `POST` | `/auth/resend-verification`| Resend account activation link | Public |
+| `POST` | `/auth/forgot-password` | Request password reset token via email | Public |
+| `POST` | `/auth/reset-password` | Reset password using one-time token | Public |
+
+---
+
+## 3. Family Sanctuary & Tree Management APIs (`/family`)
+
+All family routes can be accessed with either `/family/...` or `/api/family/...` prefix.
+
+### Sanctuary Overview & Metrics
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/family/sanctuary` | Get main family tree overview, stats, and member counts |
+| `PATCH` | `/family/update` | Update sanctuary family name and description |
+| `PATCH` | `/family/settings` | Update sanctuary settings and preferences |
+| `GET` | `/family/activity` | Get recent audit activity logs across the sanctuary |
+| `GET` | `/family/admin/stats` | Administrative network health and metrics |
+
+### Family Members & Relative Linking
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/family/members` | Retrieve all family members in sanctuary |
+| `GET` | `/family/members/search?q={query}` | Search profiles for deduplication and relative linking |
+| `POST` | `/family/members` | Add new relative/member or link existing profile with relationship |
+| `PATCH` | `/family/members/:id` | Update family member profile details |
+| `DELETE` | `/family/members/:id` | Remove a family member from sanctuary |
+
+### Lineage & Relationships Matrix
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/family/relationships` | Get full graph relationship matrix for family tree canvas |
+| `POST` | `/family/relationships` | Create relationship link between two relatives |
+
+### Memories Vault (With User Isolation)
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/family/memories?userId={id}&userEmail={email}` | Retrieve user-isolated family memories gallery |
+| `GET` | `/family/memories/:id` | Retrieve single memory details |
+| `POST` | `/family/memories` | Upload new memory story with photos, dates, and locations |
+| `PATCH` | `/family/memories/:id` | Update an existing memory |
+| `DELETE` | `/family/memories/:id` | Delete memory from vault |
+
+### Events Calendar
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/family/events` | List upcoming family reunions, birthdays, and anniversaries |
+| `POST` | `/family/events` | Schedule a new family event (virtual or physical) |
+
+### Documents Vault
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/family/documents` | Retrieve encrypted document archive |
+| `POST` | `/family/documents` | Upload single document or files bundle |
+| `POST` | `/family/documents/multiple` | Upload batch documents |
+| `DELETE` | `/family/documents/:id` | Delete a single document |
+| `DELETE` | `/family/documents` | Purge all documents |
+
+### Invitations & Join Requests
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/family/invitations` | Get pending member invitations and requests |
+| `POST` | `/family/invitations` | Send an email invite to join family tree |
+| `PATCH` | `/family/invitations/:id` | Accept or reject join request |
+
+---
+
+## 4. Users Administration APIs (`/users`)
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/users` | Create user profile record |
+| `GET` | `/users` | Retrieve directory of all registered users |
+| `GET` | `/users/:id` | Find user profile by unique ID |
+| `PATCH` | `/users/:id` | Update user details or assign role |
+| `DELETE` | `/users/:id` | Delete user account |
+
+---
+
+## 5. Postman & Curl Example
+
+### Testing Health Status:
+```bash
+curl -X GET "http://localhost:5000/health"
+```
+
+### Testing Sign In:
+```bash
+curl -X POST "http://localhost:5000/auth/signin" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "owner@familyroots.org",
+    "password": "Password123!"
+  }'
+```
+
+### Downloading OpenAPI Schema into Postman:
+Import URL into Postman: `http://localhost:5000/api/docs-json`
