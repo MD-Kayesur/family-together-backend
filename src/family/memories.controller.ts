@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { FamilyService } from './family.service';
+import { MemoriesQueryDto } from './dto/family-query.dto';
 
 @ApiTags('Memories Vault')
 @Controller('family/memories')
@@ -9,19 +10,14 @@ export class MemoriesController {
 
   @Get()
   @ApiOperation({
-    summary: 'Get family memories gallery with user privacy isolation',
-    description: `**Purpose:** Retrieves timeline memories, stories, and photo archives. Strictly enforces privacy isolation: users only see their own memories or memories specifically shared with them.
+    summary: 'Get family memories gallery with user privacy isolation, pagination, and keyword search',
+    description: `**Purpose:** Retrieves timeline memories, stories, and photo archives with pagination and search. Strictly enforces privacy isolation: users only see their own memories or memories specifically shared with them.
 **Allowed Roles:** \`MEMBER\`, \`USER\`, \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
 **Permissions:** Authenticated user identity required (\`userId\` or \`userEmail\`). Returns an empty collection if unauthenticated to prevent data leaks.`,
   })
-  @ApiQuery({ name: 'userId', required: false, description: 'Optional user identifier for isolation' })
-  @ApiQuery({ name: 'userEmail', required: false, description: 'Optional user email for isolation' })
-  @ApiResponse({ status: 200, description: 'List of user memories returned' })
-  getMemories(
-    @Query('userId') userId?: string,
-    @Query('userEmail') userEmail?: string,
-  ) {
-    return this.familyService.getMemories({ userId, userEmail });
+  @ApiResponse({ status: 200, description: 'Paginated user memories returned' })
+  getMemories(@Query() query: MemoriesQueryDto) {
+    return this.familyService.getMemories(query);
   }
 
   @Get(':id')

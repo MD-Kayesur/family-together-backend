@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Delete, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { FamilyService } from './family.service';
+import { DocumentsQueryDto } from './dto/family-query.dto';
 
 @ApiTags('Documents Archive')
 @Controller('family/documents')
@@ -9,14 +10,14 @@ export class DocumentsController {
 
   @Get()
   @ApiOperation({
-    summary: 'Get encrypted family documents archive vault',
-    description: `**Purpose:** Retrieves all uploaded historical records, certificates, land deeds, identity files, and scanned family heirlooms.
+    summary: 'Get encrypted family documents archive vault with pagination and search',
+    description: `**Purpose:** Retrieves historical records, certificates, land deeds, identity files, and scanned family heirlooms with category filter, search, and pagination.
 **Allowed Roles:** \`MEMBER\`, \`USER\`, \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
 **Permissions:** Read-only access to document metadata and secure download URLs.`,
   })
   @ApiResponse({ status: 200, description: 'Documents list retrieved successfully' })
-  getDocuments() {
-    return this.familyService.getDocuments();
+  getDocuments(@Query() query: DocumentsQueryDto) {
+    return this.familyService.getDocuments(query);
   }
 
   @Post()

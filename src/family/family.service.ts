@@ -2,6 +2,17 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import * as bcrypt from 'bcryptjs';
+import { buildPaginatedResponse } from '../common/interfaces/paginated-result.interface';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import {
+  MembersQueryDto,
+  MemoriesQueryDto,
+  EventsQueryDto,
+  DocumentsQueryDto,
+  InvitationsQueryDto,
+  RelationshipsQueryDto,
+  ActivityQueryDto,
+} from './dto/family-query.dto';
 
 @Injectable()
 export class FamilyService {
@@ -75,37 +86,69 @@ export class FamilyService {
     });
   }
 
-  async getMembers() {
-    return this.prisma.person.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: { user: true },
-    });
-  }
+  async getMembers(query?: MembersQueryDto) {
+    const page = Math.max(1, Number(query?.page) || 1);
+    const limit = Math.max(1, Math.min(100, Number(query?.limit) || 10));
+    const skip = (page - 1) * limit;
+    const searchTerm = (query?.search || query?.q || '').trim();
 
-  async searchMembers(query: string) {
-    if (!query || !query.trim()) {
+    const where: any = {};
+    if (searchTerm) {
+      where.OR = [
+        { firstName: { contains: searchTerm, mode: 'insensitive' } },
+        { lastName: { contains: searchTerm, mode: 'insensitive' } },
+        { middleName: { contains: searchTerm, mode: 'insensitive' } },
+        { nickname: { contains: searchTerm, mode: 'insensitive' } },
+        { email: { contains: searchTerm, mode: 'insensitive' } },
+        { bio: { contains: searchTerm, mode: 'insensitive' } },
+        { birthPlace: { contains: searchTerm, mode: 'insensitive' } },
+        { occupation: { contains: searchTerm, mode: 'insensitive' } },
+        { phone: { contains: searchTerm, mode: 'insensitive' } },
+        { city: { contains: searchTerm, mode: 'insensitive' } },
+        { country: { contains: searchTerm, mode: 'insensitive' } },
+      ];
+    }
+
+    if (query?.gender) {
+      where.gender = query.gender.toUpperCase();
+    }
+
+    if (query?.isDeceased !== undefined) {
+      const isDec = query.isDeceased === true || query.isDeceased === 'true';
+      where.isAlive = !isDec;
+    }
+
+    const sortField = query?.sortBy || 'createdAt';
+    const sortDir = (query?.sortOrder || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc';
+    const orderBy: any = { [sortField]: sortDir };
+
+    const total = await this.prisma.person.count({ where });
+
+    if (query?.raw === true || query?.paginate === false) {
       return this.prisma.person.findMany({
-        take: 10,
-        orderBy: { createdAt: 'desc' },
+        where,
+        orderBy,
         include: { user: true },
       });
     }
 
-    const q = query.trim().toLowerCase();
-    return this.prisma.person.findMany({
-      where: {
-        OR: [
-          { firstName: { contains: q, mode: 'insensitive' } },
-          { lastName: { contains: q, mode: 'insensitive' } },
-          { email: { contains: q, mode: 'insensitive' } },
-          { nickname: { contains: q, mode: 'insensitive' } },
-          { bio: { contains: q, mode: 'insensitive' } },
-        ],
-      },
-      take: 10,
-      orderBy: { createdAt: 'desc' },
+    const data = await this.prisma.person.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy,
       include: { user: true },
     });
+
+    return buildPaginatedResponse(data, total, page, limit);
+  }
+
+  async searchMembers(queryParam: PaginationQueryDto | string) {
+    const query: MembersQueryDto =
+      typeof queryParam === 'string'
+        ? { q: queryParam, search: queryParam }
+        : queryParam || {};
+    return this.getMembers(query);
   }
 
   async createMember(data: {
@@ -429,28 +472,79 @@ export class FamilyService {
       .map((r) => r.value as string);
   }
 
-  async getMemories(params?: { userId?: string; userEmail?: string }) {
+  async getMemories(query?: MemoriesQueryDto) {
     try {
-      const whereClause: any = {};
+      const page = Math.max(1, Number(query?.page) || 1);
+      const limit = Math.max(1, Math.min(100, Number(query?.limit) || 10));
+      const skip = (page - 1) * limit;
+      const searchTerm = (query?.search || query?.q || '').trim();
 
-      if (params?.userId || params?.userEmail) {
-        whereClause.OR = [
-          ...(params.userId ? [{ userId: params.userId }] : []),
-          ...(params.userEmail
-            ? [{ userEmail: { equals: params.userEmail, mode: 'insensitive' } }]
+      // Strict privacy isolation: Return empty result if no user identity is provided to prevent memory leaks
+      if (!query?.userId && !query?.userEmail) {
+        if (query?.raw === true || query?.paginate === false) return [];
+        return buildPaginatedResponse([], 0, page, limit);
+      }
+
+      const whereClause: any = {
+        OR: [
+          ...(query.userId ? [{ userId: query.userId }] : []),
+          ...(query.userEmail
+            ? [{ userEmail: { equals: query.userEmail, mode: 'insensitive' } }]
             : []),
+        ],
+      };
+
+      if (searchTerm) {
+        whereClause.AND = [
+          {
+            OR: [
+              { title: { contains: searchTerm, mode: 'insensitive' } },
+              { description: { contains: searchTerm, mode: 'insensitive' } },
+              { sharedBy: { contains: searchTerm, mode: 'insensitive' } },
+            ],
+          },
         ];
-      } else {
-        // Strict privacy isolation: Return empty array if no user identity is provided to prevent memory leaks
-        return [];
+      }
+
+      if (query?.category) {
+        const categoryCond = { description: { contains: `Category: ${query.category}`, mode: 'insensitive' } };
+        if (whereClause.AND) {
+          whereClause.AND.push(categoryCond);
+        } else {
+          whereClause.AND = [categoryCond];
+        }
+      }
+
+      const sortField = query?.sortBy || 'createdAt';
+      const sortDir = (query?.sortOrder || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc';
+      const orderBy: any = { [sortField]: sortDir };
+
+      const total = await this.prisma.memory.count({ where: whereClause });
+
+      if (query?.raw === true || query?.paginate === false) {
+        const memories = await this.prisma.memory.findMany({
+          where: whereClause,
+          orderBy,
+        });
+
+        return memories.map((mem) => {
+          const mediaUrls = this.parseMediaUrls(mem.mediaUrl);
+          return {
+            ...mem,
+            mediaUrls,
+            mediaUrl: mediaUrls[0] || mem.mediaUrl || null,
+          };
+        });
       }
 
       const memories = await this.prisma.memory.findMany({
         where: whereClause,
-        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+        orderBy,
       });
 
-      return memories.map((mem) => {
+      const mapped = memories.map((mem) => {
         const mediaUrls = this.parseMediaUrls(mem.mediaUrl);
         return {
           ...mem,
@@ -458,6 +552,8 @@ export class FamilyService {
           mediaUrl: mediaUrls[0] || mem.mediaUrl || null,
         };
       });
+
+      return buildPaginatedResponse(mapped, total, page, limit);
     } catch (err) {
       console.error('Error in getMemories:', err);
       throw err;
@@ -613,10 +709,43 @@ export class FamilyService {
     return { success: true, message: 'Memory deleted successfully' };
   }
 
-  async getEvents() {
-    return this.prisma.event.findMany({
-      orderBy: { date: 'asc' },
+  async getEvents(query?: EventsQueryDto) {
+    const page = Math.max(1, Number(query?.page) || 1);
+    const limit = Math.max(1, Math.min(100, Number(query?.limit) || 10));
+    const skip = (page - 1) * limit;
+    const searchTerm = (query?.search || query?.q || '').trim();
+
+    const where: any = {};
+    if (searchTerm) {
+      where.OR = [
+        { title: { contains: searchTerm, mode: 'insensitive' } },
+        { description: { contains: searchTerm, mode: 'insensitive' } },
+        { location: { contains: searchTerm, mode: 'insensitive' } },
+      ];
+    }
+
+    if (query?.isVirtual !== undefined) {
+      where.isVirtual = query.isVirtual === true || query.isVirtual === 'true';
+    }
+
+    const sortField = query?.sortBy || 'date';
+    const sortDir = (query?.sortOrder || 'asc').toLowerCase() === 'desc' ? 'desc' : 'asc';
+    const orderBy: any = { [sortField]: sortDir };
+
+    const total = await this.prisma.event.count({ where });
+
+    if (query?.raw === true || query?.paginate === false) {
+      return this.prisma.event.findMany({ where, orderBy });
+    }
+
+    const events = await this.prisma.event.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy,
     });
+
+    return buildPaginatedResponse(events, total, page, limit);
   }
 
   async createEvent(data: { title: string; date: string; location?: string; isVirtual?: boolean }) {
@@ -632,17 +761,46 @@ export class FamilyService {
     });
   }
 
-  async getRelationships() {
-    const rels = await this.prisma.relationship.findMany({
-      include: {
-        fromPerson: true,
-        toPerson: true,
-        relationshipType: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+  async getRelationships(query?: RelationshipsQueryDto) {
+    const page = Math.max(1, Number(query?.page) || 1);
+    const limit = Math.max(1, Math.min(100, Number(query?.limit) || 10));
+    const skip = (page - 1) * limit;
+    const searchTerm = (query?.search || query?.q || '').trim();
 
-    return rels.map((r) => ({
+    const where: any = {};
+    if (searchTerm) {
+      where.OR = [
+        { fromPerson: { firstName: { contains: searchTerm, mode: 'insensitive' } } },
+        { fromPerson: { lastName: { contains: searchTerm, mode: 'insensitive' } } },
+        { toPerson: { firstName: { contains: searchTerm, mode: 'insensitive' } } },
+        { toPerson: { lastName: { contains: searchTerm, mode: 'insensitive' } } },
+        { relationshipType: { name: { contains: searchTerm, mode: 'insensitive' } } },
+        { relationshipType: { code: { contains: searchTerm, mode: 'insensitive' } } },
+      ];
+    }
+
+    if (query?.status) {
+      where.status = query.status.toUpperCase() as any;
+    }
+
+    if (query?.personId) {
+      const pId = query.personId;
+      const pCondition = [{ fromPersonId: pId }, { toPersonId: pId }];
+      if (where.OR) {
+        where.AND = [{ OR: where.OR }, { OR: pCondition }];
+        delete where.OR;
+      } else {
+        where.OR = pCondition;
+      }
+    }
+
+    const sortField = query?.sortBy || 'createdAt';
+    const sortDir = (query?.sortOrder || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc';
+    const orderBy: any = { [sortField]: sortDir };
+
+    const total = await this.prisma.relationship.count({ where });
+
+    const mapRel = (r: any) => ({
       id: r.id,
       from: `${r.fromPerson?.firstName || ''} ${r.fromPerson?.lastName || ''}`.trim(),
       to: `${r.toPerson?.firstName || ''} ${r.toPerson?.lastName || ''}`.trim(),
@@ -650,7 +808,26 @@ export class FamilyService {
       status: r.status || 'VERIFIED',
       fromPersonId: r.fromPersonId,
       toPersonId: r.toPersonId,
-    }));
+    });
+
+    if (query?.raw === true || query?.paginate === false) {
+      const rels = await this.prisma.relationship.findMany({
+        where,
+        include: { fromPerson: true, toPerson: true, relationshipType: true },
+        orderBy,
+      });
+      return rels.map(mapRel);
+    }
+
+    const rels = await this.prisma.relationship.findMany({
+      where,
+      skip,
+      take: limit,
+      include: { fromPerson: true, toPerson: true, relationshipType: true },
+      orderBy,
+    });
+
+    return buildPaginatedResponse(rels.map(mapRel), total, page, limit);
   }
 
   async createRelationship(data: { fromPersonId: string; toPersonId: string; typeCode?: string }) {
@@ -748,12 +925,32 @@ export class FamilyService {
     };
   }
 
-  async getDocuments() {
-    const docs = await this.prisma.document.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
+  async getDocuments(query?: DocumentsQueryDto) {
+    const page = Math.max(1, Number(query?.page) || 1);
+    const limit = Math.max(1, Math.min(100, Number(query?.limit) || 10));
+    const skip = (page - 1) * limit;
+    const searchTerm = (query?.search || query?.q || '').trim();
 
-    return docs.map((doc) => {
+    const where: any = {};
+    if (searchTerm) {
+      where.OR = [
+        { name: { contains: searchTerm, mode: 'insensitive' } },
+        { category: { contains: searchTerm, mode: 'insensitive' } },
+        { uploadedBy: { contains: searchTerm, mode: 'insensitive' } },
+      ];
+    }
+
+    if (query?.category) {
+      where.category = { equals: query.category, mode: 'insensitive' };
+    }
+
+    const sortField = query?.sortBy || 'createdAt';
+    const sortDir = (query?.sortOrder || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc';
+    const orderBy: any = { [sortField]: sortDir };
+
+    const total = await this.prisma.document.count({ where });
+
+    const mapDoc = (doc: any) => {
       const parsed = this.parseDocumentFiles(doc.fileUrl, doc.name, doc.size);
       return {
         ...doc,
@@ -762,7 +959,21 @@ export class FamilyService {
         files: parsed.files,
         fileCount: parsed.fileCount,
       };
+    };
+
+    if (query?.raw === true || query?.paginate === false) {
+      const docs = await this.prisma.document.findMany({ where, orderBy });
+      return docs.map(mapDoc);
+    }
+
+    const docs = await this.prisma.document.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy,
     });
+
+    return buildPaginatedResponse(docs.map(mapDoc), total, page, limit);
   }
 
   async createDocument(data: {
@@ -899,10 +1110,44 @@ export class FamilyService {
     return { success: true, message: 'All documents deleted from vault' };
   }
 
-  async getInvitations() {
-    return this.prisma.invitation.findMany({
-      orderBy: { createdAt: 'desc' },
+  async getInvitations(query?: InvitationsQueryDto) {
+    const page = Math.max(1, Number(query?.page) || 1);
+    const limit = Math.max(1, Math.min(100, Number(query?.limit) || 10));
+    const skip = (page - 1) * limit;
+    const searchTerm = (query?.search || query?.q || '').trim();
+
+    const where: any = {};
+    if (searchTerm) {
+      where.OR = [
+        { name: { contains: searchTerm, mode: 'insensitive' } },
+        { email: { contains: searchTerm, mode: 'insensitive' } },
+        { role: { contains: searchTerm, mode: 'insensitive' } },
+        { note: { contains: searchTerm, mode: 'insensitive' } },
+      ];
+    }
+
+    if (query?.status) {
+      where.status = query.status.toUpperCase();
+    }
+
+    const sortField = query?.sortBy || 'createdAt';
+    const sortDir = (query?.sortOrder || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc';
+    const orderBy: any = { [sortField]: sortDir };
+
+    const total = await this.prisma.invitation.count({ where });
+
+    if (query?.raw === true || query?.paginate === false) {
+      return this.prisma.invitation.findMany({ where, orderBy });
+    }
+
+    const invitations = await this.prisma.invitation.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy,
     });
+
+    return buildPaginatedResponse(invitations, total, page, limit);
   }
 
   async createInvitation(data: { name: string; email: string; role?: string; note?: string }) {
@@ -929,11 +1174,19 @@ export class FamilyService {
     });
   }
 
-  async getActivityLogs() {
-    const members = await this.prisma.person.findMany({ take: 3, orderBy: { createdAt: 'desc' } });
-    const memories = await this.prisma.memory.findMany({ take: 2, orderBy: { createdAt: 'desc' } });
+  async getActivityLogs(query?: ActivityQueryDto) {
+    const page = Math.max(1, Number(query?.page) || 1);
+    const limit = Math.max(1, Math.min(100, Number(query?.limit) || 10));
+    const skip = (page - 1) * limit;
+    const searchTerm = (query?.search || query?.q || '').trim().toLowerCase();
 
-    const logs: any[] = [];
+    // Pull recent persons and memories to build activity stream
+    const [members, memories] = await Promise.all([
+      this.prisma.person.findMany({ take: 50, orderBy: { createdAt: 'desc' } }),
+      this.prisma.memory.findMany({ take: 50, orderBy: { createdAt: 'desc' } }),
+    ]);
+
+    let logs: any[] = [];
     members.forEach((m) => {
       logs.push({
         id: `act_mem_${m.id}`,
@@ -952,7 +1205,28 @@ export class FamilyService {
       });
     });
 
-    return logs;
+    // Sort chronologically descending
+    logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    if (query?.type) {
+      const filterType = query.type.toUpperCase();
+      logs = logs.filter((log) => log.type === filterType);
+    }
+
+    if (searchTerm) {
+      logs = logs.filter((log) =>
+        log.title?.toLowerCase().includes(searchTerm) || log.type?.toLowerCase().includes(searchTerm),
+      );
+    }
+
+    const total = logs.length;
+
+    if (query?.raw === true || query?.paginate === false) {
+      return logs;
+    }
+
+    const paginatedLogs = logs.slice(skip, skip + limit);
+    return buildPaginatedResponse(paginatedLogs, total, page, limit);
   }
 
   async updateSanctuarySettings(data: { name?: string; description?: string }) {

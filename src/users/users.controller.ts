@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UsersQueryDto } from './dto/users-query.dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -17,10 +18,10 @@ export class UsersController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Retrieve list of all users' })
-  @ApiResponse({ status: 200, description: 'List of users retrieved successfully' })
-  findAll() {
-    return this.usersService.findAll();
+  @ApiOperation({ summary: 'Retrieve list of all users with pagination and search' })
+  @ApiResponse({ status: 200, description: 'Paginated list of users retrieved successfully' })
+  findAll(@Query() query: UsersQueryDto) {
+    return this.usersService.findAll(query);
   }
 
   @Get(':id')

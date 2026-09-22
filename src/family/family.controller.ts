@@ -1,6 +1,7 @@
-import { Controller, Get, Patch, Body } from '@nestjs/common';
+import { Controller, Get, Patch, Body, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { FamilyService } from './family.service';
+import { ActivityQueryDto } from './dto/family-query.dto';
 
 @ApiTags('Family Sanctuary')
 @Controller('family')
@@ -33,14 +34,26 @@ export class FamilyController {
 
   @Get('activity')
   @ApiOperation({
-    summary: 'Get recent sanctuary audit activity logs',
-    description: `**Purpose:** Streams timestamped event logs of recent member creations, memory additions, relationship updates, and document uploads.
+    summary: 'Get recent sanctuary audit activity logs with pagination and search',
+    description: `**Purpose:** Streams timestamped event logs of recent member creations, memory additions, relationship updates, and document uploads with pagination and search.
 **Allowed Roles:** \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`, \`MEMBER\`, \`USER\`
 **Permissions:** Read-only access to family audit activity logs.`,
   })
   @ApiResponse({ status: 200, description: 'Activity logs retrieved successfully' })
-  getActivityLogs() {
-    return this.familyService.getActivityLogs();
+  getActivityLogs(@Query() query: ActivityQueryDto) {
+    return this.familyService.getActivityLogs(query);
+  }
+
+  @Get('activity-logs')
+  @ApiOperation({
+    summary: 'Alias endpoint for sanctuary audit activity logs with pagination and search',
+    description: `**Purpose:** Alternate endpoint for activity logs ensuring 100% frontend and SDK compatibility.
+**Allowed Roles:** \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`, \`MEMBER\`, \`USER\`
+**Permissions:** Read-only access to family audit activity logs.`,
+  })
+  @ApiResponse({ status: 200, description: 'Activity logs retrieved successfully' })
+  getActivityLogsAlias(@Query() query: ActivityQueryDto) {
+    return this.familyService.getActivityLogs(query);
   }
 
   @Patch('settings')

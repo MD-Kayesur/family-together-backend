@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { FamilyService } from './family.service';
+import { EventsQueryDto } from './dto/family-query.dto';
 
 @ApiTags('Family Events')
 @Controller('family/events')
@@ -9,14 +10,14 @@ export class EventsController {
 
   @Get()
   @ApiOperation({
-    summary: 'Get list of upcoming family events, reunions, and milestones',
-    description: `**Purpose:** Retrieves chronologically sorted upcoming family celebrations, memorials, birthdays, and virtual/physical gatherings.
+    summary: 'Get list of upcoming family events, reunions, and milestones with pagination and search',
+    description: `**Purpose:** Retrieves upcoming family celebrations, memorials, birthdays, and virtual/physical gatherings with pagination and keyword search.
 **Allowed Roles:** \`MEMBER\`, \`USER\`, \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
 **Permissions:** Read-only access to calendar events.`,
   })
   @ApiResponse({ status: 200, description: 'Events retrieved successfully' })
-  getEvents() {
-    return this.familyService.getEvents();
+  getEvents(@Query() query: EventsQueryDto) {
+    return this.familyService.getEvents(query);
   }
 
   @Post()

@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Patch, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { FamilyService } from './family.service';
+import { InvitationsQueryDto } from './dto/family-query.dto';
 
 @ApiTags('Family Invitations')
 @Controller('family/invitations')
@@ -9,14 +10,14 @@ export class InvitationsController {
 
   @Get()
   @ApiOperation({
-    summary: 'Get list of pending member invitations and requests',
-    description: `**Purpose:** Retrieves all pending, approved, and declined invitations and join requests for the sanctuary.
+    summary: 'Get list of pending member invitations and requests with pagination and search',
+    description: `**Purpose:** Retrieves pending, approved, and declined invitations and join requests for the sanctuary with pagination, keyword search, and status filtering.
 **Allowed Roles:** \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
 **Permissions:** Sanctuary management authority required to view pending invitation lists.`,
   })
   @ApiResponse({ status: 200, description: 'List of invitations retrieved successfully' })
-  getInvitations() {
-    return this.familyService.getInvitations();
+  getInvitations(@Query() query: InvitationsQueryDto) {
+    return this.familyService.getInvitations(query);
   }
 
   @Post()

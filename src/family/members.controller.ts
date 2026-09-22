@@ -1,6 +1,8 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { FamilyService } from './family.service';
+import { MembersQueryDto } from './dto/family-query.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @ApiTags('Family Members')
 @Controller('family/members')
@@ -9,27 +11,26 @@ export class MembersController {
 
   @Get()
   @ApiOperation({
-    summary: 'Get all family members in the sanctuary',
-    description: `**Purpose:** Retrieves complete member directory records, genealogical nodes, life dates, occupations, and profile pictures.
+    summary: 'Get all family members with pagination and search',
+    description: `**Purpose:** Retrieves member directory records with pagination, multi-field search (first/last name, bio, occupation, location), and gender/status filtering.
 **Allowed Roles:** \`MEMBER\`, \`USER\`, \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
 **Permissions:** Read permission for member directory.`,
   })
-  @ApiResponse({ status: 200, description: 'List of family members returned' })
-  getMembers() {
-    return this.familyService.getMembers();
+  @ApiResponse({ status: 200, description: 'Paginated family members returned' })
+  getMembers(@Query() query: MembersQueryDto) {
+    return this.familyService.getMembers(query);
   }
 
   @Get('search')
   @ApiOperation({
-    summary: 'Search and suggest existing family member profiles for deduplication',
+    summary: 'Search and suggest existing family member profiles for deduplication with pagination',
     description: `**Purpose:** Searches member directory by first name, last name, or bio to prevent duplicate entries and facilitate relative linking.
 **Allowed Roles:** \`MEMBER\`, \`USER\`, \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
 **Permissions:** Member search and deduplication lookup.`,
   })
-  @ApiQuery({ name: 'q', required: false, description: 'Search term for member name or details' })
   @ApiResponse({ status: 200, description: 'Matching member profiles returned' })
-  searchMembers(@Query('q') query: string) {
-    return this.familyService.searchMembers(query || '');
+  searchMembers(@Query() query: PaginationQueryDto) {
+    return this.familyService.searchMembers(query);
   }
 
   @Post()
