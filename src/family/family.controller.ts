@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Patch, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { FamilyService } from './family.service';
 
@@ -19,236 +19,8 @@ export class FamilyController {
     return this.familyService.updateFamilyDetails(body);
   }
 
-  @Get('members')
-  @ApiOperation({ summary: 'Get all family members' })
-  getMembers() {
-    return this.familyService.getMembers();
-  }
-
-  @Get('members/search')
-  @ApiOperation({ summary: 'Search and suggest existing family member profiles for deduplication' })
-  searchMembers(@Query('q') query: string) {
-    return this.familyService.searchMembers(query || '');
-  }
-
-  @Post('members')
-  @ApiOperation({ summary: 'Add a new family member or link an existing profile with optional platform login' })
-  createMember(
-    @Body()
-    body: {
-      existingPersonId?: string;
-      firstName: string;
-      lastName: string;
-      email?: string;
-      password?: string;
-      gender?: string;
-      bio?: string;
-      roleInFamily?: string;
-      middleName?: string;
-      nickname?: string;
-      dob?: string;
-      birthplace?: string;
-      isDeceased?: boolean;
-      dateOfPassing?: string;
-      occupation?: string;
-      location?: string;
-      contactInfo?: string;
-      avatarUrl?: string;
-      relativeToPersonId?: string;
-      relationshipType?: string;
-    },
-  ) {
-    return this.familyService.createMember(body);
-  }
-
-  @Patch('members/:id')
-  @ApiOperation({ summary: 'Update a family member' })
-  updateMember(
-    @Param('id') id: string,
-    @Body() body: { firstName?: string; lastName?: string; bio?: string }
-  ) {
-    return this.familyService.updateMember(id, body);
-  }
-
-  @Delete('members/:id')
-  @ApiOperation({ summary: 'Delete a family member' })
-  deleteMember(@Param('id') id: string) {
-    return this.familyService.deleteMember(id);
-  }
-
-  @Get('memories')
-  @ApiOperation({ summary: 'Get family memories gallery with user isolation' })
-  getMemories(
-    @Query('userId') userId?: string,
-    @Query('userEmail') userEmail?: string,
-  ) {
-    return this.familyService.getMemories({ userId, userEmail });
-  }
-
-  @Post('memories')
-  @ApiOperation({ summary: 'Add a new family memory' })
-  createMemory(
-    @Body()
-    body: {
-      title: string;
-      description?: string;
-      sharedBy?: string;
-      userId?: string;
-      userEmail?: string;
-      date?: string;
-      location?: string;
-      category?: string;
-      mediaUrl?: string;
-      mediaUrls?: string[];
-      taggedMembers?: string;
-      privacy?: string;
-    },
-  ) {
-    return this.familyService.createMemory(body);
-  }
-
-  @Get('memories/:id')
-  @ApiOperation({ summary: 'Get a single family memory by ID' })
-  getMemoryById(@Param('id') id: string) {
-    return this.familyService.getMemoryById(id);
-  }
-
-  @Patch('memories/:id')
-  @ApiOperation({ summary: 'Update an existing family memory' })
-  updateMemory(
-    @Param('id') id: string,
-    @Body()
-    body: {
-      title?: string;
-      description?: string;
-      sharedBy?: string;
-      date?: string;
-      location?: string;
-      category?: string;
-      mediaUrl?: string;
-      mediaUrls?: string[];
-      taggedMembers?: string;
-      privacy?: string;
-    },
-  ) {
-    return this.familyService.updateMemory(id, body);
-  }
-
-  @Delete('memories/:id')
-  @ApiOperation({ summary: 'Delete a family memory' })
-  deleteMemory(@Param('id') id: string) {
-    return this.familyService.deleteMemory(id);
-  }
-
-  @Get('events')
-  @ApiOperation({ summary: 'Get family upcoming events' })
-  getEvents() {
-    return this.familyService.getEvents();
-  }
-
-  @Post('events')
-  @ApiOperation({ summary: 'Add a new family event' })
-  createEvent(
-    @Body() body: { title: string; date: string; location?: string; isVirtual?: boolean }
-  ) {
-    return this.familyService.createEvent(body);
-  }
-
-  @Get('relationships')
-  @ApiOperation({ summary: 'Get family relationships matrix' })
-  getRelationships() {
-    return this.familyService.getRelationships();
-  }
-
-  @Post('relationships')
-  @ApiOperation({ summary: 'Create a relationship link between relatives' })
-  createRelationship(
-    @Body() body: { fromPersonId: string; toPersonId: string; typeCode?: string }
-  ) {
-    return this.familyService.createRelationship(body);
-  }
-
-  @Get('documents')
-  @ApiOperation({ summary: 'Get encrypted family documents vault' })
-  getDocuments() {
-    return this.familyService.getDocuments();
-  }
-
-  @Post('documents')
-  @ApiOperation({ summary: 'Upload document(s) to family vault' })
-  createDocument(
-    @Body()
-    body:
-      | {
-          name: string;
-          category?: string;
-          size?: string;
-          fileUrl?: string;
-          fileUrls?: string[];
-          files?: Array<{ name: string; size?: string; fileUrl: string }>;
-          uploadedBy?: string;
-        }
-      | { documents: Array<{ name: string; category?: string; size?: string; fileUrl?: string; files?: any[]; uploadedBy?: string }> }
-      | Array<{ name: string; category?: string; size?: string; fileUrl?: string; files?: any[]; uploadedBy?: string }>,
-  ) {
-    if (Array.isArray(body)) {
-      return this.familyService.createMultipleDocuments(body);
-    }
-    if ((body as any)?.documents && Array.isArray((body as any).documents)) {
-      return this.familyService.createMultipleDocuments((body as any).documents);
-    }
-    return this.familyService.createDocument(body as any);
-  }
-
-  @Post('documents/multiple')
-  @ApiOperation({ summary: 'Upload multiple documents to family vault' })
-  createMultipleDocuments(
-    @Body()
-    body:
-      | { documents: Array<{ name: string; category?: string; size?: string; fileUrl?: string; uploadedBy?: string }> }
-      | Array<{ name: string; category?: string; size?: string; fileUrl?: string; uploadedBy?: string }>,
-  ) {
-    const list = Array.isArray(body) ? body : (body as any)?.documents || [];
-    return this.familyService.createMultipleDocuments(list);
-  }
-
-  @Delete('documents')
-  @ApiOperation({ summary: 'Delete all documents from family vault' })
-  deleteAllDocuments() {
-    return this.familyService.deleteAllDocuments();
-  }
-
-  @Delete('documents/:id')
-  @ApiOperation({ summary: 'Delete a document from vault' })
-  deleteDocument(@Param('id') id: string) {
-    return this.familyService.deleteDocument(id);
-  }
-
-  @Get('invitations')
-  @ApiOperation({ summary: 'Get pending join requests and invitations' })
-  getInvitations() {
-    return this.familyService.getInvitations();
-  }
-
-  @Post('invitations')
-  @ApiOperation({ summary: 'Send a new invitation request' })
-  createInvitation(
-    @Body() body: { name: string; email: string; role?: string; note?: string }
-  ) {
-    return this.familyService.createInvitation(body);
-  }
-
-  @Patch('invitations/:id')
-  @ApiOperation({ summary: 'Approve or reject join request invitation' })
-  updateInvitationStatus(
-    @Param('id') id: string,
-    @Body() body: { status: string }
-  ) {
-    return this.familyService.updateInvitationStatus(id, body.status);
-  }
-
   @Get('activity')
-  @ApiOperation({ summary: 'Get recent sanctuary activity logs' })
+  @ApiOperation({ summary: 'Get recent sanctuary audit activity logs' })
   getActivityLogs() {
     return this.familyService.getActivityLogs();
   }
@@ -256,7 +28,7 @@ export class FamilyController {
   @Patch('settings')
   @ApiOperation({ summary: 'Update family sanctuary settings' })
   updateSanctuarySettings(
-    @Body() body: { name?: string; description?: string }
+    @Body() body: { name?: string; description?: string },
   ) {
     return this.familyService.updateSanctuarySettings(body);
   }
@@ -267,4 +39,5 @@ export class FamilyController {
     return this.familyService.getAdminStats();
   }
 }
+
 

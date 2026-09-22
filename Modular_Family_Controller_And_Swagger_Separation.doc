@@ -1,0 +1,117 @@
+# Modular Family Controllers & Swagger Separation Architecture
+
+## 1. Executive Summary & Objective
+
+### Requirement:
+> *"@[src/family] now all do divided separate by like memories will and invite will be separate and title will have"*
+
+### Solution Overview:
+Previously, all endpoints inside `src/family/` were lumped together inside a single massive `FamilyController` file under one generic `@ApiTags('Family Sanctuary')`. In Swagger UI, this caused over 25 different endpoints (Memories, Invitations, Members, Relationships, Documents, Events, Settings) to appear squished together under a single section.
+
+We have restructured the `src/family/` module into **7 distinct, single-responsibility controllers**, each with its own descriptive **Swagger Title & OpenAPI Tag**:
+1. **`MemoriesController`** &rarr; `@ApiTags('Memories Vault')`
+2. **`InvitationsController`** &rarr; `@ApiTags('Family Invitations')`
+3. **`MembersController`** &rarr; `@ApiTags('Family Members')`
+4. **`RelationshipsController`** &rarr; `@ApiTags('Family Relationships')`
+5. **`EventsController`** &rarr; `@ApiTags('Family Events')`
+6. **`DocumentsController`** &rarr; `@ApiTags('Documents Archive')`
+7. **`FamilyController`** &rarr; `@ApiTags('Family Sanctuary')`
+
+All controllers share the underlying `FamilyService`, maintaining zero regression and 100% backward compatibility with all frontend routes.
+
+---
+
+## 2. Controller Breakdown & Swagger Sections
+
+### A. Memories Vault (`memories.controller.ts`)
+- **Swagger Tag**: `Memories Vault`
+- **Route Prefix**: `/family/memories`
+- **Endpoints**:
+  - `GET /family/memories` – Retrieve user-isolated memories gallery
+  - `GET /family/memories/:id` – Fetch a single memory by ID
+  - `POST /family/memories` – Create a new memory story with photos, dates, and locations
+  - `PATCH /family/memories/:id` – Update an existing memory
+  - `DELETE /family/memories/:id` – Remove a memory from the vault
+
+### B. Family Invitations (`invitations.controller.ts`)
+- **Swagger Tag**: `Family Invitations`
+- **Route Prefix**: `/family/invitations`
+- **Endpoints**:
+  - `GET /family/invitations` – Retrieve list of pending member invitations
+  - `POST /family/invitations` – Send a new family invite request
+  - `PATCH /family/invitations/:id` – Approve or reject join request
+
+### C. Family Members (`members.controller.ts`)
+- **Swagger Tag**: `Family Members`
+- **Route Prefix**: `/family/members`
+- **Endpoints**:
+  - `GET /family/members` – Retrieve all family members in sanctuary
+  - `GET /family/members/search` – Search member profiles for deduplication & relative linking
+  - `POST /family/members` – Add a new family relative or link existing profile
+  - `PATCH /family/members/:id` – Update member profile
+  - `DELETE /family/members/:id` – Remove member from sanctuary
+
+### D. Family Relationships & Lineage (`relationships.controller.ts`)
+- **Swagger Tag**: `Family Relationships`
+- **Route Prefix**: `/family/relationships`
+- **Endpoints**:
+  - `GET /family/relationships` – Retrieve family tree relationships graph matrix
+  - `POST /family/relationships` – Create relationship link between two relatives
+
+### E. Family Events (`events.controller.ts`)
+- **Swagger Tag**: `Family Events`
+- **Route Prefix**: `/family/events`
+- **Endpoints**:
+  - `GET /family/events` – Retrieve upcoming events, reunions, and birthdays
+  - `POST /family/events` – Schedule a new event
+
+### F. Documents Archive (`documents.controller.ts`)
+- **Swagger Tag**: `Documents Archive`
+- **Route Prefix**: `/family/documents`
+- **Endpoints**:
+  - `GET /family/documents` – Retrieve encrypted documents archive
+  - `POST /family/documents` – Upload single or bundle documents
+  - `POST /family/documents/multiple` – Upload batch documents
+  - `DELETE /family/documents/:id` – Delete a single document
+  - `DELETE /family/documents` – Delete all documents
+
+### G. Family Sanctuary (`family.controller.ts`)
+- **Swagger Tag**: `Family Sanctuary`
+- **Route Prefix**: `/family`
+- **Endpoints**:
+  - `GET /family/sanctuary` – Main family overview & statistics
+  - `PATCH /family/update` – Update sanctuary family name & description
+  - `PATCH /family/settings` – Update sanctuary preferences
+  - `GET /family/activity` – Audit activity logs
+  - `GET /family/admin/stats` – Administrative network statistics
+
+---
+
+## 3. Module Registration (`family.module.ts`)
+
+All controllers are registered inside [family.module.ts](file:///d:/Projects/family-together-backend/src/family/family.module.ts):
+```typescript
+@Module({
+  imports: [PrismaModule, MailModule],
+  controllers: [
+    FamilyController,
+    MembersController,
+    RelationshipsController,
+    MemoriesController,
+    EventsController,
+    DocumentsController,
+    InvitationsController,
+  ],
+  providers: [FamilyService],
+  exports: [FamilyService],
+})
+export class FamilyModule {}
+```
+
+---
+
+## 4. Key Benefits
+
+1. **Swagger UI Readability**: Distinct sections with clear visual titles make testing and exploring APIs intuitive.
+2. **Clean Separation of Concerns**: Each controller file is under 100 lines and focused solely on its domain.
+3. **Zero Frontend Regressions**: All URLs, HTTP verbs, query parameters, and JSON payloads remain identical.
