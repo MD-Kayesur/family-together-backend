@@ -10,8 +10,9 @@ export class InvitationsController {
 
   @Get()
   @ApiOperation({
-    summary: 'Get list of pending member invitations and requests with pagination and search',
-    description: `**Purpose:** Retrieves pending, approved, and declined invitations and join requests for the sanctuary with pagination, keyword search, and status filtering.
+    summary: 'Get list of pending member invitations and requests with pagination and search [Roles: OWNER, ADMIN]',
+    description: `**Route:** \`GET /family/invitations\`
+**Purpose:** Retrieves pending, approved, and declined invitations and join requests for the sanctuary with pagination, keyword search, and status filtering.
 **Allowed Roles:** \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
 **Permissions:** Sanctuary management authority required to view pending invitation lists.`,
   })
@@ -22,8 +23,9 @@ export class InvitationsController {
 
   @Post()
   @ApiOperation({
-    summary: 'Send a new family member invitation request',
-    description: `**Purpose:** Dispatches an email invitation containing a unique join token to welcome new relatives into the family sanctuary tree.
+    summary: 'Send a new family member invitation request [Roles: MEMBER, OWNER, ADMIN]',
+    description: `**Route:** \`POST /family/invitations\`
+**Purpose:** Dispatches an email invitation containing a unique join token to welcome new relatives into the family sanctuary tree.
 **Allowed Roles:** \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`, \`MEMBER\`, \`USER\`
 **Permissions:** Any verified family member or owner can invite new relatives to join.`,
   })
@@ -34,8 +36,9 @@ export class InvitationsController {
 
   @Patch(':id')
   @ApiOperation({
-    summary: 'Approve or reject join request invitation',
-    description: `**Purpose:** Approves a relative's request to join the sanctuary tree or rejects/revokes an expired invitation.
+    summary: 'Approve or reject join request invitation [Roles: OWNER, ADMIN]',
+    description: `**Route:** \`PATCH /family/invitations/:id\`
+**Purpose:** Approves a relative's request to join the sanctuary tree or rejects/revokes an expired invitation.
 **Allowed Roles:** \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
 **Permissions:** Sanctuary owner or administrator approval required (denied for ordinary \`MEMBER\`).`,
   })

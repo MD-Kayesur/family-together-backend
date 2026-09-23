@@ -10,8 +10,9 @@ export class EventsController {
 
   @Get()
   @ApiOperation({
-    summary: 'Get list of upcoming family events, reunions, and milestones with pagination and search',
-    description: `**Purpose:** Retrieves upcoming family celebrations, memorials, birthdays, and virtual/physical gatherings with pagination and keyword search.
+    summary: 'Get upcoming family events and reunions with search [Roles: MEMBER, OWNER, ADMIN]',
+    description: `**Route:** \`GET /family/events\`
+**Purpose:** Retrieves upcoming family celebrations, memorials, birthdays, and virtual/physical gatherings with pagination and keyword search.
 **Allowed Roles:** \`MEMBER\`, \`USER\`, \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
 **Permissions:** Read-only access to calendar events.`,
   })
@@ -22,8 +23,9 @@ export class EventsController {
 
   @Post()
   @ApiOperation({
-    summary: 'Schedule a new family event',
-    description: `**Purpose:** Creates and announces a new gathering, event date, virtual meeting link, or physical venue.
+    summary: 'Schedule a new family event [Roles: MEMBER, OWNER, ADMIN]',
+    description: `**Route:** \`POST /family/events\`
+**Purpose:** Creates and announces a new gathering, event date, virtual meeting link, or physical venue.
 **Allowed Roles:** \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`, \`MEMBER\`, \`USER\`
 **Permissions:** Any authorized family member can schedule an event.`,
   })

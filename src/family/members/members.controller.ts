@@ -11,8 +11,9 @@ export class MembersController {
 
   @Get()
   @ApiOperation({
-    summary: 'Get all family members with pagination and search',
-    description: `**Purpose:** Retrieves member directory records with pagination, multi-field search (first/last name, bio, occupation, location), and gender/status filtering.
+    summary: 'Get all family members with pagination and search [Roles: MEMBER, OWNER, ADMIN]',
+    description: `**Route:** \`GET /family/members\`
+**Purpose:** Retrieves member directory records with pagination, multi-field search (first/last name, bio, occupation, location), and gender/status filtering.
 **Allowed Roles:** \`MEMBER\`, \`USER\`, \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
 **Permissions:** Read permission for member directory.`,
   })
@@ -23,8 +24,9 @@ export class MembersController {
 
   @Get('search')
   @ApiOperation({
-    summary: 'Search and suggest existing family member profiles for deduplication with pagination',
-    description: `**Purpose:** Searches member directory by first name, last name, or bio to prevent duplicate entries and facilitate relative linking.
+    summary: 'Search and suggest existing family member profiles for deduplication [Roles: MEMBER, OWNER, ADMIN]',
+    description: `**Route:** \`GET /family/members/search\`
+**Purpose:** Searches member directory by first name, last name, or bio to prevent duplicate entries and facilitate relative linking.
 **Allowed Roles:** \`MEMBER\`, \`USER\`, \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
 **Permissions:** Member search and deduplication lookup.`,
   })
@@ -35,8 +37,9 @@ export class MembersController {
 
   @Post()
   @ApiOperation({
-    summary: 'Add a new family member or link an existing profile with optional platform credentials',
-    description: `**Purpose:** Creates a new relative person record, links directional relationships (father, mother, spouse, child, sibling), and optionally provisions platform sign-in accounts.
+    summary: 'Add a new family member or link an existing profile [Roles: MEMBER, OWNER, ADMIN]',
+    description: `**Route:** \`POST /family/members\`
+**Purpose:** Creates a new relative person record, links directional relationships (father, mother, spouse, child, sibling), and optionally provisions platform sign-in accounts.
 **Allowed Roles:** \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\` (can add any member anywhere), \`MEMBER\` / \`USER\` (can add relatives connected to their own node).
 **Permissions:** Member creation and lineage relative attachment.`,
   })
@@ -47,8 +50,9 @@ export class MembersController {
 
   @Patch(':id')
   @ApiOperation({
-    summary: 'Update a family member profile',
-    description: `**Purpose:** Modifies biographical info, names, or details of a family member.
+    summary: 'Update a family member profile [Roles: MEMBER (Self), OWNER, ADMIN]',
+    description: `**Route:** \`PATCH /family/members/:id\`
+**Purpose:** Modifies biographical info, names, or details of a family member.
 **Allowed Roles:** \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`, or the member updating their own linked profile.
 **Permissions:** Edit permission for member profile details.`,
   })
@@ -63,8 +67,9 @@ export class MembersController {
 
   @Delete(':id')
   @ApiOperation({
-    summary: 'Delete a family member from sanctuary',
-    description: `**Purpose:** Permanently deletes a family member record, cascading relationship cleanup.
+    summary: 'Delete a family member from sanctuary [Roles: OWNER, ADMIN]',
+    description: `**Route:** \`DELETE /family/members/:id\`
+**Purpose:** Permanently deletes a family member record, cascading relationship cleanup.
 **Allowed Roles:** \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\` strictly.
 **Permissions:** High-privilege sanctuary management authority required. Denied for ordinary family members (\`MEMBER\` / \`USER\`).`,
   })

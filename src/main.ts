@@ -38,7 +38,32 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('FamilyRoots Backend API')
-    .setDescription('REST API documentation for FamilyRoots digital family relationship & tree management SaaS platform.')
+    .setDescription(`
+### REST API Documentation & Role Permission Matrix
+Welcome to the **FamilyRoots** digital family relationship & lineage management SaaS platform API.
+
+---
+
+### 🛡️ Role-Based Access Control (RBAC) Architecture
+
+Every route in this API documentation is tagged with its **Route Path** and **Allowed Roles** directly in the header summary and detailed description:
+
+| Role Tag | Access Scope & Capabilities |
+| :--- | :--- |
+| **\`PUBLIC\`** | Unauthenticated endpoints (User Registration, Login, Token Refresh, Password Recovery, Health Check). |
+| **\`MEMBER\` / \`USER\`** | Verified family members with access to browse directory, search lineages, author personal memories, upload documents up to 100MB, schedule events, and link direct relative branches. |
+| **\`VIEWER\`** | Read-only sanctuary observer (can view tree, directory, and shared memories without modification capabilities). |
+| **\`OWNER\`** | Family Sanctuary creator with comprehensive control over their tree lineage, member records, invitation approvals, sanctuary branding, settings, and document purges. |
+| **\`ADMIN\`** | Platform administrator with privileges to manage cross-sanctuary accounts, user status, roles, and administrative diagnostics. |
+| **\`SUPER_ADMIN\`** | Master root administrator with unrestricted platform authority across all tenants, databases, and system configuration. |
+
+---
+
+### 🔑 Authentication Guide
+- **Bearer Token**: Click the **Authorize** button above and supply \`Bearer <jwt_access_token>\` or standard JWT string.
+- **Cookie Auth**: The API also accepts automatic HTTP-only secure session cookies (\`access_token\`).
+- **Identity Isolation**: User-level queries automatically filter by the authenticated user's session ID and email to prevent tenant cross-talk.
+    `)
     .setVersion('1.0')
     .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'access-token')
     .addCookieAuth('access_token')

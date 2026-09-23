@@ -10,8 +10,9 @@ export class RelationshipsController {
 
   @Get()
   @ApiOperation({
-    summary: 'Get full family relationships graph matrix with pagination and search',
-    description: `**Purpose:** Retrieves bidirectional and directional edge links (parent, child, spouse, sibling) connecting family members with optional search by relative name or relation type and pagination.
+    summary: 'Get full family relationships graph matrix with pagination and search [Roles: MEMBER, OWNER, ADMIN]',
+    description: `**Route:** \`GET /family/relationships\`
+**Purpose:** Retrieves bidirectional and directional edge links (parent, child, spouse, sibling) connecting family members with optional search by relative name or relation type and pagination.
 **Allowed Roles:** \`MEMBER\`, \`USER\`, \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
 **Permissions:** Read-only access to relationship connection matrix.`,
   })
@@ -22,8 +23,9 @@ export class RelationshipsController {
 
   @Post()
   @ApiOperation({
-    summary: 'Create a relationship link between two relatives',
-    description: `**Purpose:** Links two person nodes together by specifying directional relationship codes (e.g. FATHER, MOTHER, SPOUSE, CHILD, SIBLING).
+    summary: 'Create a relationship link between two relatives [Roles: MEMBER, OWNER, ADMIN]',
+    description: `**Route:** \`POST /family/relationships\`
+**Purpose:** Links two person nodes together by specifying directional relationship codes (e.g. FATHER, MOTHER, SPOUSE, CHILD, SIBLING).
 **Allowed Roles:** \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`, \`MEMBER\`, \`USER\`
 **Permissions:** Authorized relatives and sanctuary owners can construct tree branch links.`,
   })

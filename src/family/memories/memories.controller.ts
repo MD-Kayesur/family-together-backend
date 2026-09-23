@@ -10,8 +10,9 @@ export class MemoriesController {
 
   @Get()
   @ApiOperation({
-    summary: 'Get family memories gallery with user privacy isolation, pagination, and keyword search',
-    description: `**Purpose:** Retrieves timeline memories, stories, and photo archives with pagination and search. Strictly enforces privacy isolation: users only see their own memories or memories specifically shared with them.
+    summary: 'Get family memories gallery with user privacy isolation [Roles: MEMBER, OWNER, ADMIN]',
+    description: `**Route:** \`GET /family/memories\`
+**Purpose:** Retrieves timeline memories, stories, and photo archives with pagination and search. Strictly enforces privacy isolation: users only see their own memories or memories specifically shared with them.
 **Allowed Roles:** \`MEMBER\`, \`USER\`, \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
 **Permissions:** Authenticated user identity required (\`userId\` or \`userEmail\`). Returns an empty collection if unauthenticated to prevent data leaks.`,
   })
@@ -22,8 +23,9 @@ export class MemoriesController {
 
   @Get(':id')
   @ApiOperation({
-    summary: 'Get a single family memory by ID',
-    description: `**Purpose:** Retrieves the full record of a specific memory including rich descriptions, location, date, and media attachments.
+    summary: 'Get a single family memory by ID [Roles: MEMBER, OWNER, ADMIN]',
+    description: `**Route:** \`GET /family/memories/:id\`
+**Purpose:** Retrieves the full record of a specific memory including rich descriptions, location, date, and media attachments.
 **Allowed Roles:** \`MEMBER\`, \`USER\`, \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
 **Permissions:** Read permission for authorized family members.`,
   })
@@ -36,8 +38,9 @@ export class MemoriesController {
 
   @Post()
   @ApiOperation({
-    summary: 'Add a new family memory story with photos, dates, and locations',
-    description: `**Purpose:** Allows family members to create and preserve moments, historical milestones, photos, and stories in the sanctuary vault.
+    summary: 'Add a new family memory story with photos, dates, and locations [Roles: MEMBER, OWNER, ADMIN]',
+    description: `**Route:** \`POST /family/memories\`
+**Purpose:** Allows family members to create and preserve moments, historical milestones, photos, and stories in the sanctuary vault.
 **Allowed Roles:** \`MEMBER\`, \`USER\`, \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
 **Permissions:** Any authorized family member can author and share memories. Automatically binds \`userId\` and \`userEmail\` to enforce ownership.`,
   })
@@ -48,8 +51,9 @@ export class MemoriesController {
 
   @Patch(':id')
   @ApiOperation({
-    summary: 'Update an existing family memory',
-    description: `**Purpose:** Modifies details, stories, captions, or photos of a previously published memory.
+    summary: 'Update an existing family memory [Roles: MEMBER (Author), OWNER, ADMIN]',
+    description: `**Route:** \`PATCH /family/memories/:id\`
+**Purpose:** Modifies details, stories, captions, or photos of a previously published memory.
 **Allowed Roles:** Memory Author (\`MEMBER\` / \`USER\`), \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
 **Permissions:** Edit permission restricted to original memory creator or sanctuary administrators.`,
   })
@@ -64,9 +68,10 @@ export class MemoriesController {
 
   @Delete(':id')
   @ApiOperation({
-    summary: 'Delete a family memory by ID',
-    description: `**Purpose:** Permanently deletes a memory record and its media attachments from the sanctuary vault.
-**Allowed Roles:** Memory Author, \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
+    summary: 'Delete a family memory by ID [Roles: MEMBER (Author), OWNER, ADMIN]',
+    description: `**Route:** \`DELETE /family/memories/:id\`
+**Purpose:** Permanently deletes a memory record and its media attachments from the sanctuary vault.
+**Allowed Roles:** Memory Author (\`MEMBER\` / \`USER\`), \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
 **Permissions:** Delete permission restricted to the original author or sanctuary owner.`,
   })
   @ApiParam({ name: 'id', description: 'Unique memory identifier' })

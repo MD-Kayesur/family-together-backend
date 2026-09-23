@@ -10,8 +10,9 @@ export class FamilyController {
 
   @Get('sanctuary')
   @ApiOperation({
-    summary: 'Get main family sanctuary overview and dashboard statistics',
-    description: `**Purpose:** Retrieves core family metadata, total member counts, connected user metrics, total memories, and active relationships.
+    summary: 'Get main family sanctuary overview and dashboard statistics [Roles: MEMBER, OWNER, ADMIN]',
+    description: `**Route:** \`GET /family/sanctuary\`
+**Purpose:** Retrieves core family metadata, total member counts, connected user metrics, total memories, and active relationships.
 **Allowed Roles:** \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`, \`MEMBER\`, \`USER\`
 **Permissions:** Read-only access to sanctuary dashboard data.`,
   })
@@ -22,8 +23,9 @@ export class FamilyController {
 
   @Patch('update')
   @ApiOperation({
-    summary: 'Update main family sanctuary profile details',
-    description: `**Purpose:** Updates the primary name and biographical description of the family tree sanctuary.
+    summary: 'Update main family sanctuary profile details [Roles: OWNER, ADMIN]',
+    description: `**Route:** \`PATCH /family/update\`
+**Purpose:** Updates the primary name and biographical description of the family tree sanctuary.
 **Allowed Roles:** \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
 **Permissions:** Sanctuary management authority required (denied for ordinary \`MEMBER\` / \`VIEWER\`).`,
   })
@@ -34,8 +36,9 @@ export class FamilyController {
 
   @Get('activity')
   @ApiOperation({
-    summary: 'Get recent sanctuary audit activity logs with pagination and search',
-    description: `**Purpose:** Streams timestamped event logs of recent member creations, memory additions, relationship updates, and document uploads with pagination and search.
+    summary: 'Get recent sanctuary audit activity logs with pagination and search [Roles: MEMBER, OWNER, ADMIN]',
+    description: `**Route:** \`GET /family/activity\`
+**Purpose:** Streams timestamped event logs of recent member creations, memory additions, relationship updates, and document uploads with pagination and search.
 **Allowed Roles:** \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`, \`MEMBER\`, \`USER\`
 **Permissions:** Read-only access to family audit activity logs.`,
   })
@@ -46,8 +49,9 @@ export class FamilyController {
 
   @Get('activity-logs')
   @ApiOperation({
-    summary: 'Alias endpoint for sanctuary audit activity logs with pagination and search',
-    description: `**Purpose:** Alternate endpoint for activity logs ensuring 100% frontend and SDK compatibility.
+    summary: 'Alias endpoint for sanctuary audit activity logs [Roles: MEMBER, OWNER, ADMIN]',
+    description: `**Route:** \`GET /family/activity-logs\`
+**Purpose:** Alternate endpoint for activity logs ensuring 100% frontend and SDK compatibility.
 **Allowed Roles:** \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`, \`MEMBER\`, \`USER\`
 **Permissions:** Read-only access to family audit activity logs.`,
   })
@@ -58,8 +62,9 @@ export class FamilyController {
 
   @Patch('settings')
   @ApiOperation({
-    summary: 'Update family sanctuary settings and preferences',
-    description: `**Purpose:** Configures global privacy levels, notification preferences, and sanctuary configuration options.
+    summary: 'Update family sanctuary settings and preferences [Roles: OWNER, ADMIN]',
+    description: `**Route:** \`PATCH /family/settings\`
+**Purpose:** Configures global privacy levels, notification preferences, and sanctuary configuration options.
 **Allowed Roles:** \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
 **Permissions:** Sanctuary administrative authority required.`,
   })
@@ -70,8 +75,9 @@ export class FamilyController {
 
   @Get('admin/stats')
   @ApiOperation({
-    summary: 'Get administrative network metrics and stats',
-    description: `**Purpose:** Returns system-level multi-tenant platform metrics, total registered accounts, storage usage, and operational health.
+    summary: 'Get administrative network metrics and stats [Roles: ADMIN, SUPER_ADMIN]',
+    description: `**Route:** \`GET /family/admin/stats\`
+**Purpose:** Returns system-level multi-tenant platform metrics, total registered accounts, storage usage, and operational health.
 **Allowed Roles:** \`ADMIN\`, \`SUPER_ADMIN\`
 **Permissions:** Platform administration privileges required (denied for \`OWNER\`, \`MEMBER\`, \`USER\`).`,
   })

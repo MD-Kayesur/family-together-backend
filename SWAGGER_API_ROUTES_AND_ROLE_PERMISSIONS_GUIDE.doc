@@ -1,0 +1,679 @@
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+<meta charset="utf-8">
+<title>FamilyRoots Backend API - Swagger Route Catalog & Role Permissions Architecture</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    color: #1e293b;
+    background-color: #ffffff;
+    padding: 30px;
+  }
+  h1 {
+    color: #4338ca;
+    border-bottom: 3px solid #6366f1;
+    padding-bottom: 8px;
+    font-size: 26pt;
+    margin-top: 0;
+  }
+  h2 {
+    color: #1e1b4b;
+    border-bottom: 1.5px solid #cbd5e1;
+    padding-bottom: 5px;
+    font-size: 18pt;
+    margin-top: 24pt;
+  }
+  h3 {
+    color: #3730a3;
+    font-size: 14pt;
+    margin-top: 16pt;
+  }
+  p, li {
+    font-size: 11pt;
+  }
+  .header-badge {
+    background-color: #e0e7ff;
+    color: #4338ca;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: bold;
+    display: inline-block;
+    margin-bottom: 15px;
+    font-size: 10pt;
+  }
+  .role-badge-public {
+    background-color: #f1f5f9;
+    color: #475569;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 9pt;
+    display: inline-block;
+  }
+  .role-badge-member {
+    background-color: #dbeafe;
+    color: #1e40af;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 9pt;
+    display: inline-block;
+  }
+  .role-badge-owner {
+    background-color: #fef3c7;
+    color: #92400e;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 9pt;
+    display: inline-block;
+  }
+  .role-badge-admin {
+    background-color: #fee2e2;
+    color: #991b1b;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 9pt;
+    display: inline-block;
+  }
+  .role-badge-super {
+    background-color: #f3e8ff;
+    color: #6b21a8;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 9pt;
+    display: inline-block;
+  }
+  .callout-success {
+    background-color: #ecfdf5;
+    border-left: 5px solid #10b981;
+    padding: 15px 20px;
+    margin: 20px 0;
+    border-radius: 4px;
+  }
+  .callout-info {
+    background-color: #eff6ff;
+    border-left: 5px solid #3b82f6;
+    padding: 15px 20px;
+    margin: 20px 0;
+    border-radius: 4px;
+  }
+  .callout-warning {
+    background-color: #fffbeb;
+    border-left: 5px solid #f59e0b;
+    padding: 15px 20px;
+    margin: 20px 0;
+    border-radius: 4px;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 20px 0;
+    font-size: 10.5pt;
+  }
+  th, td {
+    border: 1px solid #cbd5e1;
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background-color: #f8fafc;
+    color: #0f172a;
+    font-weight: bold;
+  }
+  tr:nth-child(even) {
+    background-color: #f8fafc;
+  }
+  code {
+    background-color: #f1f5f9;
+    color: #0f172a;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: 10pt;
+  }
+  .http-get { color: #0284c7; font-weight: bold; }
+  .http-post { color: #16a34a; font-weight: bold; }
+  .http-patch { color: #d97706; font-weight: bold; }
+  .http-delete { color: #dc2626; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<div class="header-badge">FamilyRoots Enterprise Backend - OpenAPI Specification Guide</div>
+<h1>Swagger API Routes &amp; Role Permissions Architecture</h1>
+
+<p><strong>System:</strong> FamilyRoots Digital Lineage &amp; Sanctuary Management Platform<br>
+<strong>Swagger UI URL:</strong> <code>http://localhost:8000/api/docs</code> or <code>http://localhost:8000/docs</code><br>
+<strong>OpenAPI JSON:</strong> <code>http://localhost:8000/api/docs-json</code><br>
+<strong>Environment:</strong> NestJS 11 + Prisma ORM 7 + PostgreSQL (Neon Serverless)<br>
+<strong>Generated Date:</strong> September 23, 2026</p>
+
+<div class="callout-success">
+  <strong>Architecture Objective Achieved:</strong> Every single API route across all 10 controllers in the FamilyRoots backend now exposes explicit role permission tags directly in its Swagger summary header (e.g. <code>[Roles: MEMBER, OWNER, ADMIN]</code>, <code>[Roles: OWNER, ADMIN]</code>, <code>[Role: PUBLIC]</code>) and in its markdown description (<code>**Route:**</code>, <code>**Purpose:**</code>, <code>**Allowed Roles:**</code>, <code>**Permissions:**</code>).
+</div>
+
+<h2>1. Role-Based Access Control (RBAC) Hierarchy</h2>
+<p>FamilyRoots enforces multi-tiered authorization based on user roles and relationship context within the sanctuary:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Role Identifier</th>
+      <th>Tier</th>
+      <th>Scope of Authority &amp; System Capabilities</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="role-badge-public">PUBLIC</span></td>
+      <td>Tier 0</td>
+      <td>Unauthenticated visitors. Permitted only to hit authentication ingress points (registration, login, password recovery, email confirmation) and operational health check pingers.</td>
+    </tr>
+    <tr>
+      <td><span class="role-badge-member">MEMBER / USER</span></td>
+      <td>Tier 1</td>
+      <td>Verified family members. Can view the sanctuary tree, browse member directory, search lineages, author personal memory stories with photos, upload archive documents up to 100MB, schedule calendar events, and attach relatives directly connected to their lineage node.</td>
+    </tr>
+    <tr>
+      <td><span class="role-badge-member">VIEWER</span></td>
+      <td>Tier 1 (Read-Only)</td>
+      <td>Observer account. Can browse family sanctuary visuals, tree graphs, and shared archives without modification or deletion capabilities.</td>
+    </tr>
+    <tr>
+      <td><span class="role-badge-owner">OWNER</span></td>
+      <td>Tier 2</td>
+      <td>Family Sanctuary Creator &amp; Master Node. Full authority over their family tree, member removals, relationship matrix edits, invitation token issuance, join request approvals, sanctuary branding/settings, and document vault purges.</td>
+    </tr>
+    <tr>
+      <td><span class="role-badge-admin">ADMIN</span></td>
+      <td>Tier 3</td>
+      <td>Platform Administrator. Empowered to manage multi-tenant user registries, modify user roles, audit sanctuary activity logs, and resolve cross-tenant support escalations.</td>
+    </tr>
+    <tr>
+      <td><span class="role-badge-super">SUPER_ADMIN</span></td>
+      <td>Tier 4</td>
+      <td>Master Root Administrator. Unrestricted global access to all database records, platform analytics, system settings, and administrative overrides across the entire application ecosystem.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>2. Complete Route Catalog &amp; Permission Matrix</h2>
+
+<h3>2.1. Authentication Module (<code>/auth</code>)</h3>
+<p>Handles JWT token issuance, secure HTTP-only cookies, password workflows, and session lifecycle.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Method</th>
+      <th>Route Path</th>
+      <th>Summary &amp; Purpose</th>
+      <th>Required Role Permissions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="http-post">POST</span></td>
+      <td><code>/auth/signup</code></td>
+      <td>Register a new user account with platform credentials.</td>
+      <td><span class="role-badge-public">PUBLIC</span> (No auth required)</td>
+    </tr>
+    <tr>
+      <td><span class="http-post">POST</span></td>
+      <td><code>/auth/signin</code></td>
+      <td>Sign in with email and password to receive JWT credentials.</td>
+      <td><span class="role-badge-public">PUBLIC</span> (No auth required)</td>
+    </tr>
+    <tr>
+      <td><span class="http-post">POST</span></td>
+      <td><code>/auth/refresh</code></td>
+      <td>Rotate refresh token and issue new short-lived access token.</td>
+      <td><span class="role-badge-public">PUBLIC</span> (Refresh token cookie/header)</td>
+    </tr>
+    <tr>
+      <td><span class="http-post">POST</span></td>
+      <td><code>/auth/logout</code></td>
+      <td>Log out current session and clear auth cookies.</td>
+      <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span> (Authenticated)</td>
+    </tr>
+    <tr>
+      <td><span class="http-post">POST</span></td>
+      <td><code>/auth/logout-all</code></td>
+      <td>Revoke all active device sessions for current user.</td>
+      <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span> (Authenticated)</td>
+    </tr>
+    <tr>
+      <td><span class="http-get">GET</span></td>
+      <td><code>/auth/me</code></td>
+      <td>Get current authenticated user profile and roles.</td>
+      <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span> (Authenticated)</td>
+    </tr>
+    <tr>
+      <td><span class="http-get">GET</span></td>
+      <td><code>/auth/sessions</code></td>
+      <td>List all active device sessions for current user.</td>
+      <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span> (Authenticated)</td>
+    </tr>
+    <tr>
+      <td><span class="http-post">POST</span></td>
+      <td><code>/auth/verify-email</code></td>
+      <td>Verify email activation token to unlock account.</td>
+      <td><span class="role-badge-public">PUBLIC</span> (Token required)</td>
+    </tr>
+    <tr>
+      <td><span class="http-post">POST</span></td>
+      <td><code>/auth/resend-verification</code></td>
+      <td>Resend email activation link.</td>
+      <td><span class="role-badge-public">PUBLIC</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-post">POST</span></td>
+      <td><code>/auth/forgot-password</code></td>
+      <td>Request password reset link via email.</td>
+      <td><span class="role-badge-public">PUBLIC</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-post">POST</span></td>
+      <td><code>/auth/reset-password</code></td>
+      <td>Reset password using unique recovery token.</td>
+      <td><span class="role-badge-public">PUBLIC</span> (Reset token required)</td>
+    </tr>
+    <tr>
+      <td><span class="http-post">POST</span></td>
+      <td><code>/auth/change-password</code></td>
+      <td>Change password while logged in.</td>
+      <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span> (Authenticated)</td>
+    </tr>
+    <tr>
+      <td><span class="http-patch">PATCH</span></td>
+      <td><code>/auth/profile</code></td>
+      <td>Update current user profile and contact details.</td>
+      <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span> (Authenticated)</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>2.2. User Management Module (<code>/users</code>)</h3>
+<p>Administrative management of platform user accounts, status switches, and roles.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Method</th>
+      <th>Route Path</th>
+      <th>Summary &amp; Purpose</th>
+      <th>Required Role Permissions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="http-post">POST</span></td>
+      <td><code>/users</code></td>
+      <td>Provision a new user account with specific roles.</td>
+      <td><span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span>, <span class="role-badge-super">SUPER_ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-get">GET</span></td>
+      <td><code>/users</code></td>
+      <td>List all platform users with pagination and search.</td>
+      <td><span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span>, <span class="role-badge-super">SUPER_ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-get">GET</span></td>
+      <td><code>/users/:id</code></td>
+      <td>Retrieve a specific user profile by unique ID.</td>
+      <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span>, <span class="role-badge-super">SUPER_ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-patch">PATCH</span></td>
+      <td><code>/users/:id</code></td>
+      <td>Update account credentials, roles, or active state.</td>
+      <td><span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span>, <span class="role-badge-super">SUPER_ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-delete">DELETE</span></td>
+      <td><code>/users/:id</code></td>
+      <td>Permanently remove a user account.</td>
+      <td><span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span>, <span class="role-badge-super">SUPER_ADMIN</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>2.3. Family Sanctuary Core (<code>/family</code>)</h3>
+<p>Sanctuary high-level statistics, branding, settings, and audit activity stream.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Method</th>
+      <th>Route Path</th>
+      <th>Summary &amp; Purpose</th>
+      <th>Required Role Permissions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="http-get">GET</span></td>
+      <td><code>/family/sanctuary</code></td>
+      <td>Retrieve core family metadata, counts, and overview stats.</td>
+      <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-patch">PATCH</span></td>
+      <td><code>/family/update</code></td>
+      <td>Update primary sanctuary name, motto, and bio description.</td>
+      <td><span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-get">GET</span></td>
+      <td><code>/family/activity</code></td>
+      <td>Retrieve recent audit activity logs with pagination and search.</td>
+      <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-get">GET</span></td>
+      <td><code>/family/activity-logs</code></td>
+      <td>Frontend compatibility alias for audit activity logs.</td>
+      <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-patch">PATCH</span></td>
+      <td><code>/family/settings</code></td>
+      <td>Update privacy modes, notification toggles, and sanctuary config.</td>
+      <td><span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-get">GET</span></td>
+      <td><code>/family/admin/stats</code></td>
+      <td>Platform-wide network metrics, tenant storage, and health.</td>
+      <td><span class="role-badge-admin">ADMIN</span>, <span class="role-badge-super">SUPER_ADMIN</span> strictly</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>2.4. Family Members Directory (<code>/family/members</code>)</h3>
+<p>Biographical records, person nodes, deduplication search, and tree additions.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Method</th>
+      <th>Route Path</th>
+      <th>Summary &amp; Purpose</th>
+      <th>Required Role Permissions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="http-get">GET</span></td>
+      <td><code>/family/members</code></td>
+      <td>List members with pagination, multi-field search, and filters.</td>
+      <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-get">GET</span></td>
+      <td><code>/family/members/search</code></td>
+      <td>Search member profiles for deduplication and relative linking.</td>
+      <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-post">POST</span></td>
+      <td><code>/family/members</code></td>
+      <td>Create a new relative person record or link existing profile.</td>
+      <td><span class="role-badge-member">MEMBER</span> (Branch link), <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-patch">PATCH</span></td>
+      <td><code>/family/members/:id</code></td>
+      <td>Modify biographical information and person details.</td>
+      <td><span class="role-badge-member">MEMBER</span> (Own profile), <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-delete">DELETE</span></td>
+      <td><code>/family/members/:id</code></td>
+      <td>Permanently delete family member and cascade relationships.</td>
+      <td><span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span> strictly</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>2.5. Lineage Relationships Matrix (<code>/family/relationships</code>)</h3>
+<p>Directional graph edges connecting family tree nodes (Father, Mother, Spouse, Child, Sibling).</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Method</th>
+      <th>Route Path</th>
+      <th>Summary &amp; Purpose</th>
+      <th>Required Role Permissions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="http-get">GET</span></td>
+      <td><code>/family/relationships</code></td>
+      <td>Get relationship edge connections with pagination and search.</td>
+      <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-post">POST</span></td>
+      <td><code>/family/relationships</code></td>
+      <td>Link two relatives with directional relationship types.</td>
+      <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>2.6. Memories Vault (<code>/family/memories</code>)</h3>
+<p>Stories, historical moments, photo archives, and timeline preservation with user privacy isolation.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Method</th>
+      <th>Route Path</th>
+      <th>Summary &amp; Purpose</th>
+      <th>Required Role Permissions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="http-get">GET</span></td>
+      <td><code>/family/memories</code></td>
+      <td>Get memory gallery filtered strictly by authenticated user privacy.</td>
+      <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-get">GET</span></td>
+      <td><code>/family/memories/:id</code></td>
+      <td>Retrieve detailed memory story, location, and photos by ID.</td>
+      <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-post">POST</span></td>
+      <td><code>/family/memories</code></td>
+      <td>Publish new family story with photos, dates, and locations.</td>
+      <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-patch">PATCH</span></td>
+      <td><code>/family/memories/:id</code></td>
+      <td>Update captions, stories, or photos of published memory.</td>
+      <td><span class="role-badge-member">MEMBER</span> (Author), <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-delete">DELETE</span></td>
+      <td><code>/family/memories/:id</code></td>
+      <td>Permanently remove memory story from vault.</td>
+      <td><span class="role-badge-member">MEMBER</span> (Author), <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>2.7. Family Events &amp; Reunions (<code>/family/events</code>)</h3>
+<p>Calendar milestones, reunions, memorials, birthdays, and virtual gatherings.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Method</th>
+      <th>Route Path</th>
+      <th>Summary &amp; Purpose</th>
+      <th>Required Role Permissions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="http-get">GET</span></td>
+      <td><code>/family/events</code></td>
+      <td>List upcoming celebrations and reunions with pagination/search.</td>
+      <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-post">POST</span></td>
+      <td><code>/family/events</code></td>
+      <td>Schedule and announce a new event with location and dates.</td>
+      <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>2.8. Encrypted Documents Archive (<code>/family/documents</code>)</h3>
+<p>Historical documents, land deeds, birth certificates, identity records with 100MB payload support.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Method</th>
+      <th>Route Path</th>
+      <th>Summary &amp; Purpose</th>
+      <th>Required Role Permissions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="http-get">GET</span></td>
+      <td><code>/family/documents</code></td>
+      <td>Browse documents archive with category filter, search, and pagination.</td>
+      <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-post">POST</span></td>
+      <td><code>/family/documents</code></td>
+      <td>Upload single or multi-document payload up to 100MB.</td>
+      <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-post">POST</span></td>
+      <td><code>/family/documents/multiple</code></td>
+      <td>Batch upload document bundles in a single atomic request.</td>
+      <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-delete">DELETE</span></td>
+      <td><code>/family/documents/:id</code></td>
+      <td>Delete a single document from the sanctuary repository.</td>
+      <td><span class="role-badge-member">MEMBER</span> (Uploader), <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-delete">DELETE</span></td>
+      <td><code>/family/documents</code></td>
+      <td>Purge the entire document archive for the family sanctuary.</td>
+      <td><span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span> strictly</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>2.9. Sanctuary Invitations &amp; Join Requests (<code>/family/invitations</code>)</h3>
+<p>Dispatching secure join invitations and managing access requests from relatives.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Method</th>
+      <th>Route Path</th>
+      <th>Summary &amp; Purpose</th>
+      <th>Required Role Permissions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="http-get">GET</span></td>
+      <td><code>/family/invitations</code></td>
+      <td>List pending, approved, and declined invitations with pagination.</td>
+      <td><span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-post">POST</span></td>
+      <td><code>/family/invitations</code></td>
+      <td>Send an email invite token to welcome a relative to the tree.</td>
+      <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-patch">PATCH</span></td>
+      <td><code>/family/invitations/:id</code></td>
+      <td>Approve or reject a join request token.</td>
+      <td><span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span> strictly</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>2.10. Diagnostics &amp; Health (<code>/</code> &amp; <code>/health</code>)</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Method</th>
+      <th>Route Path</th>
+      <th>Summary &amp; Purpose</th>
+      <th>Required Role Permissions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="http-get">GET</span></td>
+      <td><code>/</code></td>
+      <td>HTTP 302 redirect directly into Swagger OpenAPI documentation.</td>
+      <td><span class="role-badge-public">PUBLIC</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-get">GET</span></td>
+      <td><code>/health</code></td>
+      <td>Returns operational status, uptime timestamp, and active service name.</td>
+      <td><span class="role-badge-public">PUBLIC</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>3. Swagger OpenAPI UI Integration Details</h2>
+<p>In the Swagger UI (served at <code>/api/docs</code>), the NestJS OpenAPI decorator conventions were enhanced to deliver maximum clarity:</p>
+
+<ol>
+  <li><strong>Summary Tags:</strong> The <code>summary</code> property of <code>@ApiOperation</code> ends with a clear bracketed role tag (e.g. <code>[Roles: MEMBER, OWNER, ADMIN]</code>). Because Swagger UI displays the summary directly on collapsed accordion headers, developers and auditors immediately see permission levels without clicking.</li>
+  <li><strong>Markdown Description:</strong> Expanding each endpoint presents a structured breakdown:
+    <ul>
+      <li><code>**Route:** METHOD /path</code> &mdash; Exact HTTP method and route path.</li>
+      <li><code>**Purpose:** ...</code> &mdash; Clear business logic explanation.</li>
+      <li><code>**Allowed Roles:** ...</code> &mdash; Enumerated list of authorized roles.</li>
+      <li><code>**Permissions:** ...</code> &mdash; Contextual permissions, ownership constraints, or author isolation rules.</li>
+    </ul>
+  </li>
+  <li><strong>Global RBAC Matrix in Document Header:</strong> The OpenAPI root documentation description rendered at the top of <code>/api/docs</code> contains a dedicated Role-Based Access Control table and authentication instructions for Bearer JWT and Cookie Auth.</li>
+</ol>
+
+<h2>4. Verification &amp; Validation Status</h2>
+<div class="callout-success">
+  <ul>
+    <li><strong>Zero Compilation Errors:</strong> <code>npm run build</code> passed cleanly with Exit Code 0, including Prisma client 7.9.1 re-generation and NestJS build output.</li>
+    <li><strong>Live Server Verification:</strong> Backend daemon is actively serving the updated OpenAPI specifications on port 8000.</li>
+    <li><strong>Swagger JSON Inspection:</strong> Validated all 35 path definitions across 10 controllers via automated JSON parsing script.</li>
+  </ul>
+</div>
+
+</body>
+</html>
