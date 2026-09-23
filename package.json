@@ -6,6 +6,9 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
+    "check:integrity": "node scripts/check-integrity.mjs",
+    "prebuild": "node scripts/check-integrity.mjs",
+    "prestart": "node scripts/check-integrity.mjs",
     "build": "prisma generate && nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
