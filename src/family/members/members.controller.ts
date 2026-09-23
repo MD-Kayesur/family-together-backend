@@ -1,13 +1,13 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
-import { FamilyService } from './family.service';
-import { MembersQueryDto } from './dto/family-query.dto';
-import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { MembersService } from './members.service';
+import { CreateMemberDto, UpdateMemberDto, MembersQueryDto } from './members.dto';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 @ApiTags('Family Members')
 @Controller('family/members')
 export class MembersController {
-  constructor(private readonly familyService: FamilyService) {}
+  constructor(private readonly membersService: MembersService) {}
 
   @Get()
   @ApiOperation({
@@ -18,7 +18,7 @@ export class MembersController {
   })
   @ApiResponse({ status: 200, description: 'Paginated family members returned' })
   getMembers(@Query() query: MembersQueryDto) {
-    return this.familyService.getMembers(query);
+    return this.membersService.getMembers(query);
   }
 
   @Get('search')
@@ -30,7 +30,7 @@ export class MembersController {
   })
   @ApiResponse({ status: 200, description: 'Matching member profiles returned' })
   searchMembers(@Query() query: PaginationQueryDto) {
-    return this.familyService.searchMembers(query);
+    return this.membersService.searchMembers(query);
   }
 
   @Post()
@@ -41,32 +41,8 @@ export class MembersController {
 **Permissions:** Member creation and lineage relative attachment.`,
   })
   @ApiResponse({ status: 201, description: 'Family member created or linked successfully' })
-  createMember(
-    @Body()
-    body: {
-      existingPersonId?: string;
-      firstName: string;
-      lastName: string;
-      email?: string;
-      password?: string;
-      gender?: string;
-      bio?: string;
-      roleInFamily?: string;
-      middleName?: string;
-      nickname?: string;
-      dob?: string;
-      birthplace?: string;
-      isDeceased?: boolean;
-      dateOfPassing?: string;
-      occupation?: string;
-      location?: string;
-      contactInfo?: string;
-      avatarUrl?: string;
-      relativeToPersonId?: string;
-      relationshipType?: string;
-    },
-  ) {
-    return this.familyService.createMember(body);
+  createMember(@Body() body: CreateMemberDto) {
+    return this.membersService.createMember(body);
   }
 
   @Patch(':id')
@@ -80,9 +56,9 @@ export class MembersController {
   @ApiResponse({ status: 200, description: 'Member profile updated successfully' })
   updateMember(
     @Param('id') id: string,
-    @Body() body: { firstName?: string; lastName?: string; bio?: string },
+    @Body() body: UpdateMemberDto,
   ) {
-    return this.familyService.updateMember(id, body);
+    return this.membersService.updateMember(id, body);
   }
 
   @Delete(':id')
@@ -95,6 +71,6 @@ export class MembersController {
   @ApiParam({ name: 'id', description: 'Unique member / person identifier' })
   @ApiResponse({ status: 200, description: 'Member deleted successfully' })
   deleteMember(@Param('id') id: string) {
-    return this.familyService.deleteMember(id);
+    return this.membersService.deleteMember(id);
   }
 }

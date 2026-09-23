@@ -1,12 +1,12 @@
 import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { FamilyService } from './family.service';
-import { EventsQueryDto } from './dto/family-query.dto';
+import { EventsService } from './events.service';
+import { CreateEventDto, EventsQueryDto } from './events.dto';
 
 @ApiTags('Family Events')
 @Controller('family/events')
 export class EventsController {
-  constructor(private readonly familyService: FamilyService) {}
+  constructor(private readonly eventsService: EventsService) {}
 
   @Get()
   @ApiOperation({
@@ -17,7 +17,7 @@ export class EventsController {
   })
   @ApiResponse({ status: 200, description: 'Events retrieved successfully' })
   getEvents(@Query() query: EventsQueryDto) {
-    return this.familyService.getEvents(query);
+    return this.eventsService.getEvents(query);
   }
 
   @Post()
@@ -28,9 +28,7 @@ export class EventsController {
 **Permissions:** Any authorized family member can schedule an event.`,
   })
   @ApiResponse({ status: 201, description: 'Event scheduled successfully' })
-  createEvent(
-    @Body() body: { title: string; date: string; location?: string; isVirtual?: boolean },
-  ) {
-    return this.familyService.createEvent(body);
+  createEvent(@Body() body: CreateEventDto) {
+    return this.eventsService.createEvent(body);
   }
 }

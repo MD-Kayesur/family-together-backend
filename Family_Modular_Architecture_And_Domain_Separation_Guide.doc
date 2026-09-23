@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+  <meta charset="utf-8">
+  <title>Family Module Clean Domain Separation & Architecture Guide</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+      font-size: 11pt;
+      line-height: 1.6;
+      color: #1e293b;
+      margin: 40px;
+      background-color: #ffffff;
+    }
+    h1 {
+      font-size: 24pt;
+      color: #4338ca;
+      border-bottom: 3px solid #6366f1;
+      padding-bottom: 12px;
+      margin-top: 0;
+    }
+    h2 {
+      font-size: 16pt;
+      color: #1e1b4b;
+      border-bottom: 1px solid #cbd5e1;
+      padding-bottom: 6px;
+      margin-top: 28px;
+    }
+    h3 {
+      font-size: 13pt;
+      color: #3730a3;
+      margin-top: 20px;
+    }
+    p, li {
+      font-size: 11pt;
+      line-height: 1.6;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      font-size: 9pt;
+      font-weight: bold;
+      border-radius: 4px;
+      background-color: #e0e7ff;
+      color: #3730a3;
+    }
+    .badge-success {
+      background-color: #dcfce7;
+      color: #15803d;
+    }
+    .callout {
+      background-color: #f8fafc;
+      border-left: 5px solid #6366f1;
+      padding: 14px 18px;
+      margin: 20px 0;
+      border-radius: 0 8px 8px 0;
+    }
+    .callout-success {
+      background-color: #f0fdf4;
+      border-left-color: #22c55e;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 10pt;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 10px 12px;
+      text-align: left;
+    }
+    th {
+      background-color: #f1f5f9;
+      color: #0f172a;
+      font-weight: bold;
+    }
+    tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+    code {
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 9.5pt;
+      background-color: #f1f5f9;
+      color: #be185d;
+      padding: 2px 5px;
+      border-radius: 4px;
+    }
+    pre {
+      background-color: #0f172a;
+      color: #f8fafc;
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 9pt;
+      line-height: 1.5;
+    }
+    .meta-box {
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Family Module Modular Architecture & Domain Separation</h1>
+
+  <div class="meta-box">
+    <strong>Project:</strong> Family Together Sanctuary Backend<br>
+    <strong>Module:</strong> <code>src/family/</code> Modular Domain Decomposition<br>
+    <strong>Refactoring Target:</strong> Separation of Controllers, Services, and DTOs per Domain<br>
+    <strong>Status:</strong> <span class="badge badge-success">Compiled & Verified (Exit 0)</span><br>
+    <strong>Runtime Environment:</strong> NestJS 11 + Prisma ORM 7 + PostgreSQL<br>
+    <strong>Date of Execution:</strong> September 2026
+  </div>
+
+  <h2>1. Executive Summary</h2>
+  <p>
+    Previously, <code>family.service.ts</code> was a monolithic file (>42,000 bytes) consolidating the business logic for members, memories, events, documents, invitations, relationships, sanctuary overview, and activity audit streams. Controllers also shared a common query DTO file.
+  </p>
+  <p>
+    This refactoring decomposes the <code>src/family/</code> module into isolated, single-responsibility sub-packages. Each domain feature now resides in its own dedicated directory containing:
+  </p>
+  <ol>
+    <li><strong>Dedicated DTO File:</strong> Contains strongly-typed Request/Response DTOs, Query DTOs (inheriting pagination and search), and class-validator annotations.</li>
+    <li><strong>Dedicated Service:</strong> Contains business rules, database transactions, Prisma queries, and external service calls (e.g. <code>MailService</code>).</li>
+    <li><strong>Dedicated Controller:</strong> Defines routes, role permissions, and OpenAPI Swagger documentation.</li>
+  </ol>
+
+  <h2>2. Directory Structure Before & After</h2>
+
+  <h3>Before (Monolithic Service & Mixed Files):</h3>
+  <pre>
+src/family/
+├── documents.controller.ts
+├── events.controller.ts
+├── family.controller.ts
+├── family.module.ts
+├── family.service.ts       <-- 42,156 bytes (All logic in 1 file!)
+├── invitations.controller.ts
+├── members.controller.ts
+├── memories.controller.ts
+├── relationships.controller.ts
+└── dto/
+    └── family-query.dto.ts
+  </pre>
+
+  <h3>After (Modular Domain Decomposition):</h3>
+  <pre>
+src/family/
+├── memories/
+│   ├── memories.dto.ts          <-- CreateMemoryDto, UpdateMemoryDto, MemoriesQueryDto
+│   ├── memories.service.ts      <-- MemoriesService (privacy isolation, media validation)
+│   └── memories.controller.ts   <-- MemoriesController (/family/memories)
+├── members/
+│   ├── members.dto.ts           <-- CreateMemberDto, UpdateMemberDto, MembersQueryDto
+│   ├── members.service.ts       <-- MembersService (directory, user link, deduplication)
+│   └── members.controller.ts    <-- MembersController (/family/members)
+├── documents/
+│   ├── documents.dto.ts         <-- CreateDocumentDto, CreateMultipleDocumentsDto, DocumentsQueryDto
+│   ├── documents.service.ts     <-- DocumentsService (encrypted vault, multi-file attachments)
+│   └── documents.controller.ts  <-- DocumentsController (/family/documents)
+├── events/
+│   ├── events.dto.ts            <-- CreateEventDto, EventsQueryDto
+│   ├── events.service.ts        <-- EventsService (calendar, virtual gatherings)
+│   └── events.controller.ts     <-- EventsController (/family/events)
+├── invitations/
+│   ├── invitations.dto.ts       <-- CreateInvitationDto, UpdateInvitationStatusDto, InvitationsQueryDto
+│   ├── invitations.service.ts   <-- InvitationsService (access requests, email invites)
+│   └── invitations.controller.ts<-- InvitationsController (/family/invitations)
+├── relationships/
+│   ├── relationships.dto.ts     <-- CreateRelationshipDto, RelationshipsQueryDto
+│   ├── relationships.service.ts <-- RelationshipsService (graph edges, relation types)
+│   └── relationships.controller.ts<-- RelationshipsController (/family/relationships)
+├── family.dto.ts                <-- UpdateFamilyDetailsDto, UpdateSanctuarySettingsDto, ActivityQueryDto
+├── family.service.ts            <-- FamilyService (Sanctuary stats, audit logs, admin metrics)
+├── family.controller.ts         <-- FamilyController (/family/sanctuary, /activity, /settings)
+└── family.module.ts             <-- Registers and exports all 7 controllers and services
+  </pre>
+
+  <h2>3. Domain Modules Breakdown</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Domain Feature</th>
+        <th>Subdirectory</th>
+        <th>Service Injected</th>
+        <th>Route Prefix</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Memories Vault</strong></td>
+        <td><code>src/family/memories/</code></td>
+        <td><code>MemoriesService</code></td>
+        <td><code>/family/memories</code></td>
+      </tr>
+      <tr>
+        <td><strong>Family Members</strong></td>
+        <td><code>src/family/members/</code></td>
+        <td><code>MembersService</code></td>
+        <td><code>/family/members</code></td>
+      </tr>
+      <tr>
+        <td><strong>Documents Vault</strong></td>
+        <td><code>src/family/documents/</code></td>
+        <td><code>DocumentsService</code></td>
+        <td><code>/family/documents</code></td>
+      </tr>
+      <tr>
+        <td><strong>Family Events</strong></td>
+        <td><code>src/family/events/</code></td>
+        <td><code>EventsService</code></td>
+        <td><code>/family/events</code></td>
+      </tr>
+      <tr>
+        <td><strong>Access Invitations</strong></td>
+        <td><code>src/family/invitations/</code></td>
+        <td><code>InvitationsService</code></td>
+        <td><code>/family/invitations</code></td>
+      </tr>
+      <tr>
+        <td><strong>Relationships Graph</strong></td>
+        <td><code>src/family/relationships/</code></td>
+        <td><code>RelationshipsService</code></td>
+        <td><code>/family/relationships</code></td>
+      </tr>
+      <tr>
+        <td><strong>Sanctuary & Activity</strong></td>
+        <td><code>src/family/</code></td>
+        <td><code>FamilyService</code></td>
+        <td><code>/family</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>4. NestJS ValidationPipe Whitelisting Compliance</h2>
+  <div class="callout callout-success">
+    <strong>Key Security & Stability Enhancement:</strong> All DTO properties were reinforced with <code>class-validator</code> (e.g. <code>@IsOptional()</code>, <code>@IsString()</code>, <code>@IsBoolean()</code>, <code>@IsArray()</code>). This guarantees compatibility with NestJS's strict <code>ValidationPipe({ whitelist: true, forbidNonWhitelisted: true })</code>, preventing 400 Bad Request errors on incoming query parameters.
+  </div>
+
+  <h2>5. Verification Results</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Verification Item</th>
+        <th>Command</th>
+        <th>Result</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>TypeScript Build</strong></td>
+        <td><code>npm run build</code></td>
+        <td><span class="badge badge-success">PASS (Exit 0)</span></td>
+      </tr>
+      <tr>
+        <td><strong>App Controller Spec</strong></td>
+        <td><code>npx jest src/app.controller.spec.ts</code></td>
+        <td><span class="badge badge-success">PASS (2/2 tests passed)</span></td>
+      </tr>
+      <tr>
+        <td><strong>Server Boot & Route Discovery</strong></td>
+        <td><code>node dist/src/main.js</code></td>
+        <td><span class="badge badge-success">PASS (Running on port 8000)</span></td>
+      </tr>
+      <tr>
+        <td><strong>Members Endpoint</strong></td>
+        <td><code>GET /family/members?page=1&limit=2</code></td>
+        <td><span class="badge badge-success">PASS (Returned 200 with meta)</span></td>
+      </tr>
+      <tr>
+        <td><strong>Events Endpoint</strong></td>
+        <td><code>GET /family/events?page=1&limit=2</code></td>
+        <td><span class="badge badge-success">PASS (Returned 200 with meta)</span></td>
+      </tr>
+      <tr>
+        <td><strong>Documents Endpoint</strong></td>
+        <td><code>GET /family/documents?page=1&limit=2</code></td>
+        <td><span class="badge badge-success">PASS (Returned 200 with meta)</span></td>
+      </tr>
+      <tr>
+        <td><strong>Relationships Endpoint</strong></td>
+        <td><code>GET /family/relationships?page=1&limit=2</code></td>
+        <td><span class="badge badge-success">PASS (Returned 200 with meta)</span></td>
+      </tr>
+      <tr>
+        <td><strong>Search Filter Test</strong></td>
+        <td><code>GET /family/members?search=crazy</code></td>
+        <td><span class="badge badge-success">PASS (1 match returned)</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+</body>
+</html>

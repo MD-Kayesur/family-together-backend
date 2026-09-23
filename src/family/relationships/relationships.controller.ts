@@ -1,12 +1,12 @@
 import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { FamilyService } from './family.service';
-import { RelationshipsQueryDto } from './dto/family-query.dto';
+import { RelationshipsService } from './relationships.service';
+import { CreateRelationshipDto, RelationshipsQueryDto } from './relationships.dto';
 
 @ApiTags('Family Relationships')
 @Controller('family/relationships')
 export class RelationshipsController {
-  constructor(private readonly familyService: FamilyService) {}
+  constructor(private readonly relationshipsService: RelationshipsService) {}
 
   @Get()
   @ApiOperation({
@@ -17,7 +17,7 @@ export class RelationshipsController {
   })
   @ApiResponse({ status: 200, description: 'Relationship graph matrix retrieved successfully' })
   getRelationships(@Query() query: RelationshipsQueryDto) {
-    return this.familyService.getRelationships(query);
+    return this.relationshipsService.getRelationships(query);
   }
 
   @Post()
@@ -28,9 +28,7 @@ export class RelationshipsController {
 **Permissions:** Authorized relatives and sanctuary owners can construct tree branch links.`,
   })
   @ApiResponse({ status: 201, description: 'Relationship established successfully' })
-  createRelationship(
-    @Body() body: { fromPersonId: string; toPersonId: string; typeCode?: string },
-  ) {
-    return this.familyService.createRelationship(body);
+  createRelationship(@Body() body: CreateRelationshipDto) {
+    return this.relationshipsService.createRelationship(body);
   }
 }

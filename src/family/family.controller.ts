@@ -1,7 +1,7 @@
 import { Controller, Get, Patch, Body, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { FamilyService } from './family.service';
-import { ActivityQueryDto } from './dto/family-query.dto';
+import { UpdateFamilyDetailsDto, UpdateSanctuarySettingsDto, ActivityQueryDto } from './family.dto';
 
 @ApiTags('Family Sanctuary')
 @Controller('family')
@@ -28,7 +28,7 @@ export class FamilyController {
 **Permissions:** Sanctuary management authority required (denied for ordinary \`MEMBER\` / \`VIEWER\`).`,
   })
   @ApiResponse({ status: 200, description: 'Sanctuary details updated successfully' })
-  updateFamily(@Body() body: { name?: string; description?: string }) {
+  updateFamily(@Body() body: UpdateFamilyDetailsDto) {
     return this.familyService.updateFamilyDetails(body);
   }
 
@@ -64,9 +64,7 @@ export class FamilyController {
 **Permissions:** Sanctuary administrative authority required.`,
   })
   @ApiResponse({ status: 200, description: 'Sanctuary settings updated successfully' })
-  updateSanctuarySettings(
-    @Body() body: { name?: string; description?: string },
-  ) {
+  updateSanctuarySettings(@Body() body: UpdateSanctuarySettingsDto) {
     return this.familyService.updateSanctuarySettings(body);
   }
 
@@ -82,5 +80,3 @@ export class FamilyController {
     return this.familyService.getAdminStats();
   }
 }
-
-

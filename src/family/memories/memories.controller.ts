@@ -1,12 +1,12 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
-import { FamilyService } from './family.service';
-import { MemoriesQueryDto } from './dto/family-query.dto';
+import { MemoriesService } from './memories.service';
+import { CreateMemoryDto, UpdateMemoryDto, MemoriesQueryDto } from './memories.dto';
 
 @ApiTags('Memories Vault')
 @Controller('family/memories')
 export class MemoriesController {
-  constructor(private readonly familyService: FamilyService) {}
+  constructor(private readonly memoriesService: MemoriesService) {}
 
   @Get()
   @ApiOperation({
@@ -17,7 +17,7 @@ export class MemoriesController {
   })
   @ApiResponse({ status: 200, description: 'Paginated user memories returned' })
   getMemories(@Query() query: MemoriesQueryDto) {
-    return this.familyService.getMemories(query);
+    return this.memoriesService.getMemories(query);
   }
 
   @Get(':id')
@@ -31,7 +31,7 @@ export class MemoriesController {
   @ApiResponse({ status: 200, description: 'Memory details retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Memory record not found' })
   getMemoryById(@Param('id') id: string) {
-    return this.familyService.getMemoryById(id);
+    return this.memoriesService.getMemoryById(id);
   }
 
   @Post()
@@ -42,24 +42,8 @@ export class MemoriesController {
 **Permissions:** Any authorized family member can author and share memories. Automatically binds \`userId\` and \`userEmail\` to enforce ownership.`,
   })
   @ApiResponse({ status: 201, description: 'Memory created successfully' })
-  createMemory(
-    @Body()
-    body: {
-      title: string;
-      description?: string;
-      sharedBy?: string;
-      userId?: string;
-      userEmail?: string;
-      date?: string;
-      location?: string;
-      category?: string;
-      mediaUrl?: string;
-      mediaUrls?: string[];
-      taggedMembers?: string;
-      privacy?: string;
-    },
-  ) {
-    return this.familyService.createMemory(body);
+  createMemory(@Body() body: CreateMemoryDto) {
+    return this.memoriesService.createMemory(body);
   }
 
   @Patch(':id')
@@ -73,21 +57,9 @@ export class MemoriesController {
   @ApiResponse({ status: 200, description: 'Memory updated successfully' })
   updateMemory(
     @Param('id') id: string,
-    @Body()
-    body: {
-      title?: string;
-      description?: string;
-      sharedBy?: string;
-      date?: string;
-      location?: string;
-      category?: string;
-      mediaUrl?: string;
-      mediaUrls?: string[];
-      taggedMembers?: string;
-      privacy?: string;
-    },
+    @Body() body: UpdateMemoryDto,
   ) {
-    return this.familyService.updateMemory(id, body);
+    return this.memoriesService.updateMemory(id, body);
   }
 
   @Delete(':id')
@@ -100,6 +72,6 @@ export class MemoriesController {
   @ApiParam({ name: 'id', description: 'Unique memory identifier' })
   @ApiResponse({ status: 200, description: 'Memory deleted successfully' })
   deleteMemory(@Param('id') id: string) {
-    return this.familyService.deleteMemory(id);
+    return this.memoriesService.deleteMemory(id);
   }
 }

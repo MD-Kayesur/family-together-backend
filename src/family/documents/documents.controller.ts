@@ -1,12 +1,12 @@
 import { Controller, Get, Post, Delete, Body, Param, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
-import { FamilyService } from './family.service';
-import { DocumentsQueryDto } from './dto/family-query.dto';
+import { DocumentsService } from './documents.service';
+import { CreateDocumentDto, CreateMultipleDocumentsDto, DocumentsQueryDto } from './documents.dto';
 
 @ApiTags('Documents Archive')
 @Controller('family/documents')
 export class DocumentsController {
-  constructor(private readonly familyService: FamilyService) {}
+  constructor(private readonly documentsService: DocumentsService) {}
 
   @Get()
   @ApiOperation({
@@ -17,7 +17,7 @@ export class DocumentsController {
   })
   @ApiResponse({ status: 200, description: 'Documents list retrieved successfully' })
   getDocuments(@Query() query: DocumentsQueryDto) {
-    return this.familyService.getDocuments(query);
+    return this.documentsService.getDocuments(query);
   }
 
   @Post()
@@ -30,26 +30,15 @@ export class DocumentsController {
   @ApiResponse({ status: 201, description: 'Document uploaded successfully' })
   createDocument(
     @Body()
-    body:
-      | {
-          name: string;
-          category?: string;
-          size?: string;
-          fileUrl?: string;
-          fileUrls?: string[];
-          files?: Array<{ name: string; size?: string; fileUrl: string }>;
-          uploadedBy?: string;
-        }
-      | { documents: Array<{ name: string; category?: string; size?: string; fileUrl?: string; files?: any[]; uploadedBy?: string }> }
-      | Array<{ name: string; category?: string; size?: string; fileUrl?: string; files?: any[]; uploadedBy?: string }>,
+    body: CreateDocumentDto | CreateMultipleDocumentsDto | CreateDocumentDto[],
   ) {
     if (Array.isArray(body)) {
-      return this.familyService.createMultipleDocuments(body);
+      return this.documentsService.createMultipleDocuments(body);
     }
     if ((body as any)?.documents && Array.isArray((body as any).documents)) {
-      return this.familyService.createMultipleDocuments((body as any).documents);
+      return this.documentsService.createMultipleDocuments((body as any).documents);
     }
-    return this.familyService.createDocument(body as any);
+    return this.documentsService.createDocument(body as CreateDocumentDto);
   }
 
   @Post('multiple')
@@ -62,12 +51,10 @@ export class DocumentsController {
   @ApiResponse({ status: 201, description: 'Batch documents uploaded successfully' })
   createMultipleDocuments(
     @Body()
-    body:
-      | { documents: Array<{ name: string; category?: string; size?: string; fileUrl?: string; uploadedBy?: string }> }
-      | Array<{ name: string; category?: string; size?: string; fileUrl?: string; uploadedBy?: string }>,
+    body: CreateMultipleDocumentsDto | CreateDocumentDto[],
   ) {
     const list = Array.isArray(body) ? body : (body as any)?.documents || [];
-    return this.familyService.createMultipleDocuments(list);
+    return this.documentsService.createMultipleDocuments(list);
   }
 
   @Delete(':id')
@@ -80,7 +67,7 @@ export class DocumentsController {
   @ApiParam({ name: 'id', description: 'Unique document identifier' })
   @ApiResponse({ status: 200, description: 'Document deleted successfully' })
   deleteDocument(@Param('id') id: string) {
-    return this.familyService.deleteDocument(id);
+    return this.documentsService.deleteDocument(id);
   }
 
   @Delete()
@@ -92,6 +79,6 @@ export class DocumentsController {
   })
   @ApiResponse({ status: 200, description: 'All documents purged successfully' })
   deleteAllDocuments() {
-    return this.familyService.deleteAllDocuments();
+    return this.documentsService.deleteAllDocuments();
   }
 }

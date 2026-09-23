@@ -1,12 +1,12 @@
 import { Controller, Get, Post, Patch, Body, Param, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
-import { FamilyService } from './family.service';
-import { InvitationsQueryDto } from './dto/family-query.dto';
+import { InvitationsService } from './invitations.service';
+import { CreateInvitationDto, UpdateInvitationStatusDto, InvitationsQueryDto } from './invitations.dto';
 
 @ApiTags('Family Invitations')
 @Controller('family/invitations')
 export class InvitationsController {
-  constructor(private readonly familyService: FamilyService) {}
+  constructor(private readonly invitationsService: InvitationsService) {}
 
   @Get()
   @ApiOperation({
@@ -17,7 +17,7 @@ export class InvitationsController {
   })
   @ApiResponse({ status: 200, description: 'List of invitations retrieved successfully' })
   getInvitations(@Query() query: InvitationsQueryDto) {
-    return this.familyService.getInvitations(query);
+    return this.invitationsService.getInvitations(query);
   }
 
   @Post()
@@ -28,10 +28,8 @@ export class InvitationsController {
 **Permissions:** Any verified family member or owner can invite new relatives to join.`,
   })
   @ApiResponse({ status: 201, description: 'Invitation sent successfully' })
-  createInvitation(
-    @Body() body: { name: string; email: string; role?: string; note?: string },
-  ) {
-    return this.familyService.createInvitation(body);
+  createInvitation(@Body() body: CreateInvitationDto) {
+    return this.invitationsService.createInvitation(body);
   }
 
   @Patch(':id')
@@ -45,8 +43,8 @@ export class InvitationsController {
   @ApiResponse({ status: 200, description: 'Invitation status updated successfully' })
   updateInvitationStatus(
     @Param('id') id: string,
-    @Body() body: { status: string },
+    @Body() body: UpdateInvitationStatusDto,
   ) {
-    return this.familyService.updateInvitationStatus(id, body.status);
+    return this.invitationsService.updateInvitationStatus(id, body.status);
   }
 }
