@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { InvitationsService } from './invitations.service';
 import { CreateInvitationDto, UpdateInvitationStatusDto, InvitationsQueryDto } from './invitations.dto';
@@ -19,6 +19,21 @@ export class InvitationsController {
   @ApiResponse({ status: 200, description: 'List of invitations retrieved successfully' })
   getInvitations(@Query() query: InvitationsQueryDto) {
     return this.invitationsService.getInvitations(query);
+  }
+
+  @Get(':id')
+  @ApiOperation({
+    summary: 'Get family invitation details by ID [Roles: OWNER, ADMIN]',
+    description: `**Route:** \`GET /family/invitations/:id\`
+**Purpose:** Retrieves full details, metadata, status, and target email for a specific invitation request by its unique identifier.
+**Allowed Roles:** \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
+**Permissions:** Sanctuary management authority required to inspect invitation details.`,
+  })
+  @ApiParam({ name: 'id', description: 'Unique invitation identifier' })
+  @ApiResponse({ status: 200, description: 'Invitation details retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Invitation request not found' })
+  getInvitationById(@Param('id') id: string) {
+    return this.invitationsService.getInvitationById(id);
   }
 
   @Post()
@@ -49,5 +64,20 @@ export class InvitationsController {
     @Body() body: UpdateInvitationStatusDto,
   ) {
     return this.invitationsService.updateInvitationStatus(id, body.status);
+  }
+
+  @Delete(':id')
+  @ApiOperation({
+    summary: 'Delete or revoke family invitation by ID [Roles: OWNER, ADMIN]',
+    description: `**Route:** \`DELETE /family/invitations/:id\`
+**Purpose:** Permanently revokes and removes a pending, accepted, or expired invitation request from the sanctuary.
+**Allowed Roles:** \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
+**Permissions:** Sanctuary owner or administrator authority required (denied for ordinary \`MEMBER\`).`,
+  })
+  @ApiParam({ name: 'id', description: 'Unique invitation identifier' })
+  @ApiResponse({ status: 200, description: 'Invitation revoked and deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Invitation request not found' })
+  deleteInvitation(@Param('id') id: string) {
+    return this.invitationsService.deleteInvitation(id);
   }
 }

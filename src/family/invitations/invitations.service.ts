@@ -70,4 +70,35 @@ export class InvitationsService {
       data: { status },
     });
   }
+
+  async getInvitationById(id: string) {
+    const invitation = await this.prisma.invitation.findUnique({
+      where: { id },
+      include: {
+        family: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+    if (!invitation) throw new NotFoundException(`Invitation request #${id} not found`);
+    return invitation;
+  }
+
+  async deleteInvitation(id: string) {
+    const invitation = await this.prisma.invitation.findUnique({ where: { id } });
+    if (!invitation) throw new NotFoundException(`Invitation request #${id} not found`);
+
+    await this.prisma.invitation.delete({
+      where: { id },
+    });
+
+    return {
+      success: true,
+      message: 'Invitation deleted successfully',
+      id,
+    };
+  }
 }

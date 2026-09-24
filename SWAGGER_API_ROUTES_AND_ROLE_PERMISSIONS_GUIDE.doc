@@ -610,6 +610,12 @@
       <td><span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
     </tr>
     <tr>
+      <td><span class="http-get">GET</span></td>
+      <td><code>/family/invitations/:id</code></td>
+      <td>Get full invitation request details, target email, role, and metadata by ID.</td>
+      <td><span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+    <tr>
       <td><span class="http-post">POST</span></td>
       <td><code>/family/invitations</code></td>
       <td>Send an email invite token to welcome a relative to the tree.</td>
@@ -619,6 +625,12 @@
       <td><span class="http-patch">PATCH</span></td>
       <td><code>/family/invitations/:id</code></td>
       <td>Approve or reject a join request token.</td>
+      <td><span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span> strictly</td>
+    </tr>
+    <tr>
+      <td><span class="http-delete">DELETE</span></td>
+      <td><code>/family/invitations/:id</code></td>
+      <td>Permanently revoke and delete an invitation request from the sanctuary.</td>
       <td><span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span> strictly</td>
     </tr>
   </tbody>
