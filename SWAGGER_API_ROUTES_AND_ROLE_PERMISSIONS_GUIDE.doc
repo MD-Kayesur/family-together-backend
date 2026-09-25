@@ -532,14 +532,32 @@
     <tr>
       <td><span class="http-get">GET</span></td>
       <td><code>/family/events</code></td>
-      <td>List upcoming celebrations and reunions with pagination/search.</td>
+      <td>List upcoming celebrations with page, limit pagination and search (title, description, location).</td>
+      <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-get">GET</span></td>
+      <td><code>/family/events/:id</code></td>
+      <td>Get single family celebration or reunion details and agenda by unique ID.</td>
       <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
     </tr>
     <tr>
       <td><span class="http-post">POST</span></td>
       <td><code>/family/events</code></td>
-      <td>Schedule and announce a new event with location and dates.</td>
+      <td>Schedule and announce a new event with location, date, description, and virtual flag.</td>
       <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-patch">PATCH</span></td>
+      <td><code>/family/events/:id</code></td>
+      <td>Update event title, date, location, description, or virtual settings.</td>
+      <td><span class="role-badge-member">MEMBER</span>, <span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span></td>
+    </tr>
+    <tr>
+      <td><span class="http-delete">DELETE</span></td>
+      <td><code>/family/events/:id</code></td>
+      <td>Permanently cancel and delete a scheduled family event from the calendar.</td>
+      <td><span class="role-badge-owner">OWNER</span>, <span class="role-badge-admin">ADMIN</span> strictly</td>
     </tr>
   </tbody>
 </table>

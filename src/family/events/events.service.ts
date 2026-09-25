@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { buildPaginatedResponse } from '../../common/interfaces/paginated-result.interface';
-import { CreateEventDto, EventsQueryDto } from './events.dto';
+import { CreateEventDto, UpdateEventDto, EventsQueryDto } from './events.dto';
 
 @Injectable()
 export class EventsService {
@@ -46,6 +46,26 @@ export class EventsService {
     return buildPaginatedResponse(events, total, page, limit);
   }
 
+  async getEventById(id: string) {
+    const event = await this.prisma.event.findUnique({
+      where: { id },
+      include: {
+        family: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!event) {
+      throw new NotFoundException(`Family event #${id} not found`);
+    }
+
+    return event;
+  }
+
   async createEvent(data: CreateEventDto) {
     const family = await this.prisma.family.findFirst();
     return this.prisma.event.create({
@@ -54,8 +74,39 @@ export class EventsService {
         title: data.title,
         date: new Date(data.date),
         location: data.location || '',
+        description: data.description || '',
         isVirtual: data.isVirtual || false,
       },
     });
+  }
+
+  async updateEvent(id: string, data: UpdateEventDto) {
+    await this.getEventById(id);
+
+    const updateData: any = {};
+    if (data.title !== undefined) updateData.title = data.title;
+    if (data.date !== undefined) updateData.date = new Date(data.date);
+    if (data.location !== undefined) updateData.location = data.location;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.isVirtual !== undefined) updateData.isVirtual = data.isVirtual;
+
+    return this.prisma.event.update({
+      where: { id },
+      data: updateData,
+    });
+  }
+
+  async deleteEvent(id: string) {
+    await this.getEventById(id);
+
+    await this.prisma.event.delete({
+      where: { id },
+    });
+
+    return {
+      success: true,
+      message: 'Event deleted successfully',
+      id,
+    };
   }
 }
