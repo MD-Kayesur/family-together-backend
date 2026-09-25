@@ -28,6 +28,24 @@ export class MemoriesQueryDto extends PaginationQueryDto {
   category?: string;
 }
 
+export class MemoryAccessQueryDto {
+  @ApiPropertyOptional({
+    description: 'User ID of the requester for privacy validation and ownership verification',
+    example: 'usr_8392183',
+  })
+  @IsOptional()
+  @IsString()
+  userId?: string;
+
+  @ApiPropertyOptional({
+    description: 'User email of the requester for privacy validation and ownership verification',
+    example: 'user@familyroots.io',
+  })
+  @IsOptional()
+  @IsString()
+  userEmail?: string;
+}
+
 export class CreateMemoryDto {
   @ApiProperty({
     description: 'Title of the family memory',
@@ -198,4 +216,20 @@ export class UpdateMemoryDto {
   @IsOptional()
   @IsString()
   privacy?: string;
+
+  @ApiPropertyOptional({
+    description: 'ID of the user making update for ownership verification',
+    example: 'usr_123',
+  })
+  @IsOptional()
+  @IsString()
+  userId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Email of the user making update for ownership verification',
+    example: 'user@family.com',
+  })
+  @IsOptional()
+  @IsString()
+  userEmail?: string;
 }
