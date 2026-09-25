@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+    <meta charset="utf-8">
+    <title>Family Events CRUD, Pagination, Search & Role Permissions Architecture</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            background-color: #ffffff;
+            margin: 40px;
+        }
+        h1 {
+            color: #1e3a8a;
+            font-size: 26pt;
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 8px;
+            margin-top: 0;
+        }
+        h2 {
+            color: #1e40af;
+            font-size: 18pt;
+            margin-top: 24pt;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 6px;
+        }
+        h3 {
+            color: #0369a1;
+            font-size: 14pt;
+            margin-top: 16pt;
+        }
+        p, li {
+            font-size: 11pt;
+            color: #1e293b;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 16px 0;
+        }
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 10px 14px;
+            text-align: left;
+            font-size: 10pt;
+        }
+        th {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            font-weight: 600;
+        }
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        code {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 9.5pt;
+        }
+        pre {
+            background-color: #0f172a;
+            color: #f8fafc;
+            padding: 14px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 9.5pt;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            font-size: 8.5pt;
+            font-weight: bold;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+        .badge-get { background-color: #dbeafe; color: #1e40af; }
+        .badge-post { background-color: #dcfce7; color: #15803d; }
+        .badge-patch { background-color: #fef3c7; color: #b45309; }
+        .badge-delete { background-color: #fee2e2; color: #b91c1c; }
+        .info-box {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 0 4px 4px 0;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Family Events CRUD, Pagination, Search & Role Permissions Architecture</h1>
+<p><strong>Module:</strong> <code>FamilyEventsModule</code> (Backend)<br/>
+<strong>Controller:</strong> <code>FamilyEventsController</code><br/>
+<strong>Service:</strong> <code>FamilyEventsService</code><br/>
+<strong>Base Route:</strong> <code>/family/events</code><br/>
+<strong>Last Updated:</strong> September 25, 2026</p>
+
+<div class="info-box">
+    <strong>Executive Summary:</strong> The Family Events subsystem provides comprehensive lifecycle management for family gatherings, reunions, and virtual events. It features role-governed authorization (MEMBER, OWNER, ADMIN), query-driven server-side pagination and fuzzy search, single-item detail lookup, partial updates, and deletion.
+</div>
+
+<h2>1. Complete Endpoints Overview</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>Method</th>
+            <th>Endpoint</th>
+            <th>Role Permissions</th>
+            <th>Purpose</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><span class="badge badge-get">GET</span></td>
+            <td><code>/family/events</code></td>
+            <td><code>[Roles: MEMBER, OWNER, ADMIN]</code></td>
+            <td>List events with pagination (<code>page</code>, <code>limit</code>), search terms (<code>search</code>, <code>q</code>), virtual filter, sorting.</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/family/events</code></td>
+            <td><code>[Roles: MEMBER, OWNER, ADMIN]</code></td>
+            <td>Schedule a new family event with title, description, date/time, location, and virtual meeting details.</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-get">GET</span></td>
+            <td><code>/family/events/:id</code></td>
+            <td><code>[Roles: MEMBER, OWNER, ADMIN]</code></td>
+            <td>Retrieve complete details for a specific event by ID, scoped to user's family membership.</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-patch">PATCH</span></td>
+            <td><code>/family/events/:id</code></td>
+            <td><code>[Roles: MEMBER, OWNER, ADMIN]</code></td>
+            <td>Partially update an event (title, description, eventDate, location, isVirtual, meetingUrl).</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-delete">DELETE</span></td>
+            <td><code>/family/events/:id</code></td>
+            <td><code>[Roles: OWNER, ADMIN]</code></td>
+            <td>Permanently delete an event by ID (restricted to family Owners and Administrators).</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>2. Pagination and Search Capabilities</h2>
+<p>The <code>GET /family/events</code> endpoint accepts the following query parameters defined in <code>EventsQueryDto</code> extending <code>PaginationQueryDto</code>:</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>Parameter</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>page</code></td>
+            <td>Integer</td>
+            <td>1</td>
+            <td>Current page number (1-indexed).</td>
+        </tr>
+        <tr>
+            <td><code>limit</code></td>
+            <td>Integer</td>
+            <td>10</td>
+            <td>Number of event records per page.</td>
+        </tr>
+        <tr>
+            <td><code>search</code> / <code>q</code></td>
+            <td>String</td>
+            <td>null</td>
+            <td>Fuzzy case-insensitive search matching event <code>title</code>, <code>description</code>, or <code>location</code>.</td>
+        </tr>
+        <tr>
+            <td><code>isVirtual</code></td>
+            <td>Boolean</td>
+            <td>null</td>
+            <td>Optional filter for virtual/online events.</td>
+        </tr>
+        <tr>
+            <td><code>sortBy</code></td>
+            <td>String</td>
+            <td>"eventDate"</td>
+            <td>Field to sort by (e.g. <code>eventDate</code>, <code>createdAt</code>, <code>title</code>).</td>
+        </tr>
+        <tr>
+            <td><code>sortOrder</code></td>
+            <td>String</td>
+            <td>"asc"</td>
+            <td>Sorting direction (<code>asc</code> or <code>desc</code>).</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>Standard Paginated Response Envelope:</h3>
+<pre>
+{
+  "statusCode": 200,
+  "message": "Events retrieved successfully",
+  "data": {
+    "items": [
+      {
+        "id": "cm...event-id",
+        "title": "Annual Summer Family Reunion",
+        "description": "Potluck picnic, games, and family photo session.",
+        "eventDate": "2026-07-15T10:00:00.000Z",
+        "location": "Oak Tree Memorial Park, Pavilion 3",
+        "isVirtual": false,
+        "meetingUrl": null,
+        "familyId": "cm...family-id",
+        "createdAt": "2026-09-25T08:00:00.000Z",
+        "updatedAt": "2026-09-25T08:00:00.000Z"
+      }
+    ],
+    "meta": {
+      "total": 1,
+      "page": 1,
+      "limit": 10,
+      "totalPages": 1,
+      "hasNextPage": false,
+      "hasPreviousPage": false
+    }
+  }
+}
+</pre>
+
+<h2>3. Single Event Detail (GET /family/events/:id)</h2>
+<p>Allows authorized family members (MEMBER, OWNER, ADMIN) to inspect full metadata for an event. Performs family boundary validation to ensure members cannot access events belonging to another family sanctuary.</p>
+
+<h2>4. Event Update (PATCH /family/events/:id)</h2>
+<p>Accepts partial updates with full field validation via <code>UpdateEventDto</code>:</p>
+<pre>
+{
+  "title"?: "Updated Reunion Title",
+  "description"?: "Updated schedule and items to bring",
+  "eventDate"?: "2026-07-15T11:00:00.000Z",
+  "location"?: "Oak Tree Memorial Park, Main Pavilion",
+  "isVirtual"?: false,
+  "meetingUrl"?: null
+}
+</pre>
+
+<h2>5. Event Deletion (DELETE /family/events/:id)</h2>
+<p>Restricted to <code>OWNER</code> and <code>ADMIN</code> roles to safeguard schedule integrity. Ensures cascade safety and audit consistency within the family sanctuary.</p>
+
+<h2>6. Swagger Documentation Integration</h2>
+<p>All 5 endpoints are fully registered in the Swagger OpenApi Specification accessible at <code>/api/docs</code>. Role permission badges and explicit query parameters are visible directly in the interactive documentation interface.</p>
+
+</body>
+</html>
