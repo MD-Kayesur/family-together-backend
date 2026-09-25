@@ -1,7 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { buildPaginatedResponse } from '../../common/interfaces/paginated-result.interface';
-import { CreateMemoryDto, UpdateMemoryDto, MemoriesQueryDto } from './memories.dto';
+import { CreateMemoryDto, UpdateMemoryDto, MemoriesQueryDto, MemoryAccessQueryDto } from './memories.dto';
 
 @Injectable()
 export class MemoriesService {
@@ -147,6 +147,13 @@ export class MemoriesService {
 
   async createMemory(data: CreateMemoryDto) {
     try {
+      // Require userId or userEmail so memory can never be created as anonymous or orphan
+      if (!data.userId && !data.userEmail) {
+        throw new BadRequestException(
+          'User identity (userId or userEmail) is required to add a memory. Anonymous memories are prohibited to ensure privacy.',
+        );
+      }
+
       const family = await this.prisma.family.findFirst();
       let combinedDesc = data.description || '';
       const metaParts: string[] = [];
@@ -190,13 +197,31 @@ export class MemoriesService {
     }
   }
 
-  async getMemoryById(id: string) {
+  async getMemoryById(id: string, access?: MemoryAccessQueryDto) {
     try {
       const memory = await this.prisma.memory.findUnique({
         where: { id },
       });
       if (!memory) {
         throw new NotFoundException(`Memory with ID ${id} not found`);
+      }
+
+      // Strict user privacy enforcement: Only author can view their private memory
+      if (access?.userId || access?.userEmail) {
+        const matchesUserId = access.userId && memory.userId === access.userId;
+        const matchesEmail =
+          access.userEmail && memory.userEmail?.toLowerCase() === access.userEmail.toLowerCase();
+
+        if (!matchesUserId && !matchesEmail) {
+          throw new ForbiddenException(
+            'Access denied: This memory belongs to another user and is private to them.',
+          );
+        }
+      } else if (memory.userId || memory.userEmail) {
+        // Memory has an owner, but requester provided no user identity
+        throw new ForbiddenException(
+          'Access denied: You must be signed in as the owner to view this private memory.',
+        );
       }
 
       const mediaUrls = this.parseMediaUrls(memory.mediaUrl);
@@ -211,9 +236,30 @@ export class MemoriesService {
     }
   }
 
-  async updateMemory(id: string, data: UpdateMemoryDto) {
+  async updateMemory(id: string, data: UpdateMemoryDto, access?: MemoryAccessQueryDto) {
     try {
-      const memory = await this.getMemoryById(id);
+      const memory = await this.prisma.memory.findUnique({
+        where: { id },
+      });
+      if (!memory) {
+        throw new NotFoundException(`Memory with ID ${id} not found`);
+      }
+
+      // Verify ownership before updating
+      const requesterUserId = data.userId || access?.userId;
+      const requesterEmail = data.userEmail || access?.userEmail;
+
+      if (memory.userId || memory.userEmail) {
+        const matchesUserId = requesterUserId && memory.userId === requesterUserId;
+        const matchesEmail =
+          requesterEmail && memory.userEmail?.toLowerCase() === requesterEmail.toLowerCase();
+
+        if (!matchesUserId && !matchesEmail) {
+          throw new ForbiddenException(
+            'Forbidden: You can only edit your own private memories. Another user cannot modify this memory.',
+          );
+        }
+      }
 
       let combinedDesc = data.description !== undefined ? data.description : '';
       const metaParts: string[] = [];
@@ -229,7 +275,8 @@ export class MemoriesService {
       }
 
       let storedMediaUrl = memory.mediaUrl;
-      let resolvedMediaUrls: string[] = memory.mediaUrls || [];
+      const existingMediaUrls = this.parseMediaUrls(memory.mediaUrl);
+      let resolvedMediaUrls: string[] = existingMediaUrls;
 
       if (data.mediaUrls !== undefined || data.mediaUrl !== undefined) {
         resolvedMediaUrls = await this.processMediaResiliently(data.mediaUrls, data.mediaUrl);
@@ -259,11 +306,35 @@ export class MemoriesService {
     }
   }
 
-  async deleteMemory(id: string) {
-    await this.getMemoryById(id);
-    await this.prisma.memory.delete({
-      where: { id },
-    });
-    return { success: true, message: 'Memory deleted successfully' };
+  async deleteMemory(id: string, access?: MemoryAccessQueryDto) {
+    try {
+      const memory = await this.prisma.memory.findUnique({
+        where: { id },
+      });
+      if (!memory) {
+        throw new NotFoundException(`Memory with ID ${id} not found`);
+      }
+
+      // Verify ownership before deleting
+      if (memory.userId || memory.userEmail) {
+        const matchesUserId = access?.userId && memory.userId === access.userId;
+        const matchesEmail =
+          access?.userEmail && memory.userEmail?.toLowerCase() === access.userEmail.toLowerCase();
+
+        if (!matchesUserId && !matchesEmail) {
+          throw new ForbiddenException(
+            'Forbidden: You can only delete your own private memories. Another user cannot delete this memory.',
+          );
+        }
+      }
+
+      await this.prisma.memory.delete({
+        where: { id },
+      });
+      return { success: true, message: 'Memory deleted successfully' };
+    } catch (err) {
+      console.error(`Error in deleteMemory (${id}):`, err);
+      throw err;
+    }
   }
 }
