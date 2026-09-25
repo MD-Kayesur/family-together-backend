@@ -10,9 +10,9 @@ export class EventsController {
 
   @Get()
   @ApiOperation({
-    summary: 'Get upcoming family events and reunions with pagination and search [Roles: MEMBER, OWNER, ADMIN]',
+    summary: 'Get upcoming family events and reunions with pagination, status filter, and search [Roles: MEMBER, OWNER, ADMIN]',
     description: `**Route:** \`GET /family/events\`
-**Purpose:** Retrieves upcoming family celebrations, memorials, birthdays, and reunions with page, limit pagination, virtual filter, and multi-field search (title, description, location).
+**Purpose:** Retrieves upcoming family celebrations, memorials, birthdays, and reunions with page, limit pagination, status filter (ACTIVE for upcoming/today vs INACTIVE for expired/past), virtual filter, and multi-field search (title, description, location).
 **Allowed Roles:** \`MEMBER\`, \`USER\`, \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
 **Permissions:** Read-only access to calendar events.`,
   })

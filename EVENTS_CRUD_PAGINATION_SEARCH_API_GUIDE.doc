@@ -189,6 +189,12 @@
             <td>Optional filter for virtual/online events.</td>
         </tr>
         <tr>
+            <td><code>status</code></td>
+            <td>String</td>
+            <td>null / "ALL"</td>
+            <td>Filter events by status: <code>ACTIVE</code> (upcoming / scheduled on or after today) or <code>INACTIVE</code> (expired / past date).</td>
+        </tr>
+        <tr>
             <td><code>sortBy</code></td>
             <td>String</td>
             <td>"eventDate"</td>
@@ -203,6 +209,16 @@
     </tbody>
 </table>
 
+<h3>Event Lifecycle &amp; Status Auto-Calculation:</h3>
+<div class="info-box">
+  <strong>Dynamic Status Evaluation Rule:</strong>
+  <ul>
+    <li><code>ACTIVE</code>: Evaluated when <code>eventDate &gt;= today</code> (at midnight boundary). Indicates an upcoming or ongoing celebration scheduled for today or any future date.</li>
+    <li><code>INACTIVE</code>: Evaluated when <code>eventDate &lt; today</code>. Indicates that the celebration date has passed and the event is expired.</li>
+  </ul>
+  Every single event returned by <code>getEvents</code>, <code>getEventById</code>, <code>createEvent</code>, and <code>updateEvent</code> is enriched with <code>status: 'ACTIVE' | 'INACTIVE'</code>.
+</div>
+
 <h3>Standard Paginated Response Envelope:</h3>
 <pre>
 {
@@ -214,10 +230,10 @@
         "id": "cm...event-id",
         "title": "Annual Summer Family Reunion",
         "description": "Potluck picnic, games, and family photo session.",
-        "eventDate": "2026-07-15T10:00:00.000Z",
+        "eventDate": "2026-10-15T10:00:00.000Z",
         "location": "Oak Tree Memorial Park, Pavilion 3",
         "isVirtual": false,
-        "meetingUrl": null,
+        "status": "ACTIVE",
         "familyId": "cm...family-id",
         "createdAt": "2026-09-25T08:00:00.000Z",
         "updatedAt": "2026-09-25T08:00:00.000Z"

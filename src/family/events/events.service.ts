@@ -7,6 +7,25 @@ import { CreateEventDto, UpdateEventDto, EventsQueryDto } from './events.dto';
 export class EventsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Computes whether an event is ACTIVE (upcoming or today) or INACTIVE (expired/past date).
+   * Comparison is evaluated at the start of day (midnight) boundary.
+   */
+  public computeEventStatus(date: Date | string): 'ACTIVE' | 'INACTIVE' {
+    const eventDate = new Date(date);
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const eventDayStart = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate()).getTime();
+    return eventDayStart >= todayStart ? 'ACTIVE' : 'INACTIVE';
+  }
+
+  private enrichEventWithStatus<T extends { date: Date | string }>(event: T) {
+    return {
+      ...event,
+      status: this.computeEventStatus(event.date),
+    };
+  }
+
   async getEvents(query?: EventsQueryDto) {
     const page = Math.max(1, Number(query?.page) || 1);
     const limit = Math.max(1, Math.min(100, Number(query?.limit) || 10));
@@ -26,6 +45,17 @@ export class EventsService {
       where.isVirtual = query.isVirtual === true || query.isVirtual === 'true';
     }
 
+    if (query?.status) {
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const statusUpper = query.status.toUpperCase();
+      if (statusUpper === 'ACTIVE') {
+        where.date = { gte: todayStart };
+      } else if (statusUpper === 'INACTIVE') {
+        where.date = { lt: todayStart };
+      }
+    }
+
     const sortField = query?.sortBy || 'date';
     const sortDir = (query?.sortOrder || 'asc').toLowerCase() === 'desc' ? 'desc' : 'asc';
     const orderBy: any = { [sortField]: sortDir };
@@ -33,7 +63,8 @@ export class EventsService {
     const total = await this.prisma.event.count({ where });
 
     if (query?.raw === true || query?.paginate === false) {
-      return this.prisma.event.findMany({ where, orderBy });
+      const rawEvents = await this.prisma.event.findMany({ where, orderBy });
+      return rawEvents.map((evt) => this.enrichEventWithStatus(evt));
     }
 
     const events = await this.prisma.event.findMany({
@@ -43,7 +74,8 @@ export class EventsService {
       orderBy,
     });
 
-    return buildPaginatedResponse(events, total, page, limit);
+    const enrichedEvents = events.map((evt) => this.enrichEventWithStatus(evt));
+    return buildPaginatedResponse(enrichedEvents, total, page, limit);
   }
 
   async getEventById(id: string) {
@@ -63,12 +95,12 @@ export class EventsService {
       throw new NotFoundException(`Family event #${id} not found`);
     }
 
-    return event;
+    return this.enrichEventWithStatus(event);
   }
 
   async createEvent(data: CreateEventDto) {
     const family = await this.prisma.family.findFirst();
-    return this.prisma.event.create({
+    const created = await this.prisma.event.create({
       data: {
         familyId: family?.id || 'default',
         title: data.title,
@@ -78,6 +110,7 @@ export class EventsService {
         isVirtual: data.isVirtual || false,
       },
     });
+    return this.enrichEventWithStatus(created);
   }
 
   async updateEvent(id: string, data: UpdateEventDto) {
@@ -90,10 +123,11 @@ export class EventsService {
     if (data.description !== undefined) updateData.description = data.description;
     if (data.isVirtual !== undefined) updateData.isVirtual = data.isVirtual;
 
-    return this.prisma.event.update({
+    const updated = await this.prisma.event.update({
       where: { id },
       data: updateData,
     });
+    return this.enrichEventWithStatus(updated);
   }
 
   async deleteEvent(id: string) {

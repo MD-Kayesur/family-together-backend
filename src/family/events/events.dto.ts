@@ -9,6 +9,15 @@ export class EventsQueryDto extends PaginationQueryDto {
   })
   @IsOptional()
   isVirtual?: boolean | string;
+
+  @ApiPropertyOptional({
+    description: 'Filter events by status: ACTIVE (upcoming or today) or INACTIVE (expired/past date)',
+    enum: ['ACTIVE', 'INACTIVE', 'ALL'],
+    example: 'ACTIVE',
+  })
+  @IsOptional()
+  @IsString()
+  status?: string;
 }
 
 export class CreateEventDto {
