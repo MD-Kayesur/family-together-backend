@@ -15,7 +15,6 @@ export class FamilyService {
             person: true,
           },
         },
-        memories: true,
         events: true,
         documents: true,
         invitations: true,
@@ -32,7 +31,6 @@ export class FamilyService {
         },
         include: {
           members: { include: { person: true } },
-          memories: true,
           events: true,
           documents: true,
           invitations: true,
@@ -49,7 +47,10 @@ export class FamilyService {
     const pendingInvites = await this.prisma.invitation.count({ where: { status: 'PENDING' } });
 
     return {
-      family,
+      family: {
+        ...family,
+        memories: [], // Memories are strictly user-isolated and queried through /family/memories
+      },
       stats: {
         totalMembers: totalMembers,
         connectedUsers: connectedUsers,
