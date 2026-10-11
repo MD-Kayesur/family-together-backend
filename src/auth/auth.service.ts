@@ -53,7 +53,6 @@ export class AuthService {
       message: 'Registration successful! Please enter the 6-digit verification code sent to your email.',
       userId: user.id,
       email: user.email,
-      verificationCode, // Returned for dev/testing convenience
     };
   }
 
@@ -94,7 +93,6 @@ export class AuthService {
         message: 'Please verify your email address to sign in. Enter the 6-digit code sent to your email.',
         requiresEmailVerification: true,
         email: user.email,
-        verificationCode,
       });
     }
 
@@ -196,7 +194,6 @@ export class AuthService {
 
     return {
       message: 'A new 6-digit verification code has been sent to your email.',
-      verificationCode,
     };
   }
 
