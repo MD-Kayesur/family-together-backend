@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
 import { PasswordService } from './services/password.service';
 import { TokenService } from './services/token.service';
 import { SessionService } from './services/session.service';
@@ -21,6 +22,15 @@ describe('AuthService', () => {
         SessionService,
         VerificationService,
         JwtService,
+        {
+          provide: MailService,
+          useValue: {
+            sendVerificationEmail: jest.fn().mockResolvedValue(true),
+            sendPasswordResetEmail: jest.fn().mockResolvedValue(true),
+            sendWelcomeEmail: jest.fn().mockResolvedValue(true),
+            sendInvitationEmail: jest.fn().mockResolvedValue(true),
+          },
+        },
         {
           provide: PrismaService,
           useValue: {
@@ -68,7 +78,10 @@ describe('AuthService', () => {
     const isMatch = await passwordService.comparePassword(password, hash);
     expect(isMatch).toBe(true);
 
-    const isWrongMatch = await passwordService.comparePassword('WrongPassword', hash);
+    const isWrongMatch = await passwordService.comparePassword(
+      'WrongPassword',
+      hash,
+    );
     expect(isWrongMatch).toBe(false);
   });
 
