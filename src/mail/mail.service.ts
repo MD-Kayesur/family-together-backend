@@ -10,7 +10,9 @@ export class MailService {
     this.initTransporter();
   }
 
-  private initTransporter() {
+  private isEthereal = false;
+
+  private async initTransporter() {
     const rawUser = process.env.EMAIL_USER || process.env.SMTP_USER || 'rmdkayesur@gmail.com';
     const rawPass = process.env.EMAIL_PASS || process.env.SMTP_PASS;
     const user = rawUser ? rawUser.trim() : '';
@@ -19,6 +21,7 @@ export class MailService {
     const host = process.env.SMTP_HOST ? process.env.SMTP_HOST.trim() : '';
 
     if (user && pass) {
+      this.isEthereal = false;
       if (host && host.toLowerCase() !== 'smtp.gmail.com') {
         const port = Number(process.env.SMTP_PORT) || 587;
         const secure = process.env.SMTP_SECURE === 'true' || port === 465;
@@ -29,7 +32,7 @@ export class MailService {
           secure,
           auth: { user, pass },
         });
-        this.logger.log(`SMTP transporter initialized with host: ${host}:${port}`);
+        this.logger.log(`SMTP transporter initialized with custom host: ${host}:${port} (${user})`);
       } else {
         // Direct Gmail service
         this.transporter = nodemailer.createTransport({
@@ -40,7 +43,7 @@ export class MailService {
       }
 
       // Verify connection in background
-      this.transporter.verify((error, success) => {
+      this.transporter.verify((error) => {
         if (error) {
           this.logger.error(`❌ [SMTP AUTH FAILED] Connection verification failed: ${error.message}`);
           this.logger.error(`💡 Tip: For Gmail accounts, please generate a 16-character App Password at https://myaccount.google.com/apppasswords`);
@@ -49,12 +52,26 @@ export class MailService {
         }
       });
     } else {
+      // Automatic Ethereal Email sandbox fallback when no credentials are provided
       this.logger.warn(
-        '⚠️ [SMTP NOT CONFIGURED] No SMTP_PASS found in .env. Real emails to external services (like Gmail or temp-mail) will not be dispatched.',
+        '⚠️ [LIVE SMTP NOT CONFIGURED] No SMTP_PASS found in .env. Initializing automatic Ethereal email sandbox for testing...',
       );
-      this.logger.warn(
-        '💡 To send real emails: Add your 16-character Google App Password into family-together-backend/.env as SMTP_PASS.',
-      );
+      try {
+        const testAccount = await nodemailer.createTestAccount();
+        this.transporter = nodemailer.createTransport({
+          host: 'smtp.ethereal.email',
+          port: 587,
+          secure: false,
+          auth: {
+            user: testAccount.user,
+            pass: testAccount.pass,
+          },
+        });
+        this.isEthereal = true;
+        this.logger.log(`🧪 [ETHEREAL SANDBOX ACTIVE] Test inbox ready: ${testAccount.user}. Verification emails will generate clickable online preview links.`);
+      } catch (err: any) {
+        this.logger.warn(`Could not initialize Ethereal sandbox: ${err.message}`);
+      }
     }
   }
 
@@ -66,10 +83,10 @@ export class MailService {
     this.logger.log(`\n======================================================\n📨 [EMAIL VERIFICATION CODE] To: ${to} (${name})\n🔢 Code: >>> ${code} <<<\n⏳ Expires: 15 minutes\n======================================================`);
 
     if (!this.transporter) {
-      this.initTransporter();
+      await this.initTransporter();
       if (!this.transporter) {
         this.logger.warn(`No transporter available; skipping email delivery to ${to}`);
-        return true;
+        return false;
       }
     }
 
@@ -116,6 +133,10 @@ export class MailService {
         },
       });
       this.logger.log(`✅ [EMAIL SENT] Verification code successfully delivered to ${to}! MessageId: ${info.messageId}`);
+      if (this.isEthereal) {
+        const previewUrl = nodemailer.getTestMessageUrl(info);
+        this.logger.log(`🔗 [ETHEREAL TEST INBOX PREVIEW]: ${previewUrl}`);
+      }
       return true;
     } catch (error: any) {
       this.logger.error(`❌ [EMAIL SEND ERROR] Failed to dispatch verification email to ${to}: ${error.message}`);
@@ -133,10 +154,10 @@ export class MailService {
     );
 
     if (!this.transporter) {
-      this.initTransporter();
+      await this.initTransporter();
       if (!this.transporter) {
         this.logger.warn(`No transporter available; skipping email delivery to ${to}`);
-        return true;
+        return false;
       }
     }
 
@@ -182,6 +203,10 @@ export class MailService {
         `,
       });
       this.logger.log(`Member welcome email dispatched successfully to ${to}! MessageId: ${info.messageId}`);
+      if (this.isEthereal) {
+        const previewUrl = nodemailer.getTestMessageUrl(info);
+        this.logger.log(`🔗 [ETHEREAL TEST INBOX PREVIEW]: ${previewUrl}`);
+      }
       return true;
     } catch (error: any) {
       this.logger.error(`Failed to dispatch member welcome email to ${to}: ${error.message}`);
