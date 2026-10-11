@@ -243,6 +243,16 @@ async function generateDocs() {
             text: 'When geo-location is introduced via the IP lookup endpoint (e.g. https://api.ip2location.io/?key={YOUR_API_KEY}&ip={IP}), the client will detect country code "BD" and dynamically activate Bengali translation tags via i18n lookup without modifying the core English schema keys.',
             spacing: { after: 200 },
           }),
+
+          new Paragraph({
+            text: '5. Authentication Pages Theme Toggle (Sun & Moon Mode)',
+            heading: HeadingLevel.HEADING_1,
+            spacing: { before: 300, after: 150 },
+          }),
+          new Paragraph({
+            text: 'A high-contrast, responsive theme toggle button featuring animated Sun (light) and Moon (dark) icons has been implemented across all authentication pages (Sign In / Login, Sign Up / Registration, and Password Reset). Positioned in a top-right floating pill, it enables immediate mode switching with persistent user preference storage in localStorage and system theme synchronization.',
+            spacing: { after: 200 },
+          }),
         ],
       },
     ],
@@ -330,6 +340,9 @@ async function generateDocs() {
 
   <h2>4. Future Localization Integration</h2>
   <p>When the geo-location service is connected, regional translation strings will be loaded conditionally according to detected country IP, preserving full internationalization while maintaining a clean, pure English base.</p>
+
+  <h2>5. Authentication Pages Theme Toggle (Sun & Moon Mode)</h2>
+  <p>A floating, high-contrast theme toggle featuring animated Sun (light mode) and Moon (dark mode) icons has been seamlessly integrated into all authentication pages (<code>/signin</code>, <code>/signup</code>, and <code>/reset-password</code>). This provides users with instant, persistent visual comfort across desktop and mobile devices.</p>
 </body>
 </html>
   `;

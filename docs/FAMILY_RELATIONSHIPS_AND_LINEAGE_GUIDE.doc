@@ -662,6 +662,9 @@
 
   <h2>4. Future Localization Integration</h2>
   <p>When the geo-location service is connected, regional translation strings will be loaded conditionally according to detected country IP, preserving full internationalization while maintaining a clean, pure English base.</p>
+
+  <h2>5. Authentication Pages Theme Toggle (Sun & Moon Mode)</h2>
+  <p>A floating, high-contrast theme toggle featuring animated Sun (light mode) and Moon (dark mode) icons has been seamlessly integrated into all authentication pages (<code>/signin</code>, <code>/signup</code>, and <code>/reset-password</code>). This provides users with instant, persistent visual comfort across desktop and mobile devices.</p>
 </body>
 </html>
   
