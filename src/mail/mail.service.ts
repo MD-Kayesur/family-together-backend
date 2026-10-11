@@ -11,12 +11,15 @@ export class MailService {
   }
 
   private initTransporter() {
-    const user = process.env.EMAIL_USER || process.env.SMTP_USER || 'rmdkayesur@gmail.com';
-    const pass = process.env.EMAIL_PASS || process.env.SMTP_PASS;
-    const host = process.env.SMTP_HOST;
+    const rawUser = process.env.EMAIL_USER || process.env.SMTP_USER || 'rmdkayesur@gmail.com';
+    const rawPass = process.env.EMAIL_PASS || process.env.SMTP_PASS;
+    const user = rawUser ? rawUser.trim() : '';
+    // Strip spaces from Google App Password if pasted with spaces (e.g., "abcd efgh ijkl mnop" -> "abcdefghijklmnop")
+    const pass = rawPass ? rawPass.replace(/\s+/g, '') : '';
+    const host = process.env.SMTP_HOST ? process.env.SMTP_HOST.trim() : '';
 
     if (user && pass) {
-      if (host) {
+      if (host && host.toLowerCase() !== 'smtp.gmail.com') {
         const port = Number(process.env.SMTP_PORT) || 587;
         const secure = process.env.SMTP_SECURE === 'true' || port === 465;
 
@@ -33,11 +36,24 @@ export class MailService {
           service: 'gmail',
           auth: { user, pass },
         });
-        this.logger.log(`Gmail mail transporter initialized successfully for: ${user}`);
+        this.logger.log(`Gmail Nodemailer transporter initialized for: ${user}`);
       }
+
+      // Verify connection in background
+      this.transporter.verify((error, success) => {
+        if (error) {
+          this.logger.error(`❌ [SMTP AUTH FAILED] Connection verification failed: ${error.message}`);
+          this.logger.error(`💡 Tip: For Gmail accounts, please generate a 16-character App Password at https://myaccount.google.com/apppasswords`);
+        } else {
+          this.logger.log(`✅ [SMTP CONNECTED] Nodemailer is authenticated and ready to dispatch real emails to inboxes!`);
+        }
+      });
     } else {
       this.logger.warn(
-        'No email credentials configured. Verification codes will be printed to server logs for testing.',
+        '⚠️ [SMTP NOT CONFIGURED] No SMTP_PASS found in .env. Real emails to external services (like Gmail or temp-mail) will not be dispatched.',
+      );
+      this.logger.warn(
+        '💡 To send real emails: Add your 16-character Google App Password into family-together-backend/.env as SMTP_PASS.',
       );
     }
   }
@@ -92,17 +108,24 @@ export class MailService {
             </p>
           </div>
         `,
+        priority: 'high',
+        headers: {
+          'X-Priority': '1 (Highest)',
+          'X-MSMail-Priority': 'High',
+          Importance: 'High',
+        },
       });
-      this.logger.log(`Verification email sent successfully to ${to}! MessageId: ${info.messageId}`);
+      this.logger.log(`✅ [EMAIL SENT] Verification code successfully delivered to ${to}! MessageId: ${info.messageId}`);
       return true;
     } catch (error: any) {
-      this.logger.error(`Failed to dispatch verification email to ${to}: ${error.message}`);
+      this.logger.error(`❌ [EMAIL SEND ERROR] Failed to dispatch verification email to ${to}: ${error.message}`);
       return false;
     }
   }
 
   async sendMemberWelcomeEmail(to: string, name: string, email: string, password: string): Promise<boolean> {
-    const from = process.env.EMAIL_FROM || '"FamilyRoots" <rmdkayesur@gmail.com>';
+    const user = process.env.EMAIL_USER || process.env.SMTP_USER || 'rmdkayesur@gmail.com';
+    const from = process.env.EMAIL_FROM || `"FamilyRoots" <${user}>`;
     const subject = `Welcome to FamilyRoots - Your member account credentials`;
 
     this.logger.log(
@@ -122,6 +145,12 @@ export class MailService {
         from,
         to,
         subject,
+        priority: 'high',
+        headers: {
+          'X-Priority': '1 (Highest)',
+          'X-MSMail-Priority': 'High',
+          Importance: 'High',
+        },
         text: `Hello ${name || 'there'},\n\nYou have been added as a family member on FamilyRoots! An active account has been created for you so you can access our family sanctuary.\n\nYour Login Credentials:\nEmail: ${email}\nPassword: ${password}\n\nPlease sign in and change your password.\n\nBest regards,\nFamilyRoots`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 540px; margin: 0 auto; padding: 24px; border: 1px solid #e0e0e0; border-radius: 12px; background: #ffffff;">
