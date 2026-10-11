@@ -1,0 +1,46 @@
+// ----------------------------------------------------
+// Billing, Subscriptions & Storage Plans Domain Models
+// ----------------------------------------------------
+
+enum SubscriptionTier {
+  FREE
+  HERITAGE_PRO
+  DYNASTY_UNLIMITED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
+enum BillingInterval {
+  MONTHLY
+  YEARLY
+}
+
+model Subscription {
+  id                   String             @id @default(uuid())
+  familyId             String             @unique @map("family_id")
+  userId               String             @map("user_id")
+  tier                 SubscriptionTier   @default(FREE)
+  status               SubscriptionStatus @default(ACTIVE)
+  interval             BillingInterval    @default(MONTHLY)
+  stripeCustomerId     String?            @map("stripe_customer_id")
+  stripeSubscriptionId String?            @map("stripe_subscription_id")
+  stripePriceId        String?            @map("stripe_price_id")
+  storageLimitMb       Int                @default(500) @map("storage_limit_mb")
+  storageUsedMb        Float              @default(0) @map("storage_used_mb")
+  maxMembersLimit      Int                @default(25) @map("max_members_limit")
+  currentPeriodStart   DateTime?          @map("current_period_start")
+  currentPeriodEnd     DateTime?          @map("current_period_end")
+  cancelAtPeriodEnd    Boolean            @default(false) @map("cancel_at_period_end")
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}

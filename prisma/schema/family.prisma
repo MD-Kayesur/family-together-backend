@@ -25,6 +25,7 @@ model Family {
   events        Event[]
   documents     Document[]
   invitations   Invitation[]
+  subscription  Subscription?
 
   @@map("families")
 }
