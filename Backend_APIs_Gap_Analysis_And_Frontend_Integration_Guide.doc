@@ -1,0 +1,104 @@
+# 🔍 Backend APIs Gap Analysis & Complete Frontend Integration Architecture
+
+> **Platform:** FamilyRoots ("Family Together")  
+> **Backend Repository:** `family-together-backend` (NestJS 11 + Prisma 7 + PostgreSQL + Redis)  
+> **Frontend Repository:** `family-together-frontend` (Next.js 16 + React 19 + RTK Query)  
+> **Audit Date:** October 2026  
+> **Status:** 100% Full-Stack API Integration Parity Achieved  
+
+---
+
+## 📌 1. Executive Summary & Objective
+
+A complete end-to-end audit was conducted between **`family-together-backend`** and **`family-together-frontend`** to catalog every REST API endpoint created in the backend, assess its integration in the frontend client, identify missing endpoints and UI disconnects, and implement the necessary RTK Query mutations/queries and user interface surfaces.
+
+All identified gaps have now been implemented, connected, and verified.
+
+---
+
+## 📊 2. Complete Backend APIs Inventory & Resolution Matrix
+
+| Controller Domain | HTTP Method & Route | Initial Frontend State | Resolution & Integrated Frontend Code |
+| :--- | :--- | :--- | :--- |
+| **Auth** | `POST /auth/signup` | ✅ Integrated | `useSignUpMutation` in `authApi.ts` & `/signup` |
+| **Auth** | `POST /auth/signin` | ✅ Integrated | `useSignInMutation` in `authApi.ts` & `/signin` |
+| **Auth** | `POST /auth/refresh` | ⚠️ **GAP: Missing in RTK** | ✅ **Implemented `useRefreshTokenMutation` in `authApi.ts`** |
+| **Auth** | `POST /auth/logout` | ✅ Integrated | `useLogoutMutation` in `authApi.ts` |
+| **Auth** | `POST /auth/logout-all` | ❌ **GAP: Missing in RTK & UI** | ✅ **Implemented `useLogoutAllMutation` & Active Sessions card in `SettingsTab.tsx`** |
+| **Auth** | `GET /auth/me` | ✅ Integrated | `useGetProfileQuery` in `authApi.ts` |
+| **Auth** | `GET /auth/sessions` | ❌ **GAP: Missing in RTK & UI** | ✅ **Implemented `useGetSessionsQuery` & Connected Devices UI in `SettingsTab.tsx`** |
+| **Auth** | `POST /auth/verify-email` | ✅ Integrated | `useVerifyEmailMutation` in `authApi.ts` & Email OTP modal |
+| **Auth** | `POST /auth/resend-verification`| ✅ Integrated | `useResendVerificationMutation` in `authApi.ts` |
+| **Auth** | `POST /auth/forgot-password` | ✅ Integrated | `useForgotPasswordMutation` in `authApi.ts` |
+| **Auth** | `POST /auth/reset-password` | ❌ **GAP: Missing in RTK & No Page** | ✅ **Implemented `useResetPasswordMutation` & new `/reset-password` page** |
+| **Auth** | `POST /auth/change-password` | ✅ Integrated | `useChangePasswordMutation` in `SettingsTab.tsx` |
+| **Auth** | `PATCH /auth/profile` | ✅ Integrated | `useUpdateProfileMutation` in `SettingsTab.tsx` |
+| **Users** | `POST /users` | ✅ Integrated | `useCreateUserMutation` in `adminApi.ts` |
+| **Users** | `GET /users` | ✅ Integrated | `useGetUsersListQuery` in `adminApi.ts` & `/admin-dashboard/users` |
+| **Users** | `GET /users/:id` | ⚠️ **GAP: Missing in RTK** | ✅ **Implemented `useGetUserByIdQuery` in `adminApi.ts`** |
+| **Users** | `PATCH /users/:id` | ✅ Integrated | `useUpdateUserRoleMutation` in `adminApi.ts` |
+| **Users** | `DELETE /users/:id` | ✅ Integrated | `useDeleteUserMutation` in `adminApi.ts` |
+| **Sanctuary** | `GET /family/sanctuary` | ✅ Integrated | `useGetSanctuaryQuery` in `familyApi.ts` |
+| **Sanctuary** | `PATCH /family/update` | ✅ Integrated | `useUpdateFamilyDetailsMutation` in `familyApi.ts` |
+| **Sanctuary** | `GET /family/activity-logs` | ✅ Integrated | `useGetActivityLogsQuery` in `familyApi.ts` & Activity heatmap |
+| **Sanctuary** | `PATCH /family/settings` | ✅ Integrated | `useUpdateSanctuarySettingsMutation` in `SettingsTab.tsx` |
+| **Sanctuary** | `GET /family/admin/stats` | ✅ Integrated | `useGetAdminStatsQuery` in `adminApi.ts` |
+| **Members** | `GET /family/members` | ✅ Integrated | `useGetMembersQuery` with pagination & search in `familyApi.ts` |
+| **Members** | `GET /family/members/search` | ✅ Integrated | `useSearchMembersQuery` for real-time deduplication |
+| **Members** | `POST /family/members` | ✅ Integrated | `useAddMemberMutation` in `AddMemberModal.tsx` |
+| **Members** | `PATCH /family/members/:id` | ✅ Integrated | `useUpdateMemberMutation` in `familyApi.ts` |
+| **Members** | `DELETE /family/members/:id` | ✅ Integrated | `useDeleteMemberMutation` in `familyApi.ts` |
+| **Memories** | `GET /family/memories` | ✅ Integrated | `useGetMemoriesQuery` with user privacy isolation |
+| **Memories** | `GET /family/memories/:id` | ✅ Integrated | `useGetMemoryByIdQuery` in `familyApi.ts` |
+| **Memories** | `POST /family/memories` | ✅ Integrated | `useAddMemoryMutation` (multi-photo uploads) |
+| **Memories** | `PATCH /family/memories/:id` | ✅ Integrated | `useUpdateMemoryMutation` in `familyApi.ts` |
+| **Memories** | `DELETE /family/memories/:id` | ✅ Integrated | `useDeleteMemoryMutation` in `familyApi.ts` |
+| **Events** | `GET /family/events` | ✅ Integrated | `useGetEventsQuery` with status filtering & pagination |
+| **Events** | `GET /family/events/:id` | ✅ Integrated | `useGetEventByIdQuery` in `familyApi.ts` |
+| **Events** | `POST /family/events` | ✅ Integrated | `useAddEventMutation` in `EventsTab.tsx` |
+| **Events** | `PATCH /family/events/:id` | ✅ Integrated | `useUpdateEventMutation` in `familyApi.ts` |
+| **Events** | `DELETE /family/events/:id` | ✅ Integrated | `useDeleteEventMutation` in `familyApi.ts` |
+| **Relationships** | `GET /family/relationships` | ✅ Integrated | `useGetRelationshipsQuery` in `familyApi.ts` |
+| **Relationships** | `POST /family/relationships`| ✅ Integrated | `useAddRelationshipMutation` in `familyApi.ts` |
+| **Documents** | `GET /family/documents` | ✅ Integrated | `useGetDocumentsQuery` with category filtering |
+| **Documents** | `POST /family/documents` | ✅ Integrated | `useAddDocumentMutation` in `DocumentsTab.tsx` |
+| **Documents** | `POST /family/documents/multiple`| ✅ Integrated | `useAddMultipleDocumentsMutation` (100MB batch payloads) |
+| **Documents** | `DELETE /family/documents/:id` | ✅ Integrated | `useDeleteDocumentMutation` in `familyApi.ts` |
+| **Documents** | `DELETE /family/documents` | ✅ Integrated | `useDeleteAllDocumentsMutation` (sanctuary archive purge) |
+| **Invitations** | `GET /family/invitations` | ✅ Integrated | `useGetInvitationsQuery` in `InvitationsTab.tsx` |
+| **Invitations** | `GET /family/invitations/:id`| ✅ Integrated | `useGetInvitationByIdQuery` in `familyApi.ts` |
+| **Invitations** | `POST /family/invitations` | ✅ Integrated | `useAddInvitationMutation` in `familyApi.ts` |
+| **Invitations** | `PATCH /family/invitations/:id`| ✅ Integrated| `useUpdateInvitationStatusMutation` in `familyApi.ts` |
+| **Invitations** | `DELETE /family/invitations/:id`| ✅ Integrated| `useDeleteInvitationMutation` in `familyApi.ts` |
+| **Health** | `GET /health` | ⚠️ **GAP: Mocked Telemetry** | ✅ **Implemented `useGetSystemHealthQuery` & wired to Super Admin Dashboard** |
+
+---
+
+## 🛠️ 3. Detailed Implementations Made
+
+### 1. Active Device Sessions & Multi-Device Logout (`GET /auth/sessions` & `POST /auth/logout-all`)
+* **Endpoint Wiring:** Added `getSessions` query and `logoutAll` mutation to [`src/redux/api/authApi.ts`](file:///d:/Projects/family-together-frontend/src/redux/api/authApi.ts).
+* **UI Integration:** Integrated an **Active Sessions & Device Management** card in [`src/components/dashboard/tabs/SettingsTab.tsx`](file:///d:/Projects/family-together-frontend/src/components/dashboard/tabs/SettingsTab.tsx) under the Security tab. Shows authenticated browser sessions, IP addresses, user-agent details, expiration dates, and a **"Log Out All Other Devices"** trigger that terminates all sessions across Redis and PostgreSQL.
+
+### 2. Dedicated Password Reset Portal (`POST /auth/reset-password`)
+* **Endpoint Wiring:** Added `resetPassword` mutation to [`src/redux/api/authApi.ts`](file:///d:/Projects/family-together-frontend/src/redux/api/authApi.ts).
+* **UI Integration:** Created new page [`src/app/reset-password/page.tsx`](file:///d:/Projects/family-together-frontend/src/app/reset-password/page.tsx). Extracts `token` from URL params, handles password validation, displays confirmation alerts, and automatically directs users to sign in.
+
+### 3. Live System Telemetry (`GET /health`)
+* **Endpoint Wiring:** Added `getSystemHealth` query to [`src/redux/api/adminApi.ts`](file:///d:/Projects/family-together-frontend/src/redux/api/adminApi.ts).
+* **UI Integration:** Connected to [`src/app/admin-dashboard/super/page.tsx`](file:///d:/Projects/family-together-frontend/src/app/admin-dashboard/super/page.tsx) with a 30-second live polling interval, live service identifier (`family-together-backend`), backend status indicator, and manual refresh button.
+
+### 4. Admin User Lookup & Token Rotation
+* Added `getUserById` to `adminApi.ts` (`GET /users/:id`).
+* Added `refreshToken` mutation to `authApi.ts` (`POST /auth/refresh`).
+
+---
+
+## ✅ 4. Verification & Assurance
+
+* **Type Safety:** Full TypeScript type definitions created (`UserSessionRecord`, `ResetPasswordRequest`, `RefreshTokenRequest`, `SystemHealthResponse`).
+* **Cache Integrity:** RTK Query tags (`Sessions`, `User`, `Auth`, `UsersList`) properly synchronized and invalidated upon mutations.
+* **UI Resilience:** Loading spinners, error alerts, and confirmation dialogs ensure smooth user experiences.
+
+---
+*Generated by Antigravity IDE • FamilyRoots Engineering Architecture System*
