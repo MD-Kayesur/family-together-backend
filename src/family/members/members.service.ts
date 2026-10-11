@@ -273,9 +273,30 @@ export class MembersService {
     let typeCode = 'PARENT_CHILD';
 
     if (
+      relTypeNormalized.includes('GRANDFATHER') ||
+      relTypeNormalized.includes('GRANDMOTHER') ||
+      relTypeNormalized.includes('GRANDPARENT') ||
+      relTypeNormalized.includes('ANCESTOR')
+    ) {
+      fromId = relativePersonId; // Relative is grandparent
+      toId = memberPersonId;     // Current member is grandchild
+      typeCode = 'GRANDPARENT_GRANDCHILD';
+    } else if (
+      relTypeNormalized.includes('GRANDSON') ||
+      relTypeNormalized.includes('GRANDDAUGHTER') ||
+      relTypeNormalized.includes('GRANDCHILD')
+    ) {
+      fromId = memberPersonId;   // Current member is grandparent
+      toId = relativePersonId;   // Relative is grandchild
+      typeCode = 'GRANDPARENT_GRANDCHILD';
+    } else if (
       relTypeNormalized === 'FATHER' ||
       relTypeNormalized === 'MOTHER' ||
-      relTypeNormalized === 'PARENT'
+      relTypeNormalized === 'PARENT' ||
+      relTypeNormalized.includes('STEPFATHER') ||
+      relTypeNormalized.includes('STEPMOTHER') ||
+      relTypeNormalized.includes('ADOPTIVE_FATHER') ||
+      relTypeNormalized.includes('ADOPTIVE_MOTHER')
     ) {
       fromId = relativePersonId; // Relative is parent
       toId = memberPersonId;     // Current member is child
@@ -283,7 +304,11 @@ export class MembersService {
     } else if (
       relTypeNormalized === 'SON' ||
       relTypeNormalized === 'DAUGHTER' ||
-      relTypeNormalized === 'CHILD'
+      relTypeNormalized === 'CHILD' ||
+      relTypeNormalized.includes('STEPSON') ||
+      relTypeNormalized.includes('STEPDAUGHTER') ||
+      relTypeNormalized.includes('ADOPTED_SON') ||
+      relTypeNormalized.includes('ADOPTED_DAUGHTER')
     ) {
       fromId = memberPersonId;   // Current member is parent
       toId = relativePersonId;   // Relative is child
@@ -298,15 +323,33 @@ export class MembersService {
       toId = relativePersonId;
       typeCode = 'SPOUSE';
     } else if (
-      relTypeNormalized === 'BROTHER' ||
-      relTypeNormalized === 'SISTER' ||
-      relTypeNormalized === 'SIBLING'
+      relTypeNormalized.includes('BROTHER') ||
+      relTypeNormalized.includes('SISTER') ||
+      relTypeNormalized.includes('SIBLING')
     ) {
       fromId = memberPersonId;
       toId = relativePersonId;
       typeCode = 'SIBLING';
+    } else if (
+      relTypeNormalized.includes('UNCLE') ||
+      relTypeNormalized.includes('AUNT')
+    ) {
+      fromId = relativePersonId;
+      toId = memberPersonId;
+      typeCode = 'UNCLE_AUNT';
+    } else if (
+      relTypeNormalized.includes('NEPHEW') ||
+      relTypeNormalized.includes('NIECE')
+    ) {
+      fromId = memberPersonId;
+      toId = relativePersonId;
+      typeCode = 'UNCLE_AUNT';
+    } else if (relTypeNormalized.includes('COUSIN')) {
+      fromId = memberPersonId;
+      toId = relativePersonId;
+      typeCode = 'COUSIN';
     } else {
-      typeCode = relTypeNormalized;
+      typeCode = relTypeNormalized.replace(/[^A-Z0-9]/g, '_');
     }
 
     return this.relationshipsService.createRelationship({

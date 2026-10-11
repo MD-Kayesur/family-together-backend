@@ -83,10 +83,14 @@ export class RelationshipsService {
     });
 
     if (!relType) {
+      const formattedName = (data.typeCode || 'RELATIVE')
+        .toLowerCase()
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase());
       relType = await this.prisma.relationshipType.create({
         data: {
           code: data.typeCode || 'PARENT_CHILD',
-          name: 'Parent - Child',
+          name: formattedName,
           category: 'BIOLOGICAL',
         },
       });

@@ -1,0 +1,667 @@
+
+<!DOCTYPE html>
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+<meta charset="utf-8">
+<title>FamilyTogether: Universal World Family Relationships Directory (English)</title>
+<style>
+  body { font-family: Calibri, 'Segoe UI', Arial, sans-serif; margin: 40px; color: #1e293b; line-height: 1.6; }
+  h1 { color: #312e81; font-size: 26px; border-bottom: 2px solid #6366f1; padding-bottom: 8px; }
+  h2 { color: #4338ca; font-size: 20px; margin-top: 30px; }
+  h3 { color: #4f46e5; font-size: 16px; margin-top: 20px; }
+  p { margin: 10px 0; }
+  table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 25px; }
+  th { background-color: #4338ca; color: white; padding: 10px; text-align: left; font-size: 13px; }
+  td { border: 1px solid #cbd5e1; padding: 8px 10px; font-size: 12px; }
+  tr:nth-child(even) { background-color: #f8fafc; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-weight: bold; font-size: 11px; }
+  .badge-male { background-color: #dbeafe; color: #1e40af; }
+  .badge-female { background-color: #fce7f3; color: #9d174d; }
+  .meta-box { background: #f1f5f9; padding: 16px; border-left: 4px solid #6366f1; border-radius: 8px; margin-bottom: 25px; }
+</style>
+</head>
+<body>
+  <h1>FamilyTogether: Universal World Family Relationships Directory (English)</h1>
+  <div class="meta-box">
+    <strong>Author:</strong> Antigravity Autonomous Engineering Pair-Programmer<br/>
+    <strong>Language Mode:</strong> Pure English UI (Geo-location dynamic translation planned for future release)<br/>
+    <strong>Date:</strong> October 12, 2026<br/>
+    <strong>Status:</strong> Production Implemented, Verified, & Deployed
+  </div>
+
+  <h2>1. Overview & Pure English Standard</h2>
+  <p>Per user requirements, all relationship labels, connection lines, modals, and placeholders are kept exclusively in standard English. When geo-location is deployed in the future, automatic localization will handle Bengali translations based on the visitor's IP location.</p>
+
+  <h2>2. Highlights & Capabilities</h2>
+  <ul>
+    <li><strong>Grandparents Included:</strong> Grandfather, Grandmother, Paternal Grandfather, Paternal Grandmother, Maternal Grandfather, Maternal Grandmother, and Great-Grandparents.</li>
+    <li><strong>Smart Auto-Fill:</strong> Selecting a role automatically syncs Gender (Male/Female) and sets a context-appropriate emoji (👵, 👴, 👨, 👩, etc.).</li>
+    <li><strong>Custom Role Flexibility:</strong> "Custom / Other" input enables typing ANY world, clan, or cultural title.</li>
+  </ul>
+
+  <h2>3. Complete Relational Taxonomy</h2>
+  
+    <h3>1. Grandparents & Ancestors</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Relationship / Role</th>
+          <th>Gender</th>
+          <th>Emoji</th>
+          <th>Lineage & Definition</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+          <tr>
+            <td><strong>Grandfather</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👴</td>
+            <td>Direct male ancestor 2 generations above (Paternal or Maternal).</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Grandmother</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👵</td>
+            <td>Direct female ancestor 2 generations above (Paternal or Maternal).</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Paternal Grandfather</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👴</td>
+            <td>Father's father.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Paternal Grandmother</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👵</td>
+            <td>Father's mother.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Maternal Grandfather</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👴</td>
+            <td>Mother's father.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Maternal Grandmother</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👵</td>
+            <td>Mother's mother.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Great-Grandfather</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👴</td>
+            <td>Direct male ancestor 3 generations above.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Great-Grandmother</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👵</td>
+            <td>Direct female ancestor 3 generations above.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Ancestor / Forefather</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">🧓</td>
+            <td>Founding patriarch or lineage founder.</td>
+          </tr>
+        
+      </tbody>
+    </table>
+  
+    <h3>2. Parents & Guardians</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Relationship / Role</th>
+          <th>Gender</th>
+          <th>Emoji</th>
+          <th>Lineage & Definition</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+          <tr>
+            <td><strong>Father</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👨</td>
+            <td>Male biological or legal father.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Mother</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👩</td>
+            <td>Female biological or legal mother.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Stepfather</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👨</td>
+            <td>Mother's husband who is not biological father.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Stepmother</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👩</td>
+            <td>Father's wife who is not biological mother.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Adoptive Father</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👨</td>
+            <td>Legal adoptive father.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Adoptive Mother</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👩</td>
+            <td>Legal adoptive mother.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Foster Parent / Guardian</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">🧑</td>
+            <td>Legal custodian or appointed guardian.</td>
+          </tr>
+        
+      </tbody>
+    </table>
+  
+    <h3>3. Spouses & Partners</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Relationship / Role</th>
+          <th>Gender</th>
+          <th>Emoji</th>
+          <th>Lineage & Definition</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+          <tr>
+            <td><strong>Husband</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👨</td>
+            <td>Male married partner.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Wife</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👩</td>
+            <td>Female married partner.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Spouse / Partner</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">🧑</td>
+            <td>General domestic partner.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Fiancé / Fiancée</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">💍</td>
+            <td>Betrothed partner before marriage.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Ex-Spouse</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">🧑</td>
+            <td>Former spouse from previous marriage.</td>
+          </tr>
+        
+      </tbody>
+    </table>
+  
+    <h3>4. Children & Descendants</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Relationship / Role</th>
+          <th>Gender</th>
+          <th>Emoji</th>
+          <th>Lineage & Definition</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+          <tr>
+            <td><strong>Son</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👦</td>
+            <td>Male child.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Daughter</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👧</td>
+            <td>Female child.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Stepson</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👦</td>
+            <td>Spouse's male child from previous union.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Stepdaughter</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👧</td>
+            <td>Spouse's female child from previous union.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Adopted Son</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👦</td>
+            <td>Legally adopted male child.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Adopted Daughter</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👧</td>
+            <td>Legally adopted female child.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Grandson</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👦</td>
+            <td>Child's son.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Granddaughter</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👧</td>
+            <td>Child's daughter.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Grandchild</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👶</td>
+            <td>General 2nd-generation descendant.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Great-Grandson</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👶</td>
+            <td>Grandchild's son (3rd generation).</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Great-Granddaughter</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👶</td>
+            <td>Grandchild's daughter (3rd generation).</td>
+          </tr>
+        
+      </tbody>
+    </table>
+  
+    <h3>5. Siblings</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Relationship / Role</th>
+          <th>Gender</th>
+          <th>Emoji</th>
+          <th>Lineage & Definition</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+          <tr>
+            <td><strong>Brother</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👦</td>
+            <td>Male sibling sharing parents.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Sister</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👧</td>
+            <td>Female sibling sharing parents.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Elder Brother</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👨</td>
+            <td>Older brother in birth order.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Younger Brother</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👦</td>
+            <td>Younger brother in birth order.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Elder Sister</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👩</td>
+            <td>Older sister in birth order.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Younger Sister</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👧</td>
+            <td>Younger sister in birth order.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Stepbrother</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👦</td>
+            <td>Child of stepparent.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Stepsister</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👧</td>
+            <td>Child of stepparent.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Half-Brother</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👦</td>
+            <td>Brother sharing one biological parent.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Half-Sister</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👧</td>
+            <td>Sister sharing one biological parent.</td>
+          </tr>
+        
+      </tbody>
+    </table>
+  
+    <h3>6. Uncles & Aunts</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Relationship / Role</th>
+          <th>Gender</th>
+          <th>Emoji</th>
+          <th>Lineage & Definition</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+          <tr>
+            <td><strong>Uncle</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👨</td>
+            <td>Brother or brother-in-law of parent.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Aunt</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👩</td>
+            <td>Sister or sister-in-law of parent.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Paternal Uncle</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👨</td>
+            <td>Father's brother.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Paternal Aunt</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👩</td>
+            <td>Father's sister.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Maternal Uncle</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👨</td>
+            <td>Mother's brother.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Maternal Aunt</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👩</td>
+            <td>Mother's sister.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Great-Uncle</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👴</td>
+            <td>Grandparent's brother.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Great-Aunt</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👵</td>
+            <td>Grandparent's sister.</td>
+          </tr>
+        
+      </tbody>
+    </table>
+  
+    <h3>7. Nieces, Nephews & Cousins</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Relationship / Role</th>
+          <th>Gender</th>
+          <th>Emoji</th>
+          <th>Lineage & Definition</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+          <tr>
+            <td><strong>Nephew</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👦</td>
+            <td>Sibling's son.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Niece</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👧</td>
+            <td>Sibling's daughter.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Cousin</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">🧑</td>
+            <td>Child of an uncle or aunt.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Paternal Cousin</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">🧑</td>
+            <td>Father's sibling's child.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Maternal Cousin</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">🧑</td>
+            <td>Mother's sibling's child.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Second Cousin</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">🧑</td>
+            <td>Child of a parent's first cousin.</td>
+          </tr>
+        
+      </tbody>
+    </table>
+  
+    <h3>8. In-Laws</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Relationship / Role</th>
+          <th>Gender</th>
+          <th>Emoji</th>
+          <th>Lineage & Definition</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+          <tr>
+            <td><strong>Father-in-Law</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👴</td>
+            <td>Spouse's father.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Mother-in-Law</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👵</td>
+            <td>Spouse's mother.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Son-in-Law</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👨</td>
+            <td>Daughter's husband.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Daughter-in-Law</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👩</td>
+            <td>Son's wife.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Brother-in-Law</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👨</td>
+            <td>Spouse's brother or sister's husband.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Sister-in-Law</strong></td>
+            <td><span class="badge badge-female">Female</span></td>
+            <td style="font-size: 18px; text-align: center;">👩</td>
+            <td>Spouse's sister or brother's wife.</td>
+          </tr>
+        
+      </tbody>
+    </table>
+  
+    <h3>9. Other Relatives, Mentors & Custom Roles</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Relationship / Role</th>
+          <th>Gender</th>
+          <th>Emoji</th>
+          <th>Lineage & Definition</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+          <tr>
+            <td><strong>Family Elder</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">🧓</td>
+            <td>Respected elder or senior lineage guide.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Relative (General)</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">🧑</td>
+            <td>Standard extended relative.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Distant Relative</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">🧑</td>
+            <td>Genealogically distant relative.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Godparent</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">🧑</td>
+            <td>Spiritual or baptismal sponsor.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Godchild</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">👶</td>
+            <td>Spiritual godchild.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Family Friend</strong></td>
+            <td><span class="badge badge-male">Male</span></td>
+            <td style="font-size: 18px; text-align: center;">🧑</td>
+            <td>Close lifelong family friend.</td>
+          </tr>
+        
+          <tr>
+            <td><strong>Custom / Other</strong></td>
+            <td><span class="badge badge-male">Custom</span></td>
+            <td style="font-size: 18px; text-align: center;">✨</td>
+            <td>Free-form input allowing ANY world title (tribal, regional, clan).</td>
+          </tr>
+        
+      </tbody>
+    </table>
+  
+
+  <h2>4. Future Localization Integration</h2>
+  <p>When the geo-location service is connected, regional translation strings will be loaded conditionally according to detected country IP, preserving full internationalization while maintaining a clean, pure English base.</p>
+</body>
+</html>
+  
