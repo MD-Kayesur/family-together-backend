@@ -1,0 +1,97 @@
+# 💳 Subscription Lifecycle, Upgrade Triggers & Payment Flow Guide
+
+> **Core Question Answered:** When does a user take a subscription, and how does the complete workflow operate?  
+> **Platforms Covered:** `family-together-backend` (NestJS 11 + Stripe SDK) & `family-together-frontend` (Next.js 16)  
+> **Subscription Tiers:** Free Sanctuary (500MB, 25 members) ➔ Heritage Pro (50GB, 150 members) ➔ Dynasty Unlimited (500GB, 10k members)  
+
+---
+
+## 📌 1. When Does a User Take a Subscription? (The 4 Triggers)
+
+Every newly registered family begins on the **Free Sanctuary Plan** with 500 MB storage and up to 25 members at zero cost. A user (Sanctuary Owner) takes a paid subscription under four distinct conditions:
+
+### 🚨 Trigger 1: Cloud Storage Vault Exhaustion (The 500 MB Cap)
+* **What happens:** As family members upload high-resolution historical photos, audio oral histories, videos, and scanned documents, the sanctuary storage counter approaches 500 MB.
+* **The Action:** At 80% (400 MB) and 100% (500 MB), the dashboard alerts the Owner that upload capacity is full and prompts an upgrade to **Heritage Pro (50 GB)**.
+
+### 👥 Trigger 2: Family Tree Growth Beyond 25 Members (The Lineage Cap)
+* **What happens:** The Free tier accommodates up to 25 family members.
+* **The Action:** When the family tree expands and the Owner tries to invite relative #26 (uncles, aunts, cousins, in-laws), the system informs them that they have reached the 25-member ceiling, requiring an upgrade to **Heritage Pro (up to 150 members)** or **Dynasty Unlimited (unlimited)**.
+
+### 🧬 Trigger 3: Genealogical Research & GEDCOM Data Migration
+* **What happens:** Serious genealogists or family historians who have existing trees on Ancestry.com, MyHeritage, or FamilySearch want to import their entire lineage in one click using standard `.ged` files.
+* **The Action:** Full GEDCOM import and high-res printable poster generation (SVG/PDF) are unlocked exclusively on the **Dynasty Unlimited** tier ($24.99/mo).
+
+### 🎁 Trigger 4: Voluntary Proactive Upgrade for Generational Peace of Mind
+* **What happens:** Many family owners choose to upgrade immediately upon sanctuary creation to lock in the **17% annual discount** ($99/year instead of $119.88/year) and ensure high-definition memory archiving from day one.
+
+---
+
+## 🔄 2. Step-by-Step: What Happens When a User Takes a Subscription?
+
+The end-to-end upgrade lifecycle connects the Next.js frontend, NestJS backend, Neon PostgreSQL database, and Stripe payment gateway through six steps:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Owner as Sanctuary Owner
+    participant FE as Next.js 16 Frontend
+    participant BE as NestJS 11 Backend
+    participant DB as Neon PostgreSQL
+    participant Stripe as Stripe Gateway
+
+    Owner->>FE: Opens /owner-dashboard/billing & selects Heritage Pro ($9.99/mo)
+    FE->>BE: POST /billing/checkout { tier: 'HERITAGE_PRO', interval: 'MONTHLY' }
+    BE->>BE: Validates Owner permissions & generates Stripe session
+    BE->>Stripe: stripe.checkout.sessions.create()
+    Stripe-->>BE: Returns checkout URL (https://checkout.stripe.com/...)
+    BE-->>FE: Returns { url, sessionId }
+    FE->>Owner: Redirects to Stripe hosted checkout page
+    Owner->>Stripe: Enters card / Apple Pay & completes payment
+    Stripe->>BE: POST /billing/webhook (checkout.session.completed)
+    BE->>DB: Updates Subscription (tier: HERITAGE_PRO, limit: 51,200 MB, status: ACTIVE)
+    Stripe-->>FE: Redirects to /owner-dashboard/billing?status=success
+    FE->>FE: RTK Query invalidates cache -> Storage expands to 50 GB instantly!
+```
+
+1. **Step 1: Plan Selection & Interval Toggle**:  
+   The Owner visits `/owner-dashboard/billing`. They compare plans, toggle between Monthly and Yearly (Save 17%), and click **"Upgrade to Heritage Pro"**.
+2. **Step 2: Frontend API Call**:  
+   The frontend fires RTK Query mutation `createCheckoutSession({ tier: 'HERITAGE_PRO', interval: 'MONTHLY' })` to `POST /billing/checkout`.
+3. **Step 3: Backend Session Generation**:  
+   `BillingService` validates that the requester is the Sanctuary Owner. In production mode, it creates a hosted Stripe Checkout session. In development sandbox mode, it directly upgrades the database and provides the return URL.
+4. **Step 4: Secure Checkout on Stripe**:  
+   The user enters credit card or Apple Pay details on Stripe's PCI-compliant hosted checkout portal.
+5. **Step 5: Webhook & Neon PostgreSQL Fulfillment**:  
+   Stripe broadcasts `checkout.session.completed` to `POST /billing/webhook`. The backend verifies the cryptographic signature and updates PostgreSQL:
+   * `tier`: `HERITAGE_PRO`
+   * `status`: `ACTIVE`
+   * `storageLimitMb`: `51200` (50 GB)
+   * `maxMembersLimit`: `150`
+   * `stripeCustomerId`: `cus_xxx`
+6. **Step 6: Real-Time UI Reflection Across All Family Members**:  
+   The browser returns to `/owner-dashboard/billing?status=success`. RTK Query invalidates the cache, immediately displaying the 50 GB storage bar. All family members can now upload high-resolution media without quota limits.
+
+---
+
+## 📊 3. Subscription Tier Comparison & Economic Model
+
+| Plan Dimension | Free Sanctuary | Heritage Pro *(Most Popular)* | Dynasty Unlimited |
+| :--- | :--- | :--- | :--- |
+| **Monthly Price** | $0.00 / mo | **$9.99 / mo** | **$24.99 / mo** |
+| **Yearly Price (Save 17%)** | $0.00 / yr | **$99.00 / yr** | **$249.00 / yr** |
+| **Encrypted Vault Storage** | 500 MB | **50 GB (51,200 MB)** | **500 GB (512,000 MB)** |
+| **Member Limit** | Up to 25 members | **Up to 150 members** | **Unlimited (10,000+)** |
+| **GEDCOM Data Migration** | ❌ No | ❌ No | **✅ Full .ged file support** |
+| **Printable Tree Posters** | ❌ No | Standard | **✅ High-Res SVG & PDF** |
+| **Target Audience** | New small families | Active growing families | Genealogists & large dynasties |
+
+---
+
+## 🛡️ 4. What Happens if a User Cancels?
+
+* **Grace Period:** If an Owner clicks **"Stripe Customer Portal"** and cancels their subscription, Stripe sets `cancelAtPeriodEnd = true`. The family retains full 50 GB or 500 GB access until the current billing cycle expires.
+* **Data Preservation:** Even after downgrading to Free, **existing family photos and memories are NEVER deleted**. The sanctuary simply enters a temporary upload freeze until storage is cleared or the subscription is renewed.
+
+---
+*Generated by Antigravity IDE • FamilyRoots Subscription Lifecycle Analysis*
