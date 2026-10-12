@@ -1,0 +1,19 @@
+Language Switcher Removal from Navbar & Profile-Based Global i18n Architecture
+=====================================================================================
+Platform: FamilyRoots ("Family Together")
+Date: October 2026
+Documentation: Detailed Implementation Explanation
+
+1. What Was Understood from Your Prompt:
+- 1. Remove Language Switcher from Navbar: Clean up PublicNavbar.tsx so no language button or dropdown is in the header.
+- 2. Create Language Section in Profile Across ALL Dashboards: Put the language settings into the Profile/Settings page of Owner, User/Member, and Admin dashboards.
+- 3. Support All World Languages with Caret Dropdown: Expand language choices to major world languages (English, Bengali, Spanish, French, German, Arabic, Hindi, Chinese, Portuguese, Japanese, Russian, etc.) with a clean caret dropdown (ChevronDown).
+- 4. Full i18n Process Working on All Pages: When a language is selected, it immediately updates the global state, persists to localStorage, and updates all pages across the app.
+
+2. Step-by-Step Implementation Roadmap:
+- Step 1: Update translations.ts with 15+ world languages and safe English fallback.
+- Step 2: Update LanguageContext.tsx to accept and persist any world language.
+- Step 3: Remove <LanguageSwitcher /> from PublicNavbar.tsx (desktop and mobile).
+- Step 4: Build ProfileLanguageSelector component with caret dropdown and flag indicators.
+- Step 5: Integrate into SettingsTab.tsx (Owner & User) and AdminSettingsPage.tsx (Admin).
+- Step 6: Verify end-to-end reactivity across all pages.

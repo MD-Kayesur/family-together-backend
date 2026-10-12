@@ -1,0 +1,34 @@
+ফ্যামিলিরুটস প্ল্যাটফর্ম — ২৫টি বিশ্বভাষা ও মডুলার i18n লোকেল আর্কিটেকচার গাইড
+========================================================================================
+
+১. সমর্থিত ২৫টি ভাষা:
+1. en (English) - src/lib/i18n/locales/en.ts
+2. bn (বাংলা) - src/lib/i18n/locales/bn.ts
+3. es (Español) - src/lib/i18n/locales/es.ts
+4. fr (Français) - src/lib/i18n/locales/fr.ts
+5. de (Deutsch) - src/lib/i18n/locales/de.ts
+6. ar (العربية - RTL) - src/lib/i18n/locales/ar.ts
+7. hi (हिन्दी) - src/lib/i18n/locales/hi.ts
+8. zh (简体中文) - src/lib/i18n/locales/zh.ts
+9. pt (Português) - src/lib/i18n/locales/pt.ts
+10. ja (日本語) - src/lib/i18n/locales/ja.ts
+11. ru (Русский) - src/lib/i18n/locales/ru.ts
+12. it (Italiano) - src/lib/i18n/locales/it.ts
+13. ko (한국어) - src/lib/i18n/locales/ko.ts
+14. tr (Türkçe) - src/lib/i18n/locales/tr.ts
+15. ur (اردو - RTL) - src/lib/i18n/locales/ur.ts
+16. id (Bahasa Indonesia) - src/lib/i18n/locales/id.ts
+17. ms (Bahasa Melayu) - src/lib/i18n/locales/ms.ts
+18. vi (Tiếng Việt) - src/lib/i18n/locales/vi.ts
+19. th (ไทย) - src/lib/i18n/locales/th.ts
+20. nl (Nederlands) - src/lib/i18n/locales/nl.ts
+21. pl (Polski) - src/lib/i18n/locales/pl.ts
+22. sv (Svenska) - src/lib/i18n/locales/sv.ts
+23. el (Ελληνικά) - src/lib/i18n/locales/el.ts
+24. fa (فارسی - RTL) - src/lib/i18n/locales/fa.ts
+25. tl (Tagalog) - src/lib/i18n/locales/tl.ts
+
+২. মডুলার আর্কিটেকচার:
+- প্রতিটি ভাষার আলাদা ফাইল রয়েছে src/lib/i18n/locales/ ডিরেক্টরিতে।
+- index.ts দিয়ে সেন্ট্রালি লোড করা হচ্ছে।
+- tsc --noEmit সফলভাবে পাস করেছে (০ ত্রুটি)।
