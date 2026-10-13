@@ -10,6 +10,7 @@ import { MemoriesController } from './memories/memories.controller';
 import { EventsController } from './events/events.controller';
 import { DocumentsController } from './documents/documents.controller';
 import { InvitationsController } from './invitations/invitations.controller';
+import { AnnouncementsController } from './announcements/announcements.controller';
 
 // Services
 import { FamilyService } from './family.service';
@@ -19,6 +20,7 @@ import { MemoriesService } from './memories/memories.service';
 import { EventsService } from './events/events.service';
 import { DocumentsService } from './documents/documents.service';
 import { InvitationsService } from './invitations/invitations.service';
+import { AnnouncementsService } from './announcements/announcements.service';
 
 @Module({
   imports: [PrismaModule, MailModule],
@@ -30,6 +32,7 @@ import { InvitationsService } from './invitations/invitations.service';
     EventsController,
     DocumentsController,
     InvitationsController,
+    AnnouncementsController,
   ],
   providers: [
     FamilyService,
@@ -39,6 +42,7 @@ import { InvitationsService } from './invitations/invitations.service';
     EventsService,
     DocumentsService,
     InvitationsService,
+    AnnouncementsService,
   ],
   exports: [
     FamilyService,
@@ -48,6 +52,7 @@ import { InvitationsService } from './invitations/invitations.service';
     EventsService,
     DocumentsService,
     InvitationsService,
+    AnnouncementsService,
   ],
 })
 export class FamilyModule {}
