@@ -68,3 +68,23 @@ model Invitation {
   @@map("invitations")
 }
 
+model Announcement {
+  id              String   @id @default(uuid())
+  familyId        String   @map("family_id")
+  senderUserId    String   @map("sender_user_id")
+  senderName      String   @map("sender_name")
+  senderEmail     String   @map("sender_email")
+  subject         String
+  message         String   @db.Text
+  totalRecipients Int      @default(0) @map("total_recipients")
+  successfulSent  Int      @default(0) @map("successful_sent")
+  failedCount     Int      @default(0) @map("failed_count")
+  targetRole      String   @default("ALL") @map("target_role")
+  replyToEmail    String   @map("reply_to_email")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@map("announcements")
+}
+
