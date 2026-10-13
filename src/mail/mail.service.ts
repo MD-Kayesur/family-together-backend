@@ -213,4 +213,85 @@ export class MailService {
       return false;
     }
   }
+
+  async broadcastFamilyAnnouncement(
+    recipients: Array<{ email: string; name: string }>,
+    owner: { email: string; name: string },
+    subject: string,
+    messageText: string,
+    familySanctuaryName: string,
+    priority: 'HIGH' | 'NORMAL' = 'NORMAL',
+  ): Promise<{ totalSent: number; failed: number }> {
+    if (!this.transporter) {
+      await this.initTransporter();
+      if (!this.transporter) {
+        this.logger.warn('No transporter available for broadcast email');
+        return { totalSent: 0, failed: recipients.length };
+      }
+    }
+
+    const senderAddress = process.env.EMAIL_USER || process.env.SMTP_USER || 'rmdkayesur@gmail.com';
+    const fromHeader = `"${familySanctuaryName}" <${senderAddress}>`;
+    const replyToHeader = owner.email;
+
+    let totalSent = 0;
+    let failed = 0;
+
+    const BATCH_SIZE = 5;
+    for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+      const batch = recipients.slice(i, i + BATCH_SIZE);
+      const results = await Promise.allSettled(
+        batch.map((rec) =>
+          this.transporter!.sendMail({
+            from: fromHeader,
+            to: rec.email,
+            replyTo: replyToHeader,
+            subject: `[${familySanctuaryName}] ${subject}`,
+            priority: priority === 'HIGH' ? 'high' : 'normal',
+            headers: {
+              'X-Sanctuary-Name': familySanctuaryName,
+              'X-Broadcast-Owner': owner.email,
+              'X-Priority': priority === 'HIGH' ? '1 (Highest)' : '3 (Normal)',
+              Importance: priority === 'HIGH' ? 'High' : 'Normal',
+            },
+            html: `
+              <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 28px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+                <div style="border-bottom: 2px solid #4f46e5; padding-bottom: 16px; margin-bottom: 20px;">
+                  <span style="font-size: 11px; font-weight: 800; letter-spacing: 1px; color: #4f46e5; text-transform: uppercase;">FamilyRoots Sanctuary Announcement</span>
+                  <h1 style="color: #0f172a; font-size: 22px; font-weight: 800; margin: 6px 0 0 0;">${familySanctuaryName}</h1>
+                  <p style="color: #64748b; font-size: 13px; margin: 4px 0 0 0;">Sent by Sanctuary Owner: <strong>${owner.name}</strong> (${owner.email})</p>
+                </div>
+
+                <div style="color: #334155; font-size: 15px; line-height: 1.65; white-space: pre-wrap; margin-bottom: 28px;">
+${messageText}
+                </div>
+
+                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #4f46e5; border-radius: 8px; padding: 14px 18px; margin-bottom: 24px;">
+                  <h4 style="margin: 0 0 4px 0; color: #1e1b4b; font-size: 13px; font-weight: 700;">💬 How to Reply to this Message:</h4>
+                  <p style="margin: 0; color: #475569; font-size: 12px; line-height: 1.5;">
+                    Simply click <strong>"Reply"</strong> directly in your Gmail or email app. Your response will be delivered straight to <strong>${owner.name}</strong> at ${owner.email}.
+                  </p>
+                </div>
+
+                <div style="text-align: center; border-top: 1px solid #f1f5f9; padding-top: 16px;">
+                  <p style="color: #94a3b8; font-size: 11px; margin: 0;">
+                    Sent securely via FamilyRoots • Preserving Generational Heritage
+                  </p>
+                </div>
+              </div>
+            `,
+          }),
+        ),
+      );
+
+      results.forEach((r) => {
+        if (r.status === 'fulfilled') totalSent++;
+        else failed++;
+      });
+    }
+
+    this.logger.log(`Broadcast email completed for "${subject}": ${totalSent} delivered, ${failed} failed.`);
+    return { totalSent, failed };
+  }
 }
+
