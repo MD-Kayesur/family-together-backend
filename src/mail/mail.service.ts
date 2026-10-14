@@ -144,6 +144,76 @@ export class MailService {
     }
   }
 
+  async sendPasswordResetOtpCode(to: string, name: string, code: string): Promise<boolean> {
+    const from = process.env.EMAIL_FROM || '"FamilyRoots Security" <rmdkayesur@gmail.com>';
+    const subject = `Your Password Reset Code is ${code} - FamilyRoots`;
+
+    this.logger.log(
+      `\n======================================================\n🔑 [PASSWORD RESET OTP CODE] To: ${to} (${name})\n🔢 Code: >>> ${code} <<<\n⏳ Expires: 15 minutes\n======================================================`
+    );
+
+    if (!this.transporter) {
+      await this.initTransporter();
+      if (!this.transporter) {
+        this.logger.warn(`No transporter available; skipping email delivery to ${to}`);
+        return false;
+      }
+    }
+
+    try {
+      const info = await this.transporter.sendMail({
+        from,
+        to,
+        subject,
+        text: `Hello ${name || 'there'},\n\nYou requested a password reset for your FamilyRoots account.\n\nYour 6-digit verification code is: ${code}\n\nThis code will expire in 15 minutes.\n\nIf you did not request this, please ignore this email.\n\nBest regards,\nFamilyRoots Security`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 540px; margin: 0 auto; padding: 24px; border: 1px solid #e0e0e0; border-radius: 12px; background: #ffffff;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h1 style="color: #1E3A8A; font-size: 24px; margin: 0;">FamilyRoots</h1>
+              <p style="color: #64748B; font-size: 13px; margin-top: 4px;">Account Security & Password Recovery</p>
+            </div>
+            
+            <p style="color: #1E293B; font-size: 16px;">Hello <strong>${name || 'there'}</strong>,</p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.5;">
+              We received a request to reset your password. Use the 6-digit verification code below to set a new password:
+            </p>
+            
+            <div style="text-align: center; margin: 32px 0;">
+              <div style="display: inline-block; padding: 14px 32px; background: #EFF6FF; border: 2px dashed #3B82F6; border-radius: 10px; font-size: 34px; font-weight: bold; letter-spacing: 8px; color: #1D4ED8;">
+                ${code}
+              </div>
+              <p style="color: #94A3B8; font-size: 13px; margin-top: 8px;">⏱️ This code will expire in 15 minutes.</p>
+            </div>
+
+            <p style="color: #64748B; font-size: 13px; line-height: 1.4;">
+              If you did not request a password reset, you can safely ignore this email. Your account remains completely secure.
+            </p>
+
+            <hr style="border: none; border-top: 1px solid #F1F5F9; margin: 24px 0;" />
+            <p style="color: #94A3B8; font-size: 12px; text-align: center; margin: 0;">
+              © ${new Date().getFullYear()} FamilyRoots. All rights reserved.
+            </p>
+          </div>
+        `,
+        priority: 'high',
+        headers: {
+          'X-Priority': '1 (Highest)',
+          'X-MSMail-Priority': 'High',
+          Importance: 'High',
+        },
+      });
+      this.logger.log(`✅ [PASSWORD RESET EMAIL SENT] To: ${to}, MessageId: ${info.messageId}`);
+      if (this.isEthereal) {
+        const previewUrl = nodemailer.getTestMessageUrl(info);
+        this.logger.log(`🔗 [ETHEREAL TEST INBOX PREVIEW]: ${previewUrl}`);
+      }
+      return true;
+    } catch (error: any) {
+      this.logger.error(`❌ [EMAIL SEND ERROR] Failed to dispatch password reset email to ${to}: ${error.message}`);
+      return false;
+    }
+  }
+
   async sendMemberWelcomeEmail(to: string, name: string, email: string, password: string): Promise<boolean> {
     const user = process.env.EMAIL_USER || process.env.SMTP_USER || 'rmdkayesur@gmail.com';
     const from = process.env.EMAIL_FROM || `"FamilyRoots" <${user}>`;
