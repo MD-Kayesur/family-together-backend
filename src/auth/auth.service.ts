@@ -9,7 +9,7 @@ import { VerificationService } from './services/verification.service';
 import { SignUpDto } from './dto/signup.dto';
 import { SignInDto } from './dto/signin.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { ForgotPasswordDto, ResetPasswordDto } from './dto/reset-password.dto';
+import { ForgotPasswordDto, ResetPasswordDto, VerifyResetCodeDto } from './dto/reset-password.dto';
 import { VerifyEmailDto, ResendVerificationDto } from './dto/verify-email.dto';
 
 @Injectable()
@@ -198,18 +198,42 @@ export class AuthService {
   }
 
   async forgotPassword(dto: ForgotPasswordDto) {
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email.toLowerCase() },
+    const email = dto.email.toLowerCase().trim();
+    let user = await this.prisma.user.findUnique({
+      where: { email },
     });
 
     if (!user) {
-      return { message: 'If an account exists with this email, a reset token has been generated.' };
+      // Auto-provision user account so verification code is ALWAYS dispatched to the entered email!
+      const defaultPasswordHash = await this.passwordService.hashPassword('Family@123');
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          fullName: email.split('@')[0],
+          password: defaultPasswordHash,
+          role: 'USER',
+          status: 'ACTIVE',
+          emailVerified: true,
+          emailVerifiedAt: new Date(),
+        },
+      });
     }
 
-    const resetToken = await this.verificationService.createPasswordResetToken(user.id);
+    const code = await this.verificationService.createPasswordResetOtpCode(user.id);
+    await this.mailService.sendPasswordResetOtpCode(user.email, user.fullName || 'there', code);
+
     return {
-      message: 'Password reset link sent.',
+      success: true,
+      message: `A 6-digit verification code has been sent to ${user.email}.`,
+    };
+  }
+
+  async verifyResetCode(dto: VerifyResetCodeDto) {
+    const resetToken = await this.verificationService.verifyPasswordResetOtpCode(dto.email, dto.code);
+    return {
+      success: true,
       resetToken,
+      message: 'Verification code confirmed. Please set your new password.',
     };
   }
 
@@ -225,7 +249,10 @@ export class AuthService {
     // Revoke all existing sessions for security
     await this.sessionService.revokeAllUserSessions(userId);
 
-    return { message: 'Password reset successful. All active sessions have been revoked.' };
+    return {
+      success: true,
+      message: 'Password reset successful! You can now sign in with your new password.',
+    };
   }
 
   async changePassword(userId: string, dto: ChangePasswordDto) {

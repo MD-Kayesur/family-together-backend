@@ -8,7 +8,7 @@ import { SignUpDto } from './dto/signup.dto';
 import { SignInDto } from './dto/signin.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { ForgotPasswordDto, ResetPasswordDto } from './dto/reset-password.dto';
+import { ForgotPasswordDto, ResetPasswordDto, VerifyResetCodeDto } from './dto/reset-password.dto';
 import { VerifyEmailDto, ResendVerificationDto } from './dto/verify-email.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -160,14 +160,27 @@ export class AuthController {
 
   @Post('forgot-password')
   @ApiOperation({
-    summary: 'Request password reset token link [Role: PUBLIC]',
+    summary: 'Request password reset 6-digit OTP code [Role: PUBLIC]',
     description: `**Route:** \`POST /auth/forgot-password\`
-**Purpose:** Dispatches an email with a secure reset token link if the account exists.
+**Purpose:** Dispatches an email with a secure 6-digit OTP verification code if the account exists.
 **Required Permissions / Roles:** \`PUBLIC\` (No authentication required).`,
   })
-  @ApiResponse({ status: 200, description: 'Reset token generated if account exists' })
+  @ApiResponse({ status: 200, description: '6-digit OTP code sent if account exists' })
   forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto);
+  }
+
+  @Post('verify-reset-code')
+  @ApiOperation({
+    summary: 'Verify 6-digit password reset OTP code [Role: PUBLIC]',
+    description: `**Route:** \`POST /auth/verify-reset-code\`
+**Purpose:** Validates the 6-digit OTP code received in email and returns a one-time reset token.
+**Required Permissions / Roles:** \`PUBLIC\` (No authentication required).`,
+  })
+  @ApiResponse({ status: 200, description: 'Code verified; returns one-time reset token' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired verification code' })
+  verifyResetCode(@Body() dto: VerifyResetCodeDto) {
+    return this.authService.verifyResetCode(dto);
   }
 
   @Post('reset-password')
