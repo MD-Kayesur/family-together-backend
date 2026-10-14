@@ -1,0 +1,123 @@
+# FamilyRoots Architecture Report: Family Tree Member Connections & Line Limits
+
+**File:** `FAMILY_TREE_MEMBER_CONNECTIONS_EXPLANATION.doc`  
+**Generated Date:** 2026-10-14  
+**Project:** FamilyRoots (`family-together-frontend` & `family-together-backend`)  
+**Scope:** Family Tree Lineage Canvas & Relationship Engine  
+
+---
+
+## 1. প্রত্যক্ষ উত্তর (Direct Answer)
+
+### প্রশ্ন:
+> *"say me in this a persong how may mamber can connet mean how many line can a person ? chck code adn say me jsut"*
+
+### উত্তর:
+**আমাদের সিস্টেমে একজন ব্যক্তির সাথে কতজন সদস্য বা কতগুলো লাইন যুক্ত হতে পারবে—তার কোনো সর্বোচ্চ সীমা বা লিমিট নেই (Unlimited / যত খুশি তত লাইন বা মেম্বার কানেক্ট করা যাবে)।**
+
+বাস্তব পরিবারেও যেমন একজন মায়ের অনেক সন্তান (১, ৫, ১০ বা তার বেশি), স্বামী, বাবা-মা, ভাই-বোন ও নাতি-নাতনি থাকতে পারে—আমাদের ফ্যামিলি ট্রি ক্যানভাসেও তিনি তাদের **সবার সাথেই পৃথক পৃথক লাইন দিয়ে যুক্ত হতে পারবেন**।
+
+---
+
+## 2. কোড লেভেলের বিস্তারিত প্রমাণ (Code Audit Analysis)
+
+### ক. ফ্রন্টএন্ড ক্যানভাস (`src/components/tree/LandingFamilyTreeCanvas.tsx`)
+ফ্রন্টএন্ডের ইন্টারেক্টিভ ক্যানভাস ফাইলে লাইন তৈরির লজিকটি দেখুন:
+
+```typescript
+// Confirm relationship link creation
+const handleConfirmLink = async () => {
+  if (readOnly || !linkSourceId || !linkTargetId) return;
+
+  // Check if link ALREADY exists between these exact two people
+  const exists = connections.some(
+    (c) =>
+      (c.fromId === linkSourceId && c.toId === linkTargetId) ||
+      (c.fromId === linkTargetId && c.toId === linkSourceId)
+  );
+
+  if (!exists) {
+    const newConn: DemoConnection = {
+      id: `conn_${Date.now()}`,
+      fromId: linkSourceId,
+      toId: linkTargetId,
+      type: linkType,
+    };
+    const updated = [...connections, newConn];
+    setConnections(updated);
+    persistTree(members, updated, nodePositions);
+  }
+};
+```
+
+#### কোডের নিয়মাবলী:
+1. **কোনো সংখ্যাগত লিমিট নেই (No Max Count):** কোডে কোথাও এমন কোনো শর্ত নেই যে `if (connections.length > 5)` বা `if (memberLinks >= 10)`। একজন মেম্বারের সাথে ১টি, ৭টি, ২০টি বা ১০০টি লাইনও থাকতে পারে।
+2. **ডুপ্লিকেট প্রতিরোধ (`!exists`):** শুধুমাত্র একই দুই ব্যক্তির মাঝে যেন একই লাইনের ডুপ্লিকেট না তৈরি হয়, সেজন্য একবার চেক করা হয়।
+3. **সেলফ-লিংক প্রতিরোধ:** একজন ব্যক্তি নিজের সাথে নিজে লাইন টানতে পারবে না (`sourceId !== targetId`)।
+4. ক্যানভাসে উপস্থিত **অন্য যেকোনো সদস্যের সাথেই নতুন লাইন ড্র করা যায়**।
+
+---
+
+### খ. ব্যাকএন্ড ও ডেটাবেস (`prisma/schema/relationship.prisma` ও `relationships.service.ts`)
+ডেটাবেস স্তরেও রিলেশনশিপ স্কিমা সম্পূর্ণ আনলিমিটেড:
+
+```prisma
+model Relationship {
+  id                 String             @id @default(uuid())
+  familyId           String             @map("family_id")
+  fromPersonId       String             @map("from_person_id")
+  toPersonId         String             @map("to_person_id")
+  relationshipTypeId String             @map("relationship_type_id")
+  status             RelationshipStatus @default(ACTIVE)
+  
+  family           Family           @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  fromPerson       Person           @relation("FromPerson", fields: [fromPersonId], references: [id], onDelete: Cascade)
+  toPerson         Person           @relation("ToPerson", fields: [toPersonId], references: [id], onDelete: Cascade)
+  relationshipType RelationshipType @relation(fields: [relationshipTypeId], references: [id])
+
+  @@unique([familyId, fromPersonId, toPersonId, relationshipTypeId])
+  @@map("relationships")
+}
+```
+
+* `fromPersonId` এবং `toPersonId` দিয়ে যত খুশি রিলেশন রেকর্ড তৈরি করা যায়।
+* PostgreSQL ডেটাবেসে কোনো ব্যক্তির মোট রিলেশনশিপের সংখ্যার ওপর কোনো ক্যাপ (Cap) নেই।
+
+---
+
+## 3. ব্যবহারকারীর স্ক্রিনশটের বিশ্লেষণ (Screenshot Evidence)
+
+স্ক্রিনশটে প্রদর্শিত **"Layla Ra..." (Mother / Daughter)** নোডের সাথে অলরেডি **৭টি পৃথক লাইন** কানেক্টেড রয়েছে:
+
+| ক্রম | সংযুক্ত মেম্বার (Connected Node) | সম্পর্কের ধরন (Type Tag) | কানেকশন লাইন |
+| :---: | :--- | :--- | :---: |
+| 1 | **user for t...** | Parent ➔ Child / Relative | ✅ Active Line |
+| 2 | **Zayd Ra...** | Parent ➔ Child | ✅ Active Line |
+| 3 | **Ibrahim ...** | Parent ➔ Child | ✅ Active Line |
+| 4 | **Kayesur ...** | Parent ➔ Child | ✅ Active Line |
+| 5 | **Aisha Ra...** | Parent ➔ Child | ✅ Active Line |
+| 6 | **Farah Ya...** | Parent ➔ Child | ✅ Active Line |
+| 7 | **Samiha ...** | Parent ➔ Child / Relative | ✅ Active Line |
+
+যদি এই পরিবারে আরও নতুন সদস্য (যেমন আরও সন্তান বা নাতি-নাতনি) যুক্ত করা হয়, তবে তাদের সাথেও একইভাবে **৮ম, ৯ম বা ১০ম লাইন ড্র করা যাবে**।
+
+---
+
+## 4. ক্যানভাস কাউন্টার ইন্ডিকেটর (Active Link Counter)
+
+ক্যানভাসে যেকোনো মেম্বার কার্ড সিলেক্ট করলে নিচের স্ট্যাটাস বারে মোট লাইনের সংখ্যা স্বয়ংক্রিয়ভাবে লাইভ হিসাব করে দেখানো হয়:
+
+```tsx
+{selectedMember.role} • {connections.filter((c) => c.fromId === selectedMember.id || c.toId === selectedMember.id).length} links
+```
+
+* যেমন Layla কে ক্লিক করলে দেখাবে: `Mother / Daughter • 7 links`।
+* নতুন কোনো লাইন ড্র করলে এটি সাথে সাথেই `8 links`, `9 links` ইত্যাদি হিসেবে আপডেট হবে।
+
+---
+
+## 5. সংক্ষেপে মূল পয়েন্টসমূহ (Summary)
+
+* ✅ **কোনো লিমিট নেই:** একজন সদস্যের সাথে আনলিমিটেড সংখ্যক লাইন ও মেম্বার কানেক্ট করা যায়।
+* ✅ **বাস্তবসম্মত ডিজাইন:** পরিবার যত বড়ই হোক না কেন, যেকোনো রিলেশনশিপ অবাধে আঁকা ও সেভ করা যাবে।
+* ✅ **ডাউনলোডযোগ্য ডকুমেন্ট:** এই ব্যাখ্যাটি সরাসরি `.doc` ফরম্যাটে প্রজেক্ট রুটে সংরক্ষিত হয়েছে।
