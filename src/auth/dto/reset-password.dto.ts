@@ -20,3 +20,16 @@ export class ResetPasswordDto {
   @MinLength(8, { message: 'Password must be at least 8 characters long' })
   newPassword: string;
 }
+
+export class VerifyResetCodeDto {
+  @ApiProperty({ example: 'user@example.com', description: 'Registered email address' })
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+
+  @ApiProperty({ example: '123456', description: '6-digit verification code' })
+  @IsString()
+  @IsNotEmpty()
+  code: string;
+}
+

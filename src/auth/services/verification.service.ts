@@ -169,4 +169,63 @@ export class VerificationService {
 
     return record.userId;
   }
+
+  async createPasswordResetOtpCode(userId: string): Promise<string> {
+    await this.prisma.passwordResetToken.deleteMany({
+      where: {
+        userId,
+        expiresAt: { lt: new Date() },
+      },
+    });
+
+    const code = this.generateVerificationCode();
+    const tokenHash = this.tokenService.hashToken(`${userId}:${code}`);
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes expiration
+
+    await this.prisma.passwordResetToken.create({
+      data: {
+        userId,
+        tokenHash,
+        expiresAt,
+      },
+    });
+
+    return code;
+  }
+
+  async verifyPasswordResetOtpCode(email: string, code: string): Promise<string> {
+    const user = await this.prisma.user.findUnique({
+      where: { email: email.toLowerCase().trim() },
+    });
+
+    if (!user) {
+      throw new BadRequestException('User with this email does not exist.');
+    }
+
+    const tokenHash = this.tokenService.hashToken(`${user.id}:${code.trim()}`);
+    const record = await this.prisma.passwordResetToken.findFirst({
+      where: {
+        userId: user.id,
+        tokenHash,
+        usedAt: null,
+      },
+    });
+
+    if (!record) {
+      throw new BadRequestException('Invalid or expired verification code.');
+    }
+
+    if (new Date() > record.expiresAt) {
+      throw new BadRequestException('Verification code has expired. Please request a new one.');
+    }
+
+    await this.prisma.passwordResetToken.update({
+      where: { id: record.id },
+      data: { usedAt: new Date() },
+    });
+
+    // Generate a temporary one-time reset token for Step 3
+    return this.createPasswordResetToken(user.id);
+  }
 }
+
