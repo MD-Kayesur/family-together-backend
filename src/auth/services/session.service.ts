@@ -1,6 +1,8 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TokenService } from './token.service';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
+import { buildPaginatedResponse } from '../../common/interfaces/paginated-result.interface';
 
 @Injectable()
 export class SessionService {
@@ -78,17 +80,46 @@ export class SessionService {
     });
   }
 
-  async getUserActiveSessions(userId: string) {
-    return this.prisma.session.findMany({
-      where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
-      select: {
-        id: true,
-        userAgent: true,
-        ipAddress: true,
-        lastUsedAt: true,
-        createdAt: true,
-      },
+  async getUserActiveSessions(userId: string, query?: PaginationQueryDto) {
+    const page = Math.max(1, Number(query?.page) || 1);
+    const limit = Math.max(1, Math.min(100, Number(query?.limit) || 10));
+    const skip = (page - 1) * limit;
+    const searchTerm = (query?.search || query?.q || '').trim();
+
+    const where: any = { userId, revokedAt: null, expiresAt: { gt: new Date() } };
+    if (searchTerm) {
+      where.OR = [
+        { userAgent: { contains: searchTerm, mode: 'insensitive' } },
+        { ipAddress: { contains: searchTerm, mode: 'insensitive' } },
+      ];
+    }
+
+    const select = {
+      id: true,
+      userAgent: true,
+      ipAddress: true,
+      lastUsedAt: true,
+      createdAt: true,
+    };
+
+    const total = await this.prisma.session.count({ where });
+
+    if (query?.raw === true || query?.paginate === false || (!query?.page && !query?.limit)) {
+      return this.prisma.session.findMany({
+        where,
+        select,
+        orderBy: { lastUsedAt: 'desc' },
+      });
+    }
+
+    const sessions = await this.prisma.session.findMany({
+      where,
+      select,
+      skip,
+      take: limit,
       orderBy: { lastUsedAt: 'desc' },
     });
+
+    return buildPaginatedResponse(sessions, total, page, limit);
   }
 }

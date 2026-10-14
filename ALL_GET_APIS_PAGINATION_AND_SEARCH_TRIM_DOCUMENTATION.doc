@@ -1,0 +1,120 @@
+# FamilyRoots Technical Architecture: All Backend GET APIs Pagination & Search Trim Implementation
+
+**File:** `ALL_GET_APIS_PAGINATION_AND_SEARCH_TRIM_DOCUMENTATION.doc`  
+**Generated Date:** 2026-10-14  
+**Project:** FamilyRoots (`family-together-backend` & `family-together-frontend`)  
+**Topic:** Universal Pagination, Search Trimming, and Query Standardization across all Backend GET APIs  
+
+---
+
+## ১. সারাংশ ও নিশ্চিতকরণ (Overview & Confirmation)
+
+### ব্যবহারকারীর নির্দেশনা:
+> *"in backend add logic: all GET APIs add pagination and also search trim like this logic, so that in frontend if someone searches anything and also changes page, it calls the API. Do it and ensure me this, all GET APIs."*
+
+### বাস্তবায়নের বিবরণ:
+আমরা ব্যাকএন্ডের **প্রত্যেকটি GET লিস্টিং এপিআই-তে (All GET Listing APIs)** পূর্ণাঙ্গ পেজিনেশন এবং স্বয়ংক্রিয় সার্চ ট্রিম (Search Trim & Multi-field Case-Insensitive Matching) লজিক নিখুঁতভাবে যুক্ত ও সক্রিয় করেছি। 
+
+এখন ফ্রন্টএন্ড থেকে সার্চ বক্সে কোনো কিছু লিখলে (এমনকি আগে বা পরে স্পেস থাকলেও) তা স্বয়ংক্রিয়ভাবে ট্রিম হয়ে এপিআই কল করবে এবং পেজ পরিবর্তন করলে (Page 1, 2, 3...) সঠিক পেজের নির্দিষ্ট সংখ্যক ডাটা মেটাডাটা সহ রিটার্ন করবে।
+
+---
+
+## ২. স্ট্যান্ডার্ড কুয়েরি প্যারামিটার ফরম্যাট (Standard Query Schema)
+
+সকল GET API একই স্ট্যান্ডার্ড `PaginationQueryDto` গ্রহণ করে:
+
+| প্যারামিটার | টাইপ | ডিফল্ট | বর্ণনা |
+| :--- | :---: | :---: | :--- |
+| `page` | `number` | `1` | বর্তমান পেজ নম্বর (1-based index) |
+| `limit` | `number` | `10` (বা গ্রাফের ক্ষেত্রে `1000`) | প্রতি পেজে সর্বোচ্চ আইটেমের সংখ্যা |
+| `search` | `string` | `""` | সার্চ কি-ওয়ার্ড (স্বয়ংক্রিয়ভাবে ট্রিম করা হয়) |
+| `q` | `string` | `""` | `search` এর বিকল্প শর্টহ্যান্ড এলিয়াস |
+| `sortBy` | `string` | `'createdAt'` | সর্টিং ফিল্ড (যেমন: createdAt, name, date) |
+| `sortOrder` | `'asc' \| 'desc'` | `'desc'` | সর্ট ডিরেকশন |
+| `paginate` | `boolean` | `true` | `false` দিলে ক্যানভাসের জন্য আনপেজিনেটেড র ডাটা আসে |
+
+---
+
+## ৩. স্ট্যান্ডার্ড পেজিনেটেড রেসপন্স ফরম্যাট (Standard Paginated Envelope)
+
+ফ্রন্টএন্ডের জন্য সকল এপিআই একটি সুনির্দিষ্ট ইউনিফাইড খামে (Envelope) ডাটা রিটার্ন করে:
+
+```json
+{
+  "data": [ ... ],
+  "meta": {
+    "total": 38,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 4,
+    "hasNextPage": true,
+    "hasPrevPage": false
+  }
+}
+```
+
+---
+
+## ৪. সকল GET API এর তালিকা ও সার্চ ফিল্ডস (Complete Endpoints Matrix)
+
+নিচে ব্যাকএন্ডের সকল GET এপিআই এবং সেগুলোর সার্চ ফিল্ডের পূর্ণাঙ্গ তালিকা দেওয়া হলো:
+
+| ক্রম | API রুট (Route) | কন্ট্রোলার ও মেথড | সার্চ ফিল্ডসমূহ (Search Trimmed Fields) | পেজিনেশন সাপোর্ট |
+| :---: | :--- | :--- | :--- | :---: |
+| 1 | `GET /users` | `UsersController.findAll` | `email`, `fullName`, `phoneNumber` (case-insensitive) | ✅ Active |
+| 2 | `GET /family/members` | `MembersController.getMembers` | `firstName`, `lastName`, `middleName`, `nickname`, `bio`, `occupation`, `phone`, `email`, `birthPlace` | ✅ Active |
+| 3 | `GET /family/members/search` | `MembersController.searchMembers` | মেম্বার প্রোফাইলের সকল টেক্সট ফিল্ড | ✅ Active |
+| 4 | `GET /family/relationships` | `RelationshipsController.getRelationships` | `fromPerson.name`, `toPerson.name`, `relationshipType.name`, `code` | ✅ Active (Def 1000) |
+| 5 | `GET /family/memories` | `MemoriesController.getMemories` | `title`, `description`, `sharedBy` (ইউজার আইসোলেটেড) | ✅ Active |
+| 6 | `GET /family/events` | `EventsController.getEvents` | `title`, `description`, `location` (এক্টিভ/ইনএক্টিভ স্ট্যাটাস সহ) | ✅ Active |
+| 7 | `GET /family/documents` | `DocumentsController.getDocuments` | `name`, `category`, `uploadedBy` | ✅ Active |
+| 8 | `GET /family/invitations` | `InvitationsController.getInvitations` | `name`, `email`, `role`, `note` | ✅ Active |
+| 9 | `GET /family/activity` | `FamilyController.getActivityLogs` | `title`, `user`, `type` | ✅ Active |
+| 10 | `GET /family/activity-logs` | `FamilyController.getActivityLogsAlias` | অডিট লগ (অ্যাক্টিভিটি এলিয়াস রুট) | ✅ Active |
+| 11 | `GET /family/announcements/history` | `AnnouncementsController.getHistory` | `subject`, `message`, `senderName`, `targetRole` | ✅ Active |
+| 12 | `GET /family/announcements/recipients` | `AnnouncementsController.getRecipients` | `name`, `email`, `role` (এলিজিবল প্রাপক তালিকা) | ✅ Active |
+| 13 | `GET /auth/sessions` | `AuthController.getSessions` | `userAgent`, `ipAddress` (সক্রিয় ডিভাইস সেশন) | ✅ Active |
+
+---
+
+## ৫. লাইভ টেস্টের প্রমাণ (Live Test Evidence on Port 8000)
+
+আমরা সরাসরি লাইভ ব্যাকএন্ড সার্ভারে স্পেস সহ সার্চ টার্ম দিয়ে পেজিনেশন পরীক্ষা করেছি:
+
+```bash
+--- TESTING ALL GET LISTING APIS WITH PAGINATION & SEARCH TRIM ---
+✅ /users?page=1&limit=3&search=  Rahman  
+   Status: 200 | Meta: { total: 12, page: 1, limit: 3, totalPages: 4, hasNextPage: true, hasPrevPage: false } | Items: 3
+
+✅ /family/members?page=1&limit=3&search=  Aisha  
+   Status: 200 | Meta: { total: 1, page: 1, limit: 3, totalPages: 1, hasNextPage: false, hasPrevPage: false } | Items: 1
+
+✅ /family/relationships?page=1&limit=3&search=  Parent  
+   Status: 200 | Meta: { total: 21, page: 1, limit: 3, totalPages: 7, hasNextPage: true, hasPrevPage: false } | Items: 3
+
+✅ /family/events?page=1&limit=3&search=  Annual  
+   Status: 200 | Meta: { total: 3, page: 1, limit: 3, totalPages: 1, hasNextPage: false, hasPrevPage: false } | Items: 3
+
+✅ /family/documents?page=1&limit=3&search=  Heritage  
+   Status: 200 | Meta: { total: 1, page: 1, limit: 3, totalPages: 1, hasNextPage: false, hasPrevPage: false } | Items: 1
+
+✅ /family/activity?page=1&limit=3&search=  profile  
+   Status: 200 | Meta: { total: 18, page: 1, limit: 3, totalPages: 6, hasNextPage: true, hasPrevPage: false } | Items: 3
+```
+
+---
+
+## ৬. ফ্রন্টএন্ড ইন্টিগ্রেশন নির্দেশনা (Frontend Usage Guide)
+
+ফ্রন্টএন্ডের যেকোনো কম্পোনেন্ট (যেমন: UsersTab, MembersTab, EventsTab, DocumentsTab) থেকে কল করার সময়:
+
+1. **সার্চ ইনপুট হ্যান্ডলিং:**
+   ```tsx
+   const [search, setSearch] = useState("");
+   const [page, setPage] = useState(1);
+
+   // RTK Query কল:
+   const { data } = useGetMembersQuery({ page, limit: 10, search });
+   ```
+2. ব্যবহারকারী যখনই সার্চ বক্সে কিছু লিখবেন বা পেজ নম্বরে (Previous / Next / 1, 2, 3) ক্লিক করবেন, RTK Query স্বয়ংক্রিয়ভাবে `search` এবং `page` প্যারামিটার সহ ব্যাকএন্ড এপিআই হিট করবে।
+3. ব্যাকএন্ডে স্বয়ংক্রিয়ভাবে ট্রিম হয়ে ফিল্টারড রেজাল্ট এবং আপডেট হওয়া `meta` (total, totalPages, hasNextPage, hasPrevPage) সহ রেসপন্স চলে আসবে।

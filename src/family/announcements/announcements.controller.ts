@@ -17,6 +17,7 @@ import {
 } from '@nestjs/swagger';
 import { AnnouncementsService } from './announcements.service';
 import { BroadcastEmailDto, AnnouncementsQueryDto } from './announcements.dto';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
@@ -51,9 +52,9 @@ export class AnnouncementsController {
   @ApiOperation({
     summary: 'Preview eligible recipient count and directory before broadcasting [Roles: OWNER, ADMIN]',
   })
-  async getRecipients(@Req() req: any) {
+  async getRecipients(@Req() req: any, @Query() query?: PaginationQueryDto) {
     const userId = req.user?.id || req.user?.userId;
-    return this.announcementsService.getRecipientsPreview(userId);
+    return this.announcementsService.getRecipientsPreview(userId, query);
   }
 
   @Get('history')

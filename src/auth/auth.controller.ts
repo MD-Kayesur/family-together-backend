@@ -1,7 +1,8 @@
-import { Controller, Post, Get, Patch, Body, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Body, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 import { SessionService } from './services/session.service';
 import { SignUpDto } from './dto/signup.dto';
@@ -130,8 +131,11 @@ export class AuthController {
 **Required Permissions / Roles:** \`MEMBER\`, \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`, \`VIEWER\`, \`USER\` (All authenticated users).`,
   })
   @ApiResponse({ status: 200, description: 'Active user sessions' })
-  getSessions(@CurrentUser('id') userId: string) {
-    return this.sessionService.getUserActiveSessions(userId);
+  getSessions(
+    @CurrentUser('id') userId: string,
+    @Query() query?: PaginationQueryDto,
+  ) {
+    return this.sessionService.getUserActiveSessions(userId, query);
   }
 
   @Post('verify-email')

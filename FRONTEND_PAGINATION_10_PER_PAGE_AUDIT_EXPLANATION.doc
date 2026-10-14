@@ -1,0 +1,264 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<title>Frontend 10 Per Page Pagination & GET API Audit</title>
+<style>
+  body {
+    font-family: Calibri, 'Segoe UI', Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.6;
+    color: #1e293b;
+    margin: 40px;
+    background-color: #ffffff;
+  }
+  h1 {
+    color: #312e81;
+    font-size: 22pt;
+    font-weight: 800;
+    border-bottom: 3px solid #4338ca;
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+  }
+  h2 {
+    color: #1e1b4b;
+    font-size: 15pt;
+    font-weight: 700;
+    margin-top: 24px;
+    margin-bottom: 10px;
+    border-left: 4px solid #4f46e5;
+    padding-left: 10px;
+  }
+  h3 {
+    color: #3730a3;
+    font-size: 12pt;
+    font-weight: 700;
+    margin-top: 16px;
+    margin-bottom: 6px;
+  }
+  p {
+    margin-top: 6px;
+    margin-bottom: 10px;
+  }
+  .badge-success {
+    background-color: #dcfce7;
+    color: #166534;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 9.5pt;
+    display: inline-block;
+  }
+  .badge-tree {
+    background-color: #e0e7ff;
+    color: #3730a3;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 9.5pt;
+    display: inline-block;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 14px;
+    margin-bottom: 20px;
+  }
+  th {
+    background-color: #1e1b4b;
+    color: #ffffff;
+    font-weight: 700;
+    text-align: left;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    font-size: 10pt;
+  }
+  td {
+    padding: 9px 12px;
+    border: 1px solid #cbd5e1;
+    font-size: 10pt;
+    vertical-align: top;
+  }
+  tr:nth-child(even) {
+    background-color: #f8fafc;
+  }
+  .box-info {
+    background-color: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-left: 5px solid #2563eb;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin: 16px 0;
+  }
+  .box-tree {
+    background-color: #f5f3ff;
+    border: 1px solid #ddd6fe;
+    border-left: 5px solid #7c3aed;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin: 16px 0;
+  }
+  code {
+    font-family: Consolas, 'Courier New', monospace;
+    background-color: #f1f5f9;
+    color: #0f172a;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 9.5pt;
+  }
+  ul {
+    margin-top: 6px;
+    margin-bottom: 12px;
+    padding-left: 24px;
+  }
+  li {
+    margin-bottom: 4px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Family Together Platform: Frontend 10 Per Page Audit & Certification</h1>
+<p><strong>Generated Date:</strong> October 14, 2026 | <strong>Status:</strong> <span class="badge-success">COMPLETED & VERIFIED (0 TypeScript Errors)</span></p>
+
+<div class="box-info">
+  <strong>Executive Summary:</strong><br>
+  All frontend tabs and list pages across Owner Dashboard and Admin Dashboard have been standardized to show <strong>10 items per page</strong> (<code>limit = 10</code>, <code>defaultLimit: 10</code>). Every corresponding GET API receives <code>page</code> and <code>limit=10</code> parameters along with debounced, whitespace-trimmed <code>search</code> parameters.
+</div>
+
+<h2>1. Frontend Component to Backend GET API Audit Table</h2>
+<p>Below is the complete inventory of all listing interfaces, their default limits, and the exact backend GET endpoints called:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Frontend Component / Tab</th>
+      <th>Previous Limit</th>
+      <th>New Limit</th>
+      <th>Redux RTK Query Hook</th>
+      <th>Backend Endpoint Called</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td><strong>Members Tab</strong><br><code>MembersTab.tsx</code></td>
+      <td>9 items</td>
+      <td><span class="badge-success">10 items / page</span></td>
+      <td><code>useGetMembersQuery({ page, limit: 10, search })</code></td>
+      <td><code>GET /family/members?page=1&limit=10&search=...</code></td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td><strong>Memories Tab</strong><br><code>MemoriesTab.tsx</code></td>
+      <td>6 items</td>
+      <td><span class="badge-success">10 items / page</span></td>
+      <td><code>useGetMemoriesQuery({ page, limit: 10, search })</code></td>
+      <td><code>GET /family/memories?page=1&limit=10&search=...</code></td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td><strong>Events Tab</strong><br><code>EventsTab.tsx</code></td>
+      <td>6 items</td>
+      <td><span class="badge-success">10 items / page</span></td>
+      <td><code>useGetEventsQuery({ page, limit: 10, search })</code></td>
+      <td><code>GET /family/events?page=1&limit=10&search=...</code></td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td><strong>Documents Vault</strong><br><code>DocumentsTab.tsx</code></td>
+      <td>9 items</td>
+      <td><span class="badge-success">10 items / page</span></td>
+      <td><code>useGetDocumentsQuery({ page, limit: 10, search })</code></td>
+      <td><code>GET /family/documents?page=1&limit=10&search=...</code></td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td><strong>Invitations Tab</strong><br><code>InvitationsTab.tsx</code></td>
+      <td>8 items</td>
+      <td><span class="badge-success">10 items / page</span></td>
+      <td><code>useGetInvitationsQuery({ page, limit: 10, search })</code></td>
+      <td><code>GET /family/invitations?page=1&limit=10&search=...</code></td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td><strong>Users Tab</strong><br><code>UsersTab.tsx</code></td>
+      <td>10 items</td>
+      <td><span class="badge-success">10 items / page</span></td>
+      <td><code>useGetUsersListQuery({ page, limit: 10, search })</code></td>
+      <td><code>GET /users?page=1&limit=10&search=...</code></td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td><strong>Broadcast Email History</strong><br><code>BroadcastHistoryCard.tsx</code></td>
+      <td>Unpaginated</td>
+      <td><span class="badge-success">10 items / page</span></td>
+      <td><code>useGetBroadcastHistoryQuery({ page, limit: 10, search })</code></td>
+      <td><code>GET /family/announcements/history?page=1&limit=10&search=...</code></td>
+    </tr>
+    <tr>
+      <td>8</td>
+      <td><strong>Relationships Tab</strong><br><code>RelationshipsTab.tsx</code></td>
+      <td>Unpaginated</td>
+      <td><span class="badge-success">10 items / page</span></td>
+      <td><code>useGetRelationshipsQuery({ page, limit: 10, search })</code></td>
+      <td><code>GET /family/relationships?page=1&limit=10&search=...</code></td>
+    </tr>
+    <tr>
+      <td>9</td>
+      <td><strong>Admin Activity Logs</strong><br><code>admin-dashboard/activity/page.tsx</code></td>
+      <td>8 items</td>
+      <td><span class="badge-success">10 items / page</span></td>
+      <td><code>useGetActivityLogsQuery({ page, limit: 10, search })</code></td>
+      <td><code>GET /family/activity?page=1&limit=10&search=...</code></td>
+    </tr>
+    <tr>
+      <td>10</td>
+      <td><strong>Admin Members Page</strong><br><code>admin-dashboard/members/page.tsx</code></td>
+      <td>9 items</td>
+      <td><span class="badge-success">10 items / page</span></td>
+      <td><code>useGetMembersQuery({ page, limit: 10, search })</code></td>
+      <td><code>GET /family/members?page=1&limit=10&search=...</code></td>
+    </tr>
+    <tr>
+      <td>11</td>
+      <td><strong>Admin Users Page</strong><br><code>admin-dashboard/users/page.tsx</code></td>
+      <td>10 items</td>
+      <td><span class="badge-success">10 items / page</span></td>
+      <td><code>useGetUsersListQuery({ page, limit: 10, search })</code></td>
+      <td><code>GET /users?page=1&limit=10&search=...</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>2. 2D Interactive Family Tree Canvas Protection</h2>
+<div class="box-tree">
+  <strong>Guaranteed Tree Canvas Integrity:</strong><br>
+  Unlike the tables and grid cards, the 2D Interactive Family Tree Canvas (<code>InteractiveFamilyTreeCanvas.tsx</code> and <code>LandingFamilyTreeCanvas.tsx</code>) requires access to the complete graph of relatives and ties to draw SVG connection lines (parent, child, spouse, sibling) without severed links.<br><br>
+  The tree canvas queries use <code>useGetMembersQuery(undefined)</code> and <code>useGetRelationshipsQuery(undefined)</code>. In <code>familyApi.ts</code>, when parameters are undefined, the requests send:
+  <ul>
+    <li><code>/family/members?paginate=false</code></li>
+    <li><code>/family/relationships?paginate=false</code></li>
+  </ul>
+  The backend NestJS controller detects <code>paginate=false</code> and returns all nodes (capped at 1,000 for safety), ensuring <strong>zero broken lines</strong> while all other dashboard tabs display exactly 10 items per page.
+</div>
+
+<h2>3. Pagination Controls & URL Sync Features</h2>
+<ul>
+  <li><strong>Synchronized URL Parameters:</strong> When navigating pages or searching, URL query parameters (e.g. <code>?page=2&limit=10&search=john</code>) update via HTML5 <code>replaceState</code> without reloading the page or causing input focus loss.</li>
+  <li><strong>First / Prev / Next / Last Buttons:</strong> Complete navigation controls rendered via <code>PaginationControls.tsx</code>.</li>
+  <li><strong>Per-Page Dropdown Selector:</strong> Users can optionally switch between 10, 20, or 50 items per page.</li>
+  <li><strong>Debounced Search:</strong> Typing in search fields debounces by 300ms, trims whitespace, and automatically resets the current page back to 1.</li>
+</ul>
+
+<h2>4. Compilation & Quality Verification</h2>
+<p>The entire frontend codebase was validated using the Next.js TypeScript compiler:</p>
+<code>npx tsc --noEmit</code>
+<p><strong>Result:</strong> <code>The command exited with code 0</code> (No compilation errors, clean build).</p>
+
+<p style="margin-top: 30px; font-size: 10pt; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 10px;">
+  Family Together Development Team • Antigravity Pair Programming System
+</p>
+
+</body>
+</html>

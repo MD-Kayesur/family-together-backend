@@ -21,16 +21,11 @@ export class BroadcastEmailDto {
   priority?: string;
 }
 
-export class AnnouncementsQueryDto {
-  @ApiPropertyOptional({ example: 1 })
-  @IsOptional()
-  page?: number;
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
-  @ApiPropertyOptional({ example: 10 })
+export class AnnouncementsQueryDto extends PaginationQueryDto {
+  @ApiPropertyOptional({ example: 'ALL', description: 'Filter broadcasts by target role' })
   @IsOptional()
-  limit?: number;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  search?: string;
+  @IsString()
+  targetRole?: string;
 }

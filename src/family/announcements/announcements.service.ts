@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { MailService } from '../../mail/mail.service';
 import { buildPaginatedResponse } from '../../common/interfaces/paginated-result.interface';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { BroadcastEmailDto, AnnouncementsQueryDto } from './announcements.dto';
 
 @Injectable()
@@ -74,21 +75,52 @@ export class AnnouncementsService {
     return Array.from(emailMap.values());
   }
 
-  async getRecipientsPreview(userId?: string) {
+  async getRecipientsPreview(userId?: string, query?: PaginationQueryDto) {
     const family = await this.findUserSanctuary(userId);
     if (!family) {
       return { totalCount: 0, recipients: [] };
     }
 
     const recipients = await this.getEligibleRecipients(family.id, 'ALL');
+    const searchTerm = (query?.search || query?.q || '').trim().toLowerCase();
+
+    let filtered = recipients;
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (r) =>
+          r.name.toLowerCase().includes(searchTerm) ||
+          r.email.toLowerCase().includes(searchTerm) ||
+          r.role.toLowerCase().includes(searchTerm),
+      );
+    }
+
+    const mapped = filtered.map((r) => ({
+      personId: r.personId,
+      name: r.name,
+      email: r.email,
+      role: r.role,
+    }));
+
+    const total = mapped.length;
+    const page = Math.max(1, Number(query?.page) || 1);
+    const limit = Math.max(1, Math.min(100, Number(query?.limit) || 10));
+    const skip = (page - 1) * limit;
+
+    if (query?.raw === true || query?.paginate === false || (!query?.page && !query?.limit)) {
+      return { totalCount: total, recipients: mapped };
+    }
+
     return {
-      totalCount: recipients.length,
-      recipients: recipients.map((r) => ({
-        personId: r.personId,
-        name: r.name,
-        email: r.email,
-        role: r.role,
-      })),
+      totalCount: total,
+      recipients: mapped.slice(skip, skip + limit),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+        hasNextPage: page * limit < total,
+        hasPrevPage: page > 1,
+      },
     };
   }
 
@@ -182,7 +214,7 @@ export class AnnouncementsService {
     const page = Math.max(1, Number(query?.page) || 1);
     const limit = Math.max(1, Math.min(100, Number(query?.limit) || 10));
     const skip = (page - 1) * limit;
-    const searchTerm = (query?.search || '').trim();
+    const searchTerm = (query?.search || query?.q || '').trim();
 
     const where: any = { familyId: family.id };
     if (searchTerm) {
@@ -193,7 +225,19 @@ export class AnnouncementsService {
       ];
     }
 
+    if (query?.targetRole && query.targetRole !== 'ALL') {
+      where.targetRole = query.targetRole.toUpperCase();
+    }
+
     const total = await this.prisma.announcement.count({ where });
+
+    if (query?.raw === true || query?.paginate === false) {
+      return this.prisma.announcement.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
     const items = await this.prisma.announcement.findMany({
       where,
       skip,
