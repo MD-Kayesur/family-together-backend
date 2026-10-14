@@ -8,8 +8,9 @@ export class RelationshipsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getRelationships(query?: RelationshipsQueryDto) {
+    const isExplicitlyPaginated = query?.page !== undefined || (query?.limit !== undefined && query?.paginate !== false);
     const page = Math.max(1, Number(query?.page) || 1);
-    const limit = Math.max(1, Math.min(100, Number(query?.limit) || 10));
+    const limit = Math.max(1, Math.min(1000, Number(query?.limit) || 1000));
     const skip = (page - 1) * limit;
     const searchTerm = (query?.search || query?.q || '').trim();
 
@@ -56,13 +57,15 @@ export class RelationshipsService {
       toPersonId: r.toPersonId,
     });
 
-    if (query?.raw === true || query?.paginate === false) {
+    if (query?.raw === true || query?.paginate === false || !isExplicitlyPaginated) {
       const rels = await this.prisma.relationship.findMany({
         where,
         include: { fromPerson: true, toPerson: true, relationshipType: true },
         orderBy,
       });
-      return rels.map(mapRel);
+      return query?.paginate === false || query?.raw === true
+        ? rels.map(mapRel)
+        : buildPaginatedResponse(rels.map(mapRel), total, 1, Math.max(total, 1));
     }
 
     const rels = await this.prisma.relationship.findMany({
