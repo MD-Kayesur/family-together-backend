@@ -1,8 +1,21 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsBoolean } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsOptional, IsString, IsBoolean, IsInt, Min, Max } from 'class-validator';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 export class MembersQueryDto extends PaginationQueryDto {
+  @ApiPropertyOptional({
+    description: 'Number of member records per query (defaults to 1000 for full lineage)',
+    default: 1000,
+    example: 1000,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(5000)
+  limit?: number = 1000;
+
   @ApiPropertyOptional({
     description: 'Filter family members by gender (e.g. MALE, FEMALE, OTHER, UNKNOWN)',
     example: 'FEMALE',

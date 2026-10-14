@@ -17,8 +17,9 @@ export class MembersService {
   ) {}
 
   async getMembers(query?: MembersQueryDto) {
+    const isExplicitlyPaginated = query?.page !== undefined || (query?.limit !== undefined && query?.paginate !== false);
     const page = Math.max(1, Number(query?.page) || 1);
-    const limit = Math.max(1, Math.min(100, Number(query?.limit) || 10));
+    const limit = Math.max(1, Math.min(1000, Number(query?.limit) || 1000));
     const skip = (page - 1) * limit;
     const searchTerm = (query?.search || query?.q || '').trim();
 
@@ -53,8 +54,8 @@ export class MembersService {
 
     const total = await this.prisma.person.count({ where });
 
-    if (query?.raw === true || query?.paginate === false) {
-      return this.prisma.person.findMany({
+    if (query?.raw === true || query?.paginate === false || !isExplicitlyPaginated) {
+      const allMembers = await this.prisma.person.findMany({
         where,
         include: {
           user: true,
@@ -63,6 +64,9 @@ export class MembersService {
         },
         orderBy,
       });
+      return query?.paginate === false || query?.raw === true
+        ? allMembers
+        : buildPaginatedResponse(allMembers, total, 1, Math.max(total, 1));
     }
 
     const members = await this.prisma.person.findMany({
