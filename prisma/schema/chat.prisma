@@ -1,0 +1,64 @@
+// ----------------------------------------------------
+// Real-time Chat & Conversation Domain Models
+// ----------------------------------------------------
+
+enum ConversationType {
+  DIRECT
+  GROUP
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+}
+
+model Conversation {
+  id           String                  @id @default(uuid())
+  familyId     String                  @map("family_id")
+  type         ConversationType        @default(DIRECT)
+  title        String?
+  lastMessage  String?                 @map("last_message") @db.Text
+  lastSenderAt DateTime                @default(now()) @map("last_sender_at")
+  createdAt    DateTime                @default(now()) @map("created_at")
+  updatedAt    DateTime                @updatedAt @map("updated_at")
+
+  family       Family                  @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  participants ConversationParticipant[]
+  messages     ChatMessage[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String       @id @default(uuid())
+  conversationId String       @map("conversation_id")
+  userId         String       @map("user_id")
+  lastReadAt     DateTime     @default(now()) @map("last_read_at")
+  unreadCount    Int          @default(0) @map("unread_count")
+  joinedAt       DateTime     @default(now()) @map("joined_at")
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@map("conversation_participants")
+}
+
+model ChatMessage {
+  id             String        @id @default(uuid())
+  conversationId String        @map("conversation_id")
+  senderId       String        @map("sender_id")
+  senderName     String        @map("sender_name")
+  avatar         String?
+  text           String        @db.Text
+  mediaUrl       String?       @map("media_url")
+  reactions      Json?         @default("[]")
+  status         MessageStatus @default(SENT)
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  conversation   Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}

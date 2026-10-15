@@ -39,6 +39,7 @@ model User {
   status          UserStatus               @default(PENDING)
   emailVerified   Boolean                  @default(false)
   emailVerifiedAt DateTime?
+  createdById     String?                  @map("created_by_id")
   createdAt       DateTime                 @default(now())
   updatedAt       DateTime                 @updatedAt
 
@@ -48,6 +49,12 @@ model User {
 
   person          Person?
   claims          PersonClaim[]
+
+  createdBy       User?                    @relation("UserCreatedUsers", fields: [createdById], references: [id], onDelete: SetNull)
+  createdUsers    User[]                   @relation("UserCreatedUsers")
+
+  chatMessages             ChatMessage[]
+  conversationParticipants ConversationParticipant[]
 
   @@map("users")
 }

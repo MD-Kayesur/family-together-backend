@@ -27,6 +27,7 @@ model Family {
   invitations   Invitation[]
   announcements Announcement[]
   subscription  Subscription?
+  conversations Conversation[]
 
   @@map("families")
 }
