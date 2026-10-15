@@ -7,19 +7,50 @@ import { UpdateFamilyDetailsDto, UpdateSanctuarySettingsDto, ActivityQueryDto } 
 export class FamilyService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getSanctuaryData() {
-    let family = await this.prisma.family.findFirst({
-      include: {
-        members: {
-          include: {
-            person: true,
-          },
+  async getSanctuaryData(userId?: string, familyId?: string) {
+    let family: any = null;
+
+    if (familyId) {
+      family = await this.prisma.family.findUnique({
+        where: { id: familyId },
+        include: {
+          members: { include: { person: true } },
+          events: true,
+          documents: true,
+          invitations: true,
         },
-        events: true,
-        documents: true,
-        invitations: true,
-      },
-    });
+      });
+    } else if (userId) {
+      family = await this.prisma.family.findFirst({
+        where: {
+          OR: [
+            { createdBy: userId },
+            { members: { some: { person: { userId } } } },
+          ],
+        },
+        include: {
+          members: { include: { person: true } },
+          events: true,
+          documents: true,
+          invitations: true,
+        },
+      });
+    }
+
+    if (!family) {
+      family = await this.prisma.family.findFirst({
+        include: {
+          members: {
+            include: {
+              person: true,
+            },
+          },
+          events: true,
+          documents: true,
+          invitations: true,
+        },
+      });
+    }
 
     if (!family) {
       family = await this.prisma.family.create({
@@ -38,13 +69,17 @@ export class FamilyService {
       });
     }
 
-    const totalMembers = await this.prisma.person.count();
-    const connectedUsers = await this.prisma.user.count();
-    const totalMemories = await this.prisma.memory.count();
-    const totalEvents = await this.prisma.event.count();
-    const totalRelationships = await this.prisma.relationship.count();
-    const totalDocuments = await this.prisma.document.count();
-    const pendingInvites = await this.prisma.invitation.count({ where: { status: 'PENDING' } });
+    const totalMembers = await this.prisma.familyMember.count({ where: { familyId: family.id } });
+    const connectedUsers = await this.prisma.familyMember.count({
+      where: { familyId: family.id, person: { userId: { not: null } } },
+    });
+    const totalRelationships = await this.prisma.relationship.count({ where: { familyId: family.id } });
+    const totalMemories = await this.prisma.memory.count({ where: { familyId: family.id } });
+    const totalEvents = await this.prisma.event.count({ where: { familyId: family.id } });
+    const totalDocuments = await this.prisma.document.count({ where: { familyId: family.id } });
+    const pendingInvites = await this.prisma.invitation.count({
+      where: { familyId: family.id, status: 'PENDING' },
+    });
 
     return {
       family: {

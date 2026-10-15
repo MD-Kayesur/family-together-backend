@@ -31,6 +31,22 @@ export class RelationshipsQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsString()
   personId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter relationships by specific family ID (for My Family tab)',
+    example: '6116bc2a-49e2-4856-874e-ef70ceeeea69',
+  })
+  @IsOptional()
+  @IsString()
+  familyId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter relationships by user ID (to show user own added family tree)',
+    example: '491ec50e-eeb1-43bf-b235-f2fffd6ed0b2',
+  })
+  @IsOptional()
+  @IsString()
+  userId?: string;
 }
 
 export class CreateRelationshipDto {

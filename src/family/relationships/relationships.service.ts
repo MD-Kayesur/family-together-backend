@@ -41,6 +41,22 @@ export class RelationshipsService {
       }
     }
 
+    if (query?.familyId) {
+      where.familyId = query.familyId;
+    } else if (query?.userId) {
+      const userFamily = await this.prisma.family.findFirst({
+        where: {
+          OR: [
+            { createdBy: query.userId },
+            { members: { some: { person: { userId: query.userId } } } },
+          ],
+        },
+      });
+      if (userFamily) {
+        where.familyId = userFamily.id;
+      }
+    }
+
     const sortField = query?.sortBy || 'createdAt';
     const sortDir = (query?.sortOrder || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc';
     const orderBy: any = { [sortField]: sortDir };

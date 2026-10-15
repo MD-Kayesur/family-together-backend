@@ -17,8 +17,11 @@ export class FamilyController {
 **Permissions:** Read-only access to sanctuary dashboard data.`,
   })
   @ApiResponse({ status: 200, description: 'Family sanctuary data retrieved successfully' })
-  getSanctuaryData() {
-    return this.familyService.getSanctuaryData();
+  getSanctuaryData(
+    @Query('userId') userId?: string,
+    @Query('familyId') familyId?: string,
+  ) {
+    return this.familyService.getSanctuaryData(userId, familyId);
   }
 
   @Patch('update')

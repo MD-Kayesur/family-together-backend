@@ -30,9 +30,41 @@ export class MembersQueryDto extends PaginationQueryDto {
   })
   @IsOptional()
   isDeceased?: boolean | string;
+
+  @ApiPropertyOptional({
+    description: 'Filter family members by specific family sanctuary ID (for My Family tab)',
+    example: '6116bc2a-49e2-4856-874e-ef70ceeeea69',
+  })
+  @IsOptional()
+  @IsString()
+  familyId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter family members by creator/owner user ID (shows only user own added family)',
+    example: '491ec50e-eeb1-43bf-b235-f2fffd6ed0b2',
+  })
+  @IsOptional()
+  @IsString()
+  userId?: string;
 }
 
 export class CreateMemberDto {
+  @ApiPropertyOptional({
+    description: 'Target family sanctuary ID to attach member to (defaults to user own family)',
+    example: '6116bc2a-49e2-4856-874e-ef70ceeeea69',
+  })
+  @IsOptional()
+  @IsString()
+  familyId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Creator user ID who is adding this family member',
+    example: '491ec50e-eeb1-43bf-b235-f2fffd6ed0b2',
+  })
+  @IsOptional()
+  @IsString()
+  creatorUserId?: string;
+
   @ApiPropertyOptional({
     description: 'ID of an existing person record to associate with the sanctuary rather than creating a new person',
     example: 'prsn_93817',

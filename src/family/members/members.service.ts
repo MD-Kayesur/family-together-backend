@@ -48,6 +48,22 @@ export class MembersService {
       }
     }
 
+    if (query?.familyId) {
+      where.familyMemberships = { some: { familyId: query.familyId } };
+    } else if (query?.userId) {
+      const userFamily = await this.prisma.family.findFirst({
+        where: {
+          OR: [
+            { createdBy: query.userId },
+            { members: { some: { person: { userId: query.userId } } } },
+          ],
+        },
+      });
+      if (userFamily) {
+        where.familyMemberships = { some: { familyId: userFamily.id } };
+      }
+    }
+
     const sortField = query?.sortBy || 'createdAt';
     const sortDir = (query?.sortOrder || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc';
     const orderBy: any = { [sortField]: sortDir };
@@ -90,6 +106,25 @@ export class MembersService {
     return this.getMembers({ ...queryDto, search: q });
   }
 
+  private async findTargetFamily(data: CreateMemberDto) {
+    if (data.familyId) {
+      const fam = await this.prisma.family.findUnique({ where: { id: data.familyId } });
+      if (fam) return fam;
+    }
+    if (data.creatorUserId) {
+      const userFam = await this.prisma.family.findFirst({
+        where: {
+          OR: [
+            { createdBy: data.creatorUserId },
+            { members: { some: { person: { userId: data.creatorUserId } } } },
+          ],
+        },
+      });
+      if (userFam) return userFam;
+    }
+    return this.prisma.family.findFirst();
+  }
+
   async createMember(data: CreateMemberDto) {
     // If linking an existing person by ID
     if (data.existingPersonId) {
@@ -101,7 +136,7 @@ export class MembersService {
         throw new NotFoundException('Specified person record not found');
       }
 
-      const family = await this.prisma.family.findFirst();
+      const family = await this.findTargetFamily(data);
       if (family) {
         const existingMemberLink = await this.prisma.familyMember.findFirst({
           where: {
@@ -229,7 +264,7 @@ export class MembersService {
       },
     });
 
-    const family = await this.prisma.family.findFirst();
+    const family = await this.findTargetFamily(data);
     if (family) {
       await this.prisma.familyMember.create({
         data: {
