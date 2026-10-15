@@ -22,8 +22,10 @@ import { DocumentsService } from './documents/documents.service';
 import { InvitationsService } from './invitations/invitations.service';
 import { AnnouncementsService } from './announcements/announcements.service';
 
+import { ChatModule } from './chat/chat.module';
+
 @Module({
-  imports: [PrismaModule, MailModule],
+  imports: [PrismaModule, MailModule, ChatModule],
   controllers: [
     FamilyController,
     MembersController,
@@ -53,6 +55,7 @@ import { AnnouncementsService } from './announcements/announcements.service';
     DocumentsService,
     InvitationsService,
     AnnouncementsService,
+    ChatModule,
   ],
 })
 export class FamilyModule {}
