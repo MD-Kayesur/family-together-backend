@@ -1,0 +1,49 @@
+# FamilyRoots — Messages & Communication Feature Audit & Explanation
+
+**Document:** `MESSAGES_SYSTEM_EXPLANATION_AND_STATUS.doc`  
+**Query:** *"In this project has message side right? | yes or no"*  
+**Answer:** **YES**
+
+---
+
+## 1. Direct Answer
+**YES**, this project has a dedicated **Messages & Communications** module implemented across both the frontend and backend.
+
+---
+
+## 2. Frontend Implementation
+
+### A. Dedicated Component
+- **Component File:** `src/components/dashboard/tabs/MessagesTab.tsx`
+- **Features:**
+  - Real-time chat stream with auto-scroll.
+  - Contacts list & channels (All Chats, Channels, Direct Messages).
+  - Family Sanctuary Circle group channel for broadcast announcements.
+  - Reactions (`❤️`, `🙏`, `🎉`, `👍`), attachments, emojis.
+  - Read receipts (`delivered`, `read`), timestamps, and member status indicators.
+
+### B. Dashboard Routes & Navigation
+The Messages view is integrated into navigation across all dashboards:
+1. **Owner Dashboard:** `/owner-dashboard?tab=messages` and `/owner-dashboard/messages`
+2. **Member / User Dashboard:** `/user-dashboard?tab=messages` and `/user-dashboard/messages`
+3. **Admin Dashboard:** `/admin-dashboard/messages`
+4. **Viewer Dashboard:** `/owner-dashboard?tab=messages`
+
+- **Navigation Integration:** Configured in `SanctuaryDashboardWrapper.tsx`, `AdminLayout.tsx`, and `ViewerDashboardPage.tsx`.
+
+---
+
+## 3. Backend Implementation
+
+### A. Family Announcements & Broadcasts
+- **Controller:** `src/family/announcements/announcements.controller.ts`
+- **Service:** `src/family/announcements/announcements.service.ts`
+- **Model:** `Announcement` in `prisma/schema/vault.prisma`:
+  - Stores `senderUserId`, `senderName`, `senderEmail`, `subject`, `message`, `totalRecipients`, `successfulSent`, `targetRole`.
+- **Email Dispatch:** `src/mail/mail.service.ts` for broadcasting messages and announcements to all family members via SMTP.
+
+---
+
+## 4. Verification & Status
+- **Frontend Build Status:** Active and integrated with Redux Toolkit `familyApi`.
+- **Backend Build Status:** Active with Swagger endpoints under `/family/announcements`.

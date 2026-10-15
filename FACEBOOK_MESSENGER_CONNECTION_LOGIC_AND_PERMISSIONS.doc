@@ -1,0 +1,134 @@
+# FamilyRoots — Facebook Messenger-Style Messaging Architecture & Connection Rules
+
+**Document File:** `FACEBOOK_MESSENGER_CONNECTION_LOGIC_AND_PERMISSIONS.doc`  
+**Generated Date:** 2026-10-15  
+**Topic:** Connection-Based Messaging (Facebook Model) & Restricting Member-to-Owner Messaging  
+
+---
+
+## 1. 📌 Overview of the New Requirement
+
+The user specified two fundamental rules for real-time messaging:
+1. **Members CANNOT initiate direct messages to the Sanctuary Owner:**
+   - Regular `MEMBER` accounts cannot freely message the `OWNER`.
+   - Prevents owners from receiving unsolicited direct message spam.
+   - The Owner may initiate a message to a Member, in which case the Member can reply.
+2. **"Only will message who has added" (Facebook Messenger Model):**
+   - Similar to Facebook Messenger where you can only direct message people you are connected with ("Friends" / Mutual connections).
+   - In FamilyRoots, a user can only message another person if:
+     - **Condition A (Creator Link):** User A added/created User B, or User B added/created User A.
+     - **Condition B (Kinship Link):** User A and User B share a verified relationship link in the family tree (e.g. parent, child, sibling, spouse).
+     - **Condition C (Approved Thread):** A higher role (Owner/Admin) explicitly initiated a thread with that Member.
+
+---
+
+## 2. 👥 The Facebook Messenger Analogy in FamilyRoots
+
+```
+┌───────────────────────────────────────┬────────────────────────────────────────┐
+│   Facebook Messenger Mechanism        │     FamilyRoots Implementation         │
+├───────────────────────────────────────┼────────────────────────────────────────┤
+│ "Friends" (Mutual connection)         │ Connected Relatives (Who added whom /  │
+│                                       │ verified family tree relationship)     │
+├───────────────────────────────────────┼────────────────────────────────────────┤
+│ Page Owner / Admin protection         │ Member CANNOT direct message Owner     │
+│ (Users cannot spam personal inbox)    │ (Owner must initiate, or use Circle)   │
+├───────────────────────────────────────┼────────────────────────────────────────┤
+│ Strangers / Non-friends               │ Unconnected Members in Sanctuary       │
+│ (Blocked or filtered to requests)     │ (Cannot start direct 1-on-1 chat)      │
+├───────────────────────────────────────┼────────────────────────────────────────┤
+│ Group Chats (Family groups)           │ Sanctuary Circle (Broadcast channel)   │
+└───────────────────────────────────────┴────────────────────────────────────────┘
+```
+
+---
+
+## 3. 🛡️ Permission Decision Matrix
+
+| Sender Role | Target Role | Connection Status | Can Initiate Direct Chat? | Reason / Rule |
+| :--- | :--- | :--- | :---: | :--- |
+| **MEMBER** | **OWNER** | Any | ❌ **BLOCKED** | Members cannot message the Owner directly. |
+| **MEMBER** | **MEMBER** | Added each other / Kinship linked | ✅ **ALLOWED** | Like Facebook friends: they added each other or are linked relatives. |
+| **MEMBER** | **MEMBER** | Not added / No kinship link | ❌ **BLOCKED** | No connection. Cannot message strangers in the sanctuary. |
+| **OWNER** | **MEMBER** | Any | ✅ **ALLOWED** | Owner can message any member. Once opened, Member can reply. |
+| **ADMIN** | **MEMBER** | Added the member | ✅ **ALLOWED** | Admin can message members they invited or created. |
+| **VIEWER** | **ANY** | Any | ❌ **BLOCKED** | Viewers are read-only guests. |
+
+---
+
+## 4. 🗄️ Backend Verification Logic (`canInitiateMessage`)
+
+In NestJS (`src/family/chat/chat.service.ts` and `chat.gateway.ts`), before creating a conversation or transmitting a message, the server runs:
+
+```typescript
+async canInitiateMessage(senderId: string, recipientId: string, familyId: string): Promise<boolean> {
+  const sender = await this.prisma.user.findUnique({ where: { id: senderId } });
+  const recipient = await this.prisma.user.findUnique({ where: { id: recipientId } });
+  
+  if (!sender || !recipient) return false;
+
+  // RULE 1: Member CANNOT message Owner directly
+  if (sender.role === 'MEMBER' && recipient.role === 'OWNER') {
+    return false; // BLOCKED
+  }
+
+  // RULE 2: Owner or Admin initiating
+  if (sender.role === 'OWNER' || sender.role === 'SUPER_ADMIN') {
+    return true; // Owner can message anyone
+  }
+
+  // RULE 3: Who added whom? (Creator / Added check)
+  // Check if sender added recipient, or recipient added sender
+  const isDirectCreator = (sender.createdById === recipient.id || recipient.createdById === sender.id);
+  if (isDirectCreator) {
+    return true;
+  }
+
+  // RULE 4: Facebook-style relationship check (Are they connected relatives in the tree?)
+  const senderPerson = await this.prisma.person.findFirst({ where: { userId: senderId } });
+  const recipientPerson = await this.prisma.person.findFirst({ where: { userId: recipientId } });
+
+  if (senderPerson && recipientPerson) {
+    const hasRelationship = await this.prisma.relationship.findFirst({
+      where: {
+        familyId,
+        status: 'ACTIVE',
+        OR: [
+          { fromPersonId: senderPerson.id, toPersonId: recipientPerson.id },
+          { fromPersonId: recipientPerson.id, toPersonId: senderPerson.id },
+          { createdBy: senderId, toPersonId: recipientPerson.id }
+        ]
+      }
+    });
+
+    if (hasRelationship) {
+      return true; // Connected relatives can chat
+    }
+  }
+
+  // Otherwise: Not connected -> BLOCKED
+  return false;
+}
+```
+
+---
+
+## 5. 🎨 Frontend UI / UX Behavior (`MessagesTab.tsx`)
+
+1. **Contacts List (Left Panel):**
+   - Only displays relatives who have an **"Added / Connected"** badge.
+   - The **Sanctuary Owner** does NOT appear in a Member's direct message contact list.
+   - If an Owner messages a Member first, the thread appears in the Member's inbox with a special badge: `👑 Sanctuary Owner (Admin Thread)`.
+
+2. **Member Profile Cards (`/owner-dashboard/members` & `/user-dashboard/members`):**
+   - If User A added User B or is kinship-connected $\to$ Shows green **"💬 Message"** button.
+   - If User A is a regular Member viewing the Owner $\to$ Button is hidden or shows disabled: **"🔒 Direct messages restricted"**.
+   - If viewing an unconnected member $\to$ Shows **"Add Relative / Connect First"** instead of direct message.
+
+---
+
+## 6. 📋 Summary of Database Additions Needed
+
+1. **`createdById` on `User` & `Person`:** To track exactly which user added/invited this person.
+2. **`relationships` connection check:** Validates active links between family tree nodes.
+3. **`Conversation` guard:** Validates `canInitiateMessage` before allowing socket payload dispatch.

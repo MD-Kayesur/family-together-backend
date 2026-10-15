@@ -1,0 +1,104 @@
+# FamilyRoots — Real-Time Messaging Architecture & Technology Selection Plan
+
+**Document:** `REALTIME_MESSAGING_ARCHITECTURE_AND_TECHNOLOGY_SELECTION.doc`  
+**Date:** 2026-10-15  
+**Topic:** Real-Time Family Messaging & Chat Engine Implementation Strategy  
+
+---
+
+## 1. Executive Summary
+
+To complete the real-time messaging system across all dashboards (`/owner-dashboard/messages`, `/user-dashboard/messages`, and `/admin-dashboard/messages`), we evaluate the optimal technology stack considering our existing ecosystem:
+- **Backend:** NestJS 11 + Prisma ORM 7 + PostgreSQL + Redis (`ioredis`)
+- **Frontend:** Next.js 16 + React 19 + Redux Toolkit Query
+- **Existing Frontend Dependency:** `firebase: ^12.18.0` already installed
+
+---
+
+## 2. Proposed Architecture: Socket.io with NestJS WebSockets & Redis Pub/Sub (Recommended)
+
+### A. Core Stack
+1. **NestJS WebSocket Gateway:** `@nestjs/websockets` + `@nestjs/platform-socket.io` + `socket.io`
+2. **Redis Adapter for Scaling:** `@socket.io/redis-adapter` + existing `ioredis`
+3. **Database Persistence:** PostgreSQL via Prisma (`Conversation` & `ChatMessage` models in `prisma/schema/vault.prisma`)
+4. **Client-side:** `socket.io-client` in `family-together-frontend` integrated with RTK Query and `MessagesTab.tsx`
+
+### B. Event Flow Architecture
+```
+┌─────────────────────────────────┐                 ┌──────────────────────────────────┐
+│  Next.js 16 (MessagesTab.tsx)   │                 │     NestJS 11 WebSocket Gateway  │
+│       socket.io-client          │                 │       (ChatGateway.ts)           │
+└───────────────┬─────────────────┘                 └────────────────┬─────────────────┘
+                │ 1. Handshake with JWT Bearer Token                 │
+                ├───────────────────────────────────────────────────►│ Auth Guard validates JWT
+                │                                                    │
+                │ 2. emit("join_family_room", { familyId })          │
+                ├───────────────────────────────────────────────────►│ Client joins familyId room
+                │                                                    │
+                │ 3. emit("send_message", { recipientId, text })     │
+                ├───────────────────────────────────────────────────►│ Saves message to PostgreSQL
+                │                                                    │ Broadcasts via Redis Adapter
+                │ 4. on("receive_message", payload)                  │
+                │◄───────────────────────────────────────────────────┤ Emitted to recipient/room
+                │                                                    │
+                │ 5. emit("typing", { isTyping: true })              │
+                ├───────────────────────────────────────────────────►│ Real-time typing indicator
+```
+
+### C. Database Models (Prisma)
+```prisma
+model Conversation {
+  id           String        @id @default(uuid())
+  familyId     String        @map("family_id")
+  type         String        @default("DIRECT") // DIRECT | GROUP
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  family       Family        @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  messages     ChatMessage[]
+
+  @@map("conversations")
+}
+
+model ChatMessage {
+  id             String       @id @default(uuid())
+  conversationId String       @map("conversation_id")
+  senderId       String       @map("sender_id")
+  senderName     String       @map("sender_name")
+  avatar         String?
+  text           String       @db.Text
+  mediaUrl       String?      @map("media_url")
+  reactions      Json?        @default("[]")
+  status         String       @default("SENT") // SENT | DELIVERED | READ
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}
+```
+
+---
+
+## 3. Alternative Option: Firebase Realtime Database / Firestore
+
+Since `firebase` is already present in `family-together-frontend/package.json`:
+- **Pros:** 100% serverless, zero server WebSocket memory overhead on Vercel, offline support built-in.
+- **Cons:** Family chat data resides in Google Cloud Firestore instead of the family's sovereign PostgreSQL database; dual-database synchronization required.
+
+---
+
+## 4. Implementation Steps Upon Permission
+
+1. **Step 1: Install Backend WebSocket Packages**
+   - `@nestjs/websockets`, `@nestjs/platform-socket.io`, `socket.io`
+2. **Step 2: Add Prisma Models & Migrate**
+   - Add `Conversation` and `ChatMessage` to `prisma/schema/vault.prisma`
+   - Run `npx prisma db push`
+3. **Step 3: Create Chat Module in NestJS**
+   - `src/family/chat/chat.gateway.ts` (WebSocket events, JWT auth guard, rooms)
+   - `src/family/chat/chat.service.ts` (message CRUD, unread counter)
+   - `src/family/chat/chat.controller.ts` (REST history fallback)
+4. **Step 4: Connect Frontend (`MessagesTab.tsx`)**
+   - Install `socket.io-client` in frontend
+   - Replace demo state with live socket connection, real-time message stream, typing indicator, and unread badge sync.

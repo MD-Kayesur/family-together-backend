@@ -1,0 +1,171 @@
+# FamilyRoots — Real-Time Messaging: Roles, Conversation Workflows & Implementation Guide
+
+**Document File:** `REALTIME_MESSAGING_ROLES_AND_CONVERSATION_FLOW_GUIDE.doc`  
+**Generated Date:** 2026-10-15  
+**Topic:** Role Permissions, Conversation Mechanics, and End-to-End Implementation Workflow  
+
+---
+
+## 1. 📌 Executive Summary
+
+This document specifies the exact mechanics of how real-time messaging functions in FamilyRoots:
+1. **Who can message whom** (Role-Based Permissions Matrix).
+2. **What conversation types exist** (Family Circle Group Channel vs. Direct 1-on-1 Kinship Chat vs. Support).
+3. **How conversations are initiated and structured** in code and database.
+4. **End-to-end real-time message lifecycle** from sender typing to recipient delivery.
+
+---
+
+## 2. 👥 Role-Based Messaging Permissions Matrix
+
+In FamilyRoots, communication permissions preserve the intimacy and privacy of the family sanctuary:
+
+| Initiator Role | Target Role | Allowed Channel Types | Permissions & Rules |
+| :--- | :--- | :--- | :--- |
+| **OWNER** | **MEMBER / ADMIN** | Direct (1-on-1) & Group Channel | Full messaging privileges; can pin messages, broadcast announcements, and moderate chat. |
+| **ADMIN** | **MEMBER / OWNER** | Direct (1-on-1) & Group Channel | Can message all family members, coordinate reunions, share documents/photos. |
+| **MEMBER** | **MEMBER (Same Family)** | Direct (1-on-1) & Group Channel | Can chat 1-on-1 with any verified relative in their family; post in Family Sanctuary Circle. |
+| **MEMBER** | **OWNER / ADMIN** | Direct (1-on-1) | Can ask sanctuary owners questions or request tree updates. |
+| **VIEWER (Guest)**| **Family Group Channel** | Group Channel (Read-Only) | Can read public family announcements; cannot initiate unsolicited direct messages. |
+| **SUPER_ADMIN** | **OWNER / Platform** | System Support Channel | Platform announcements and billing/support inquiry resolution. |
+
+> 🔒 **Strict Tenant Isolation Rule:** Users can **ONLY** message members within their own `familyId`. A member of Family Smith can never see, search, or message anyone from Family Johnson.
+
+---
+
+## 3. 💬 Types of Conversations
+
+### Type A: "Sanctuary Circle" (Family Group Broadcast & Chat)
+* **What it is:** The default group conversation created automatically for every family.
+* **Participants:** All verified members of that specific family (`familyId`).
+* **Use Cases:**
+  * Reunion announcements & RSVPs.
+  * Shared birthday reminders and congratulations.
+  * Milestone family photos and memories discussions.
+* **Permissions:** Owners and Admins can broadcast and pin announcements; Members can reply, react with emojis (`❤️`, `🙏`, `🎉`), and share photos.
+
+### Type B: "Direct 1-on-1 Kinship Chat"
+* **What it is:** Private end-to-end conversation between two individual family relatives (e.g., Uncle Robert $\leftrightarrow$ Niece Emily).
+* **Initiation:**
+  1. A user clicks **"Send Message"** on any relative's card in the `/members` directory or in the Tree Canvas node popover.
+  2. The system checks if a 1-on-1 conversation already exists between `userA` and `userB`.
+  3. If it exists, it navigates directly to `/owner-dashboard/messages?conversationId=...` or `/user-dashboard/messages?conversationId=...`.
+  4. If it does not exist, it instantly creates the conversation record and opens the chat window.
+
+### Type C: "Platform Support & Feedback"
+* **What it is:** Direct line between Sanctuary Owners and Super Admin / Support.
+* **Use Cases:** Billing inquiries, storage plan upgrades, technical support.
+
+---
+
+## 4. 🗄️ Database Architecture & Schema
+
+To support group chats, 1-on-1 direct messaging, read receipts, and unread badges, we introduce the standard multi-participant schema:
+
+```prisma
+// Conversation container
+model Conversation {
+  id           String        @id @default(uuid())
+  familyId     String        @map("family_id")
+  type         String        @default("DIRECT") // "DIRECT" | "GROUP"
+  title        String?       // e.g. "Sanctuary Circle" for group chats
+  lastMessage  String?       @map("last_message") @db.Text
+  lastSenderAt DateTime      @default(now()) @map("last_sender_at")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  family       Family        @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  participants ConversationParticipant[]
+  messages     ChatMessage[]
+
+  @@map("conversations")
+}
+
+// Junction linking users to conversations
+model ConversationParticipant {
+  id             String       @id @default(uuid())
+  conversationId String       @map("conversation_id")
+  userId         String       @map("user_id")
+  lastReadAt     DateTime     @default(now()) @map("last_read_at")
+  unreadCount    Int          @default(0) @map("unread_count")
+  joinedAt       DateTime     @default(now()) @map("joined_at")
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@map("conversation_participants")
+}
+
+// Individual chat message
+model ChatMessage {
+  id             String       @id @default(uuid())
+  conversationId String       @map("conversation_id")
+  senderId       String       @map("sender_id")
+  senderName     String       @map("sender_name")
+  avatar         String?
+  text           String       @db.Text
+  mediaUrl       String?      @map("media_url")
+  reactions      Json?        @default("[]") // [{"emoji": "❤️", "userId": "..."}]
+  status         String       @default("SENT") // "SENT" | "DELIVERED" | "READ"
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}
+```
+
+---
+
+## 5. ⚡ Real-Time Lifecycle: Step-by-Step
+
+### Step 1: User Opens the Dashboard
+* Next.js frontend initiates WebSocket connection to NestJS server:
+  ```ts
+  const socket = io(API_URL, {
+    auth: { token: bearerToken },
+    transports: ['websocket']
+  });
+  ```
+* NestJS `ChatGateway` validates JWT, verifies user identity, and joins the user to:
+  * Room `user_${userId}` (for personal notifications & direct messages).
+  * Room `family_${familyId}` (for family-wide broadcasts & circle chat).
+
+### Step 2: User Types a Message
+* User types in `MessagesTab.tsx` input bar:
+  * Emits `typing_start` event with `{ conversationId, userId, userName }`.
+  * Other participants in the conversation see an active typing indicator: *"Sarah is typing..."*.
+
+### Step 3: User Clicks Send
+* Frontend optimistically renders the outgoing chat bubble with status `sending` $\to$ `sent`.
+* Emits `send_message` event:
+  ```json
+  {
+    "conversationId": "c4b3a2...",
+    "text": "Happy 80th Birthday Grandpa! 🎉",
+    "mediaUrl": null
+  }
+  ```
+* Backend `ChatGateway`:
+  1. Verifies sender is an authorized participant in the conversation.
+  2. Saves `ChatMessage` into PostgreSQL via Prisma.
+  3. Increments `unreadCount` for other participants.
+  4. Broadcasts `new_message` to the conversation room via Redis.
+
+### Step 4: Recipient Receives Message
+* If recipient is currently looking at this conversation:
+  * Message appears instantly with no page reload.
+  * Frontend automatically emits `mark_as_read` $\to$ sender's bubble updates to double blue checkmarks (`READ`).
+* If recipient is browsing another tab (e.g. `/owner-dashboard/tree`):
+  * Navbar bell icon updates with unread badge (`+1`).
+  * Sound alert or browser notification is triggered.
+
+---
+
+## 6. 🛠️ Implementation Plan
+
+1. **Prisma Update:** Add `Conversation`, `ConversationParticipant`, and `ChatMessage` schemas and execute `npx prisma db push`.
+2. **NestJS Gateway:** Create `src/family/chat/` with `chat.gateway.ts`, `chat.service.ts`, and `chat.controller.ts`.
+3. **Frontend Connection:** Wire `socket.io-client` in `MessagesTab.tsx` replacing mock/static states with live reactive subscriptions.
+4. **Member Card Trigger:** Add a "Message Relative" button on member profiles to instantly open a 1-on-1 thread.

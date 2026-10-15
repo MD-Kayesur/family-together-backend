@@ -1,0 +1,165 @@
+# 🌲 FamilyRoots Platform ("Family Together") — Comprehensive Project Overview & Architecture Guide
+
+**Document File:** `PROJECT_FULL_OVERVIEW_AND_ARCHITECTURE_DOCUMENTATION.doc`  
+**Generated Date:** 2026-10-15  
+**Projects Covered:** 
+- Backend: `d:\Projects\family-together-backend` (NestJS 11 + Prisma 7 + PostgreSQL + Redis)
+- Frontend: `d:\Projects\family-together-frontend` (Next.js 16 App Router + React 19 + RTK Query + TailwindCSS v4)
+
+---
+
+## 1. 📌 Executive Summary & Product Vision
+
+**FamilyRoots** (internally designated **Family Together**) is an enterprise-grade, privacy-first, multi-generational family tree, lineage management, and digital heritage preservation platform.
+
+The core mission of FamilyRoots is to provide families with a private, invite-only digital sanctuary where they can:
+1. **Visualize Complex Lineages:** Render interactive, zoomable, multi-generational family trees with biological, marital, and adoptive connections.
+2. **Preserve Stories & Memories:** Curate rich multi-media galleries (photos, audio recordings, video stories) tied to individual ancestors or entire family branches.
+3. **Prevent Duplicate Records:** Leverage an intelligent real-time relative deduplication engine that stops duplicate ancestor entries before they fragment the family tree.
+4. **Coordinate Events & RSVPs:** Schedule reunions, birthdays, anniversaries, and memorial gatherings with real-time attendee tracking.
+5. **Secure Vault Documents:** Safely store high-resolution legal certificates, wills, citizenship records, and heirlooms with up to 100MB per file payload capacity.
+6. **Granular Privacy & Multi-Tenancy:** Enforce strict data isolation so no family's data, photos, or lineage records can ever bleed into or be viewed by another family.
+
+---
+
+## 2. 🏛️ High-Level System Architecture
+
+FamilyRoots is engineered as a decoupled modern full-stack web application:
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                   Next.js 16 Client (App Router)                       │
+│        React 19 • Redux Toolkit (RTK Query Cache) • Tailwind CSS v4    │
+│            Interactive 2D Canvas Family Tree Lineage Engine            │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ HTTPS REST APIs + JWT Bearer / Cookie
+┌───────────────────────────────────▼────────────────────────────────────┐
+│                       NestJS 11 REST API Server                        │
+│            Modular Architecture • Passport JWT • Swagger OpenAPI       │
+│           Role-Based Access Control Guards (Owner, Admin, Member)      │
+└───────────────────┬───────────────────────────────────┬────────────────┘
+                    │                                   │
+┌───────────────────▼──────────────────┐   ┌────────────▼───────────────┐
+│     PostgreSQL Database (Neon)       │   │        Redis Cache         │
+│  Prisma ORM 7 Multi-Schema Partition │   │  Session & Blacklist Cache │
+│ (base, family, person, rel, vault)   │   │  OTP & Verification Store  │
+└──────────────────────────────────────┘   └────────────────────────────┘
+```
+
+---
+
+## 3. 🛠️ Technology Stack Breakdown
+
+| Layer | Technology | Key Details & Capabilities |
+| :--- | :--- | :--- |
+| **Frontend Framework** | **Next.js 16 (App Router)** | Modern server/client component architecture, route prefetching, fast navigation. |
+| **Frontend UI & Styling**| **React 19 + TailwindCSS v4** | Modern component lifecycle, Lucide icons, responsive layout system. |
+| **Frontend State & Cache**| **Redux Toolkit + RTK Query** | Centralized cache, optimistic updates, automatic query re-fetching on mutations. |
+| **Lineage Visualizer** | **HTML5 Canvas / Custom SVG** | Smooth pan & zoom, auto-branch layout, unlimited relative connectivity. |
+| **Backend Framework** | **NestJS 11** | TypeScript-based modular framework, dependency injection, high scalability. |
+| **API Documentation** | **Swagger UI / OpenAPI** | Interactive docs available at `/api/docs` with `Bearer` auth injection. |
+| **ORM & Database** | **Prisma 7 + PostgreSQL** | `@prisma/adapter-pg` driver adapter, multi-file modular schema definitions. |
+| **Caching & Sessions** | **Redis (`ioredis`)** | Token blacklist, fast session verification, rate limiting, and temporary codes. |
+| **Email Service** | **Nodemailer (SMTP)** | Automated welcome emails, forgot password OTP links, and invite notices. |
+| **Payments** | **Stripe API** | Multi-tier family subscriptions and billing webhooks. |
+
+---
+
+## 4. 👥 Roles & Authorization Hierarchy (RBAC)
+
+The system features 5 distinct hierarchical roles:
+
+| Role | Access Level | Permissions & Capabilities |
+| :--- | :--- | :--- |
+| **OWNER** | Family Sanctuary Owner | Full management of their family sanctuary: billing, inviting members, managing tree nodes, viewing audit logs, and configuring sanctuary settings. |
+| **SUPER_ADMIN** | Global Platform Admin | Global oversight across all family tenants, database health metrics, system throughput, and administrative moderation. |
+| **ADMIN** | Family Sanctuary Admin | Add and edit family members, resolve deduplication flags, upload vault assets, coordinate calendar events. |
+| **MEMBER** | Verified Family Member | View family tree branches, upload personal memories and stories, RSVP to events, view permitted documents. |
+| **VIEWER** | Restricted Guest | Read-only access to public landing resources; strictly restricted from sensitive private family trees. |
+
+---
+
+## 5. 🗄️ Database Multi-Schema Architecture (Prisma 7)
+
+Database models are organized into 5 modular schema files under `prisma/schema/`:
+
+1. **`base.prisma`**:
+   - `User`: Email, password hash, role, status (`ACTIVE`, `PENDING`, `SUSPENDED`).
+   - `Session`, `PasswordResetToken`, `EmailVerificationToken`.
+2. **`family.prisma`**:
+   - `Family`: Sanctuary container, name, privacy tier, subscription level.
+   - `FamilyMember`: Junction model associating a `Person` with a `Family` under a specific member role.
+3. **`person.prisma`**:
+   - `Person`: Decoupled historical node (first name, last name, birth date, death date, bio, avatar, occupation). Non-digital ancestors exist as `Person` records without requiring a `User` account.
+   - `PersonClaim`: Allows modern users to claim an existing ancestor node.
+4. **`relationship.prisma`**:
+   - `Relationship`: Explicit graph edges between two persons (`fromPersonId` -> `toPersonId`).
+   - `RelationshipType`: Categorized as `BIOLOGICAL`, `MARITAL`, or `ADOPTIVE` (Father, Mother, Son, Daughter, Husband, Wife, Sibling, etc.).
+5. **`vault.prisma`**:
+   - `Memory`: Stories and photos with multi-URL support (`mediaUrls`).
+   - `Event`: Reunions, anniversaries, birthdays with attendee RSVP statuses.
+   - `Document`: High-resolution legal archive records (100MB body parser limit).
+   - `Invitation`: Magic invitation tokens with expiration controls.
+
+---
+
+## 6. 📱 Frontend Application Modules & Dashboard Routes
+
+### 6.1 Public Experience
+- **`/` (Landing Page):** Showcase hero, interactive demo tree canvas preview, feature explanations, testimonial carousel, pricing plans, and login/register modal gateways.
+
+### 6.2 Owner / Sanctuary Dashboard (`/owner-dashboard`)
+- **Overview (`/owner-dashboard`):** Sanctuary overview, member statistics, pending invites, memory counts, recent activity logs.
+- **Tree Canvas (`/owner-dashboard/tree`):** Dynamic interactive family tree canvas with drag, pan, zoom, node selection, and unlimited relationship links.
+- **Members (`/owner-dashboard/members`):** Searchable member directory with deduplication warnings upon new member entry.
+- **Relationships (`/owner-dashboard/relationships`):** Visual matrix and form to connect parents, spouses, and children.
+- **Memories (`/owner-dashboard/memories`):** Photo vault with multi-image lightbox and story editor.
+- **Events (`/owner-dashboard/events`):** Calendar, RSVP tracking, date filtering.
+- **Documents (`/owner-dashboard/documents`):** Filterable archive vault with secure file download triggers.
+- **Activity & Heatmap (`/owner-dashboard/activity`):** GitHub-style green contribution activity heatmap showing family archiving frequency.
+- **Settings & Profile (`/owner-dashboard/settings`):** Sanctuary branding, custom domains, privacy configurations.
+
+### 6.3 Super Admin Control Center (`/admin-dashboard`)
+- **System Overview:** Node uptime, active connections, server health metrics.
+- **User Management (`/admin-dashboard/users`):** Cross-family user search, role upgrades, account suspension toggles.
+- **Analytics (`/admin-dashboard/analytics`):** User growth curves, retention graphs, storage consumption metrics.
+
+---
+
+## 7. 🔐 Security, Privacy & Reliability Guarantees
+
+1. **Multi-Tenant Data Isolation:** Every query in the family module automatically enforces a `familyId` filter combined with the verified user's session claims.
+2. **Decoupled Ancestor Records:** Unlike conventional social platforms that require an active email for every profile, FamilyRoots decouples digital users (`User`) from genealogy nodes (`Person`).
+3. **Payload Optimization:** Custom Express configurations allow up to 100MB payloads to handle archival scans and high-resolution photo archives without HTTP 413 errors.
+4. **Resilient Token Invalidation:** Redis-backed blacklist ensures compromised or logged-out JWTs cannot be reused.
+
+---
+
+## 8. 💻 Development Commands Quick Reference
+
+### Backend (`family-together-backend`)
+```bash
+# Install dependencies
+npm install
+
+# Push database schema changes
+npx prisma db push
+
+# Run development server with auto-reload
+npm run start:dev
+
+# Interactive Swagger Documentation
+http://localhost:3000/api/docs (or configured PORT)
+```
+
+### Frontend (`family-together-frontend`)
+```bash
+# Install dependencies
+npm install
+
+# Run Next.js 16 development server
+npm run dev
+
+# Open in browser
+http://localhost:3000
+```
