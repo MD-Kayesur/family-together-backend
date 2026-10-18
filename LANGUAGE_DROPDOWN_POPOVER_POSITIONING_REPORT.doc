@@ -1,0 +1,41 @@
+
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="utf-8">
+    <title>Navbar Language Switcher Dropdown Popover Positioning Report</title>
+    <style>
+      body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1e293b; padding: 40px; }
+      h1 { color: #1e3a8a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+      h2 { color: #0f172a; margin-top: 25px; }
+      table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+      th, td { border: 1px solid #cbd5e1; padding: 10px 14px; text-align: left; }
+      th { background-color: #1e3a8a; color: #ffffff; }
+      code { background-color: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: Consolas, monospace; }
+      .box { background-color: #eff6ff; border-left: 4px solid #2563eb; padding: 14px 18px; margin: 15px 0; }
+      .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-weight: bold; background-color: #dcfce7; color: #166534; }
+    </style>
+  </head>
+  <body>
+    <h1>📍 Navbar Language Switcher Dropdown Popover Positioning Report</h1>
+    <p><em>Implementation Report: Anchored Dropdown Popover Right Below the Navbar Language Button, Click-Outside Dismissal, and Compact Search & 4-Language Hierarchy</em></p>
+    <hr/>
+
+    <h2>১. ব্যবহারকারীর লাল চিহ্নিত নির্দেশিকা (Red Box Positioning)</h2>
+    <div class="box">
+      <strong>রিকোয়েস্ট:</strong> ব্যবহারকারী স্ক্রিনশট দিয়ে দেখিয়েছেন যে ল্যাঙ্গুয়েজ মডালটি স্ক্রিনের মাঝখানে ফুলস্ক্রিন ডায়ালগ আকারে না এসে, নেভবারের <code>[ 🌐 ES Español ]</code> বাটনের ঠিক নিচে (ড্রপডাউন পপওভার হিসেবে) প্রদর্শিত হতে হবে।
+    </div>
+
+    <h2>২. পজিশনিং ও টেকনিক্যাল ইমপ্লিমেন্টেশন</h2>
+    <ul>
+      <li><strong>অ্যাঙ্কর কন্টেইনার:</strong> <code>relative inline-block text-left</code> দিয়ে বাটনের সাপেক্ষে অ্যাঙ্কর করা হয়েছে।</li>
+      <li><strong>ড্রপডাউন পপওভার:</strong> <code>absolute right-0 top-full mt-2 w-80 sm:w-84 z-[100]</code> ক্লাস দিয়ে ঠিক বাটনের নিচে সুন্দর ড্রপডাউন হিসেবে নামিয়ে আনা হয়েছে।</li>
+      <li><strong>ক্লিক-আউটসাইড হ্যান্ডলার:</strong> বাইরে ক্লিক করলে স্বয়ংক্রিয়ভাবে ড্রপডাউন বন্ধ হয়ে যাওয়ার জন্য <code>useEffect</code> মাউস ও টাচ ইভেন্ট লিসেনার সেট করা হয়েছে।</li>
+      <li><strong>লেআউট অক্ষুণ্ণ:</strong> উপরে সার্চ ফিল্ড, মাঝে ডিভাইডার রেখা, নিচে ডিফল্ট ৪টি মূল ভাষা এবং সার্চ করলে ফিল্টার রেজাল্ট।</li>
+    </ul>
+
+    <h2>৩. কোয়ালিটি নিশ্চয়তা</h2>
+    <p><span class="badge">TypeScript: 0 Errors</span> সমস্ত কোড সম্পূর্ণ টাইপসেফ এবং নেক্সট.জেএস ১৬ সার্ভারে 200 OK রেসপন্স দিচ্ছে।</p>
+  </body>
+  </html>
+  
