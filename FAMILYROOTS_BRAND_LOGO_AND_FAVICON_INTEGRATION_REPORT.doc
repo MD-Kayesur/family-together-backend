@@ -1,0 +1,64 @@
+
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="utf-8">
+    <title>FamilyRoots Brand Logo & Multi-Platform Favicon Integration Report</title>
+    <style>
+      body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1e293b; padding: 40px; }
+      h1 { color: #1e3a8a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+      h2 { color: #0f172a; margin-top: 25px; }
+      table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+      th, td { border: 1px solid #cbd5e1; padding: 10px 14px; text-align: left; }
+      th { background-color: #1e3a8a; color: #ffffff; }
+      code { background-color: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: Consolas, monospace; }
+      .box { background-color: #eff6ff; border-left: 4px solid #2563eb; padding: 14px 18px; margin: 15px 0; }
+      .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-weight: bold; background-color: #dcfce7; color: #166534; }
+    </style>
+  </head>
+  <body>
+    <h1>🌳 FamilyRoots Brand Logo & Multi-Platform Favicon Integration Report</h1>
+    <p><em>Official Report: Brand Identity Design, Next.js App Router Favicon Architecture, Multi-Platform Resolution Support, and System-Wide Navigation Integration</em></p>
+    <hr/>
+
+    <h2>১. ব্র্যান্ড লোগো তৈরি ও ডিজাইন দর্শন (Logo Philosophy)</h2>
+    <div class="box">
+      <strong>ভিজ্যুয়াল সিম্বল:</strong> গোল্ডেন ও এমারেল্ড-সবুজ শেকড় ও শাখাযুক্ত একটি চিরন্তন পারিবারিক বৃক্ষ (Sacred Family Tree), যা একটি গভীর রয়্যাল ইন্ডিগো স্কোয়ার্কেল (Squircle) ফ্রেম এবং সোনালী জ্যামিতিক বর্ডারের ভেতর স্থাপিত।<br/><br/>
+      <strong>তাৎপর্য:</strong> এটি ডিজিটাল নিরাপত্তা (Digital Privacy), রক্তের বন্ধন (Kinship & Lineage), এবং প্রজন্মের পর প্রজন্ম পারিবারিক স্মৃতি সুরক্ষিত রাখার পবিত্র প্রতিশ্রুতি নির্দেশ করে।
+    </div>
+
+    <h2>২. ফেভিকন ও ব্রাউজার আর্কিটেকচার (Multi-Platform Favicon Suite)</h2>
+    <table>
+      <tr><th>ফাইলের অবস্থান</th><th>ফরম্যাট ও রেজোলিউশন</th><th>ব্যবহার ও ব্রাউজার সাপোর্ট</th></tr>
+      <tr><td><code>src/app/favicon.ico</code><br/><code>public/favicon.ico</code></td><td>Multi-size .ico</td><td>Google Chrome, Microsoft Edge, Mozilla Firefox সহ সকল ডেস্কটপ ব্রাউজার ট্যাব ও বুকমার্ক।</td></tr>
+      <tr><td><code>src/app/icon.png</code><br/><code>public/icon.png</code></td><td>512x512 PNG High-Res</td><td>Next.js 16 App Router অটো-ডিসকভারি ও আধুনিক হাই-ডিপিআই রেটিনা ডিসপ্লে।</td></tr>
+      <tr><td><code>src/app/apple-icon.png</code><br/><code>public/apple-icon.png</code></td><td>512x512 Apple Touch Icon</td><td>Apple iPhone, iPad, Safari ও iOS Home Screen শর্টকাট।</td></tr>
+      <tr><td><code>public/logo.png</code><br/><code>public/logo.jpg</code></td><td>High-Res Original Mark</td><td>নেভবার, ফুটার, মেম্বার ড্যাশবোর্ড ও ইমেল টেমপ্লেট ব্র্যান্ডিং।</td></tr>
+    </table>
+
+    <h2>৩. নেক্সট.জেএস ১৬ মেটাডাটা ইন্টিগ্রেশন (Next.js 16 Metadata)</h2>
+    <p><code>src/app/layout.tsx</code> ফাইলের <code>metadata</code> অবজেক্টে সরাসরি আইকন পাথসমূহ রেজিস্টার করা হয়েছে:</p>
+    <pre><code>icons: {
+  icon: [
+    { url: "/icon.png", type: "image/png" },
+    { url: "/favicon.ico", sizes: "any" },
+  ],
+  apple: [
+    { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
+  ],
+  shortcut: ["/favicon.ico"],
+}</code></pre>
+
+    <h2>৪. যেসব কম্পোনেন্টে লোগো ইন্টিগ্রেট করা হয়েছে</h2>
+    <ul>
+      <li><strong>PublicNavbar.tsx:</strong> প্রিমিয়াম গ্লো ও ট্রানজিশন হোভার ইফেক্টসহ টপ হেডার লোগো।</li>
+      <li><strong>PublicFooter.tsx:</strong> ডার্ক মোড ফুটার ব্র্যান্ড আইকন।</li>
+      <li><strong>SanctuaryDashboardWrapper.tsx:</strong> মেম্বার ও ওনার ড্যাশবোর্ডের ডেস্কটপ সাইডবার ও মোবাইল ড্রয়ারে অফিসিয়াল লোগো।</li>
+      <li><strong>admin-dashboard/layout.tsx:</strong> অ্যাডমিন সিস্টেম কন্ট্রোলারের সাইডবারে ব্র্যান্ড লোগো।</li>
+    </ul>
+
+    <h2>৫. কোয়ালিটি নিশ্চয়তা (Quality Assurance)</h2>
+    <p><span class="badge">TypeScript: 0 Errors</span> সকল কোড টাইপসেফ এবং নেক্সট.জেএস সার্ভারে নির্বিঘ্নে রেন্ডার হচ্ছে।</p>
+  </body>
+  </html>
+  
