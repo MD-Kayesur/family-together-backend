@@ -17,12 +17,59 @@ async function bootstrap() {
   app.use(urlencoded({ limit: '100mb', extended: true }));
 
   app.use(cookieParser());
-
+  // Comprehensive, future-proof CORS configuration
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: (requestOrigin, callback) => {
+      // Allow non-browser requests with no origin (e.g. mobile apps, curl, server-to-server)
+      if (!requestOrigin) {
+        return callback(null, true);
+      }
+
+      const envOrigins = (process.env.FRONTEND_URL || '')
+        .split(',')
+        .map((url) => url.trim())
+        .filter(Boolean);
+
+      // Match localhost or 127.0.0.1 on ANY port (3000, 3001, 3002, 5173, etc.)
+      const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?$/.test(requestOrigin);
+
+      // Match local LAN IP addresses (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+      const isLocalNetwork = /^https?:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?$/.test(requestOrigin);
+
+      // Match Vercel deployment preview / production domains
+      const isVercel = /^https:\/\/[a-zA-Z0-9_\-.]+\.vercel\.app$/.test(requestOrigin);
+
+      if (
+        envOrigins.includes(requestOrigin) ||
+        isLocalhost ||
+        isLocalNetwork ||
+        isVercel ||
+        process.env.NODE_ENV !== 'production'
+      ) {
+        return callback(null, true);
+      }
+
+      logger.warn(`[CORS] Blocked request from disallowed origin: ${requestOrigin}`);
+      callback(new Error(`CORS policy blocked access from origin: ${requestOrigin}`), false);
+    },
     credentials: true,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type, Accept, Authorization',
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Accept',
+      'Authorization',
+      'X-Requested-With',
+      'Origin',
+      'Access-Control-Request-Method',
+      'Access-Control-Request-Headers',
+      'Range',
+      'Cache-Control',
+      'Cookie',
+      'baggage',
+      'sentry-trace',
+    ],
+    exposedHeaders: ['Content-Range', 'X-Total-Count', 'Authorization', 'Set-Cookie'],
+    maxAge: 86400, // Preflight response cached for 24 hours
   });
 
 

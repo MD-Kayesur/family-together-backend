@@ -15,7 +15,9 @@ import { SendChatMessageDto, TypingEventDto, MarkReadDto } from './chat.dto';
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: (origin: any, callback: any) => {
+      callback(null, true);
+    },
     credentials: true,
   },
 })
