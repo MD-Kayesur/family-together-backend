@@ -1,0 +1,301 @@
+# 🌲 FamilyRoots Platform ("Family Together") — Full Project Review & Missing APIs / Features Audit
+
+**Document File:** `FULL_PROJECT_REVIEW_AND_MISSING_APIS_FEATURES_AUDIT.doc`  
+**Generated Date:** 2026-10-17  
+**Platform:** FamilyRoots ("Family Together")  
+**Projects Covered:** 
+- Backend: `d:\Projects\family-together-backend` (NestJS 11 + Prisma 7 + PostgreSQL + Redis + Socket.IO + Nodemailer + Stripe)
+- Frontend: `d:\Projects\family-together-frontend` (Next.js 16 App Router + React 19 + RTK Query + TailwindCSS v4 + Lucide Icons)
+**Audit Status:** Complete End-to-End Deep Codebase Review
+
+---
+
+## 1. 📌 Executive Summary & Purpose
+
+A rigorous, end-to-end architectural and implementation audit was conducted across both the backend and frontend codebases of the **FamilyRoots** platform. 
+
+The objective of this audit is to:
+1. Review all implemented capabilities, APIs, and user interfaces across the platform.
+2. Cross-reference backend controllers against frontend RTK Query API endpoints and UI tab components.
+3. Identify all missing REST API endpoints, missing database relations, disconnected frontend actions, and incomplete feature workflows.
+4. Provide a structured, actionable engineering roadmap to bring the entire platform to 100% full-stack parity and production readiness.
+
+---
+
+## 2. 🏗️ Current System Architecture Overview
+
+```
+┌────────────────────────────────────────────────────────────────────────────┐
+│                    Next.js 16 Client (App Router)                          │
+│          React 19 • Redux Toolkit (RTK Query Cache) • Tailwind CSS v4      │
+│      Socket.io-client (Real-time Chat) • Interactive 2D Tree Canvas         │
+└─────────────────────────────────────┬──────────────────────────────────────┘
+                                      │ REST APIs (JWT Cookie/Bearer) + WebSocket
+┌─────────────────────────────────────▼──────────────────────────────────────┐
+│                         NestJS 11 REST API Server                          │
+│          Modular Architecture • Passport JWT • Socket.IO Gateway           │
+│          Nodemailer SMTP Service • Stripe Billing SDK • Swagger UI         │
+└─────────────────────┬───────────────────────────────────────┬──────────────┘
+                      │                                       │
+┌─────────────────────▼──────────────────┐   ┌────────────────▼──────────────┐
+│        PostgreSQL 16 Database          │   │         Redis Server          │
+│     Prisma ORM 7 Multi-Schema          │   │   Session Validation Cache    │
+│  (base, family, person, rel, vault,    │   │   Token Blacklisting Engine   │
+│   chat, billing)                       │   │   Email Verification Store    │
+└────────────────────────────────────────┘   └───────────────────────────────┘
+```
+
+### 2.1 Backend Architecture (`family-together-backend`)
+- **Runtime & Framework:** Node.js, TypeScript, NestJS v11 with Express adapter.
+- **Database & ORM:** PostgreSQL 16 managed via Prisma ORM 7 (`@prisma/adapter-pg`) using partitioned multi-schema files (`base.prisma`, `family.prisma`, `person.prisma`, `relationship.prisma`, `vault.prisma`, `chat.prisma`, `billing.prisma`).
+- **Caching & High Performance:** Redis (`ioredis`) for session validation, rapid token blacklisting, and transient authentication storage.
+- **Security & Authorization:** Passport JWT strategy, secure HttpOnly cookie parser, CORS protection, role-based guards (`@Roles(Role.OWNER, Role.ADMIN, Role.SUPER_ADMIN)`).
+- **Communication:** Nodemailer with automated Ethereal fallback and Google Workspace / SMTP authentication.
+- **Documentation:** Dynamic Swagger OpenAPI at `/api/docs`.
+
+### 2.2 Frontend Architecture (`family-together-frontend`)
+- **Framework & Engine:** Next.js v16.2.6 (App Router with Turbopack) & React 19.
+- **State Management & Data Layer:** Redux Toolkit (`@reduxjs/toolkit`) with RTK Query (`authApi`, `familyApi`, `adminApi`, `billingApi`, `chatApi`).
+- **Styling System:** Modern TailwindCSS v4 with Lucide React iconography and `next-themes` dark/light mode toggle.
+- **Role Routing:** Automatic role-based redirects upon login (`SUPER_ADMIN` -> `/admin-dashboard/super`, `ADMIN` -> `/admin-dashboard`, `OWNER` -> `/owner-dashboard`, `MEMBER`/`USER` -> `/user-dashboard`).
+
+---
+
+## 3. 📊 Complete Inventory of Existing Backend Endpoints
+
+| Domain | Method & Endpoint | Allowed Roles | Description & Status |
+| :--- | :--- | :--- | :--- |
+| **Auth** | `POST /auth/signup` | PUBLIC | Registers new user account with credentials |
+| **Auth** | `POST /auth/signin` | PUBLIC | Authenticates user; attaches HttpOnly cookies |
+| **Auth** | `POST /auth/refresh` | PUBLIC | Rotates refresh token and issues new access token |
+| **Auth** | `POST /auth/logout` | ALL AUTH | Revokes current session from PostgreSQL & Redis |
+| **Auth** | `POST /auth/logout-all` | ALL AUTH | Revokes all active sessions across all devices |
+| **Auth** | `GET /auth/me` | ALL AUTH | Retrieves current user profile and role |
+| **Auth** | `GET /auth/sessions` | ALL AUTH | Retrieves connected devices and active sessions |
+| **Auth** | `POST /auth/verify-email` | PUBLIC | Verifies 6-digit email OTP and activates user |
+| **Auth** | `POST /auth/resend-verification` | PUBLIC | Re-dispatches email verification OTP |
+| **Auth** | `POST /auth/forgot-password` | PUBLIC | Sends password reset 6-digit OTP email |
+| **Auth** | `POST /auth/verify-reset-code` | PUBLIC | Verifies password reset OTP and issues token |
+| **Auth** | `POST /auth/reset-password` | PUBLIC | Resets password with one-time token |
+| **Auth** | `POST /auth/change-password` | ALL AUTH | Updates user password from authenticated state |
+| **Auth** | `PATCH /auth/profile` | ALL AUTH | Updates user full name, bio, phone, avatar |
+| **Users** | `POST /users` | OWNER, ADMIN | Creates new platform user |
+| **Users** | `GET /users` | OWNER, ADMIN | Retrieves paginated list of users with search |
+| **Users** | `GET /users/:id` | OWNER, ADMIN | Looks up specific user record by ID |
+| **Users** | `PATCH /users/:id` | OWNER, ADMIN | Updates user role, status (ACTIVE/SUSPENDED) |
+| **Users** | `DELETE /users/:id` | OWNER, ADMIN | Permanently deletes user account |
+| **Sanctuary** | `GET /family/sanctuary` | ALL AUTH | Retrieves family overview metrics and metadata |
+| **Sanctuary** | `PATCH /family/update` | OWNER, ADMIN | Updates sanctuary name and description |
+| **Sanctuary** | `GET /family/activity` | ALL AUTH | Streams paginated system audit activity logs |
+| **Sanctuary** | `PATCH /family/settings` | OWNER, ADMIN | Configures sanctuary preferences & privacy |
+| **Sanctuary** | `GET /family/admin/stats` | ADMIN, SUPER | Retrieves global multi-tenant network metrics |
+| **Members** | `GET /family/members` | ALL AUTH | Retrieves paginated members directory |
+| **Members** | `GET /family/members/search` | ALL AUTH | Real-time member deduplication search |
+| **Members** | `POST /family/members` | ALL AUTH | Adds relative; auto-provisions user account |
+| **Members** | `PATCH /family/members/:id` | OWNER, ADMIN | Updates relative biographical information |
+| **Members** | `DELETE /family/members/:id` | OWNER, ADMIN | Deletes family member and cleans up relations |
+| **Memories** | `GET /family/memories` | ALL AUTH | Retrieves private memory feed (user-isolated) |
+| **Memories** | `GET /family/memories/:id` | ALL AUTH | Retrieves single memory story by ID |
+| **Memories** | `POST /family/memories` | ALL AUTH | Creates photo story milestone |
+| **Memories** | `PATCH /family/memories/:id` | AUTHOR, OWNER | Edits existing memory |
+| **Memories** | `DELETE /family/memories/:id` | AUTHOR, OWNER | Deletes memory record and media attachments |
+| **Events** | `GET /family/events` | ALL AUTH | Retrieves upcoming family celebrations & reunions |
+| **Events** | `GET /family/events/:id` | ALL AUTH | Retrieves single event details and agenda |
+| **Events** | `POST /family/events` | ALL AUTH | Schedules new family gathering |
+| **Events** | `PATCH /family/events/:id` | ALL AUTH | Updates event title, date, location, agenda |
+| **Events** | `DELETE /family/events/:id` | OWNER, ADMIN | Cancels and removes event |
+| **Relationships** | `GET /family/relationships` | ALL AUTH | Retrieves relationship connection matrix |
+| **Relationships** | `POST /family/relationships`| ALL AUTH | Links two person nodes with relationship code |
+| **Documents** | `GET /family/documents` | ALL AUTH | Retrieves document archive vault |
+| **Documents** | `POST /family/documents` | ALL AUTH | Uploads file attachment (up to 100MB) |
+| **Documents** | `POST /family/documents/multiple`| ALL AUTH | Uploads batch bundle of documents |
+| **Documents** | `DELETE /family/documents/:id` | UPLOADER, OWNER | Deletes single document |
+| **Documents** | `DELETE /family/documents` | OWNER, ADMIN | Purges entire family document vault |
+| **Invitations** | `GET /family/invitations` | OWNER, ADMIN | Lists pending invitations & join requests |
+| **Invitations** | `GET /family/invitations/:id`| OWNER, ADMIN | Retrieves invitation details by ID |
+| **Invitations** | `POST /family/invitations` | ALL AUTH | Creates new family member invitation |
+| **Invitations** | `PATCH /family/invitations/:id`| OWNER, ADMIN | Approves or rejects invitation request |
+| **Invitations** | `DELETE /family/invitations/:id`| OWNER, ADMIN | Revokes invitation |
+| **Chat** | `GET /family/chat/conversations` | ALL AUTH | Lists chat conversations for user |
+| **Chat** | `POST /family/chat/conversations` | ALL AUTH | Starts or retrieves 1-on-1 direct chat |
+| **Chat** | `GET /family/chat/can-message/:recipientId` | ALL AUTH | Messenger connection check |
+| **Chat** | `GET /family/chat/conversations/:id/messages` | ALL AUTH | Retrieves chat message history |
+| **Chat** | `POST /family/chat/messages` | ALL AUTH | Sends chat message |
+| **Chat** | `POST /family/chat/conversations/:id/read` | ALL AUTH | Marks conversation as read |
+| **Announcements**| `POST /family/announcements/broadcast` | OWNER, ADMIN | Dispatches email broadcast to all members |
+| **Announcements**| `GET /family/announcements/recipients` | OWNER, ADMIN | Previews eligible recipients before broadcast |
+| **Announcements**| `GET /family/announcements/history` | ALL AUTH | Lists past broadcast history and metrics |
+| **Announcements**| `DELETE /family/announcements/:id` | OWNER, ADMIN | Deletes broadcast item from history |
+| **Billing** | `GET /billing/plans` | PUBLIC | Retrieves pricing plans & storage limits |
+| **Billing** | `GET /billing/subscription` | ALL AUTH | Retrieves active family subscription status |
+| **Billing** | `POST /billing/checkout` | OWNER, ADMIN | Generates Stripe Checkout Session URL |
+| **Billing** | `POST /billing/portal` | OWNER, ADMIN | Generates Stripe Customer Portal link |
+| **Billing** | `POST /billing/webhook` | PUBLIC (Stripe) | Processes asynchronous Stripe webhook events |
+| **Health** | `GET /health` | PUBLIC | Health check endpoint returning status: ok |
+
+---
+
+## 4. 🚨 Comprehensive Gap Analysis: Missing APIs & Features
+
+Through detailed source inspection of the controllers, schemas, and UI views, **8 distinct gaps and missing features** were identified.
+
+### Gap 1: Relationship Deletion & Modification (Unlinking Relatives)
+- **Severity:** 🔴 **CRITICAL**
+- **Missing APIs:**
+  - `DELETE /family/relationships/:id`: Deletes a relationship link between two relatives.
+  - `PATCH /family/relationships/:id`: Modifies a relationship type (e.g. changing from SIBLING to SPOUSE or updating verification status).
+- **Current Backend Reality:** In `src/family/relationships/relationships.controller.ts`, only `GET /family/relationships` and `POST /family/relationships` exist. `RelationshipsService` has no delete or patch methods.
+- **Current Frontend Reality:** In `src/components/dashboard/tabs/RelationshipsTab.tsx`, the table renders From, Type, To, and Status, but contains **no actions column**.
+- **User Impact:** If an owner mistakenly links two relatives, there is no way in the application to unlink or correct the relationship.
+
+---
+
+### Gap 2: Member Biographical Editing & Single Member Detail Lookup
+- **Severity:** 🟠 **HIGH**
+- **Missing APIs:**
+  - `GET /family/members/:id`: Returns comprehensive details for a single relative (all biographical fields, parents, children, spouse, and claim status).
+- **Current Backend Reality:** `MembersController` has `GET /family/members` and `GET /family/members/search`, but lacks `GET /family/members/:id`. (Note: `PATCH /family/members/:id` exists in the backend).
+- **Current Frontend Reality:** In `src/components/dashboard/tabs/MembersTab.tsx`, each member card only has a Delete button (`Trash2`). There is **no "Edit Member" modal or button**. Users cannot edit birthdays, birthplaces, occupations, or biographies from the member directory.
+
+---
+
+### Gap 3: Family Event RSVP System & Attendee Management
+- **Severity:** 🟠 **HIGH**
+- **Missing Database Model:** `EventRSVP` is completely absent from `prisma/schema/vault.prisma`. The `Event` model only contains title, date, location, description, and virtual flag.
+- **Missing APIs:**
+  - `POST /family/events/:id/rsvp`: Allows a family member to submit their RSVP status (`ATTENDING`, `MAYBE`, `DECLINED`).
+  - `GET /family/events/:id/rsvps`: Retrieves the attendee list and RSVP breakdown for an event.
+- **Current Frontend Reality:** `EventsTab.tsx` only offers Create, Edit, and Delete actions. There are no RSVP buttons or attendee avatars, despite documentation claiming "Family Event Calendar & RSVPs".
+
+---
+
+### Gap 4: Invitation Email Delivery & Public Join Portal
+- **Severity:** 🟠 **HIGH**
+- **Missing Backend Logic:** In `src/family/invitations/invitations.service.ts`, `createInvitation` creates a row in PostgreSQL, but **never calls `MailService`** to send an email invitation.
+- **Missing Mail Service Method:** `MailService` in `src/mail/mail.service.ts` lacks a `sendInvitationEmail(to, name, familyName, inviteToken)` method.
+- **Missing APIs:**
+  - `POST /family/invitations/accept`: Allows an invited user to accept an invitation and join a family.
+  - `GET /family/invitations/verify-token`: Verifies that an invitation token is valid and unexpired.
+- **Current Frontend Reality:** There is no `/join` or `/accept-invitation` page in Next.js. Relatives invited by email have no onboarding page to complete registration and enter the family sanctuary.
+
+---
+
+### Gap 5: Multi-User Group Conversations & Discussion Channels
+- **Severity:** 🟡 **MEDIUM**
+- **Missing APIs:**
+  - `POST /family/chat/conversations/group`: Creates a named multi-user conversation (e.g., "Cousins Group", "Reunion Planning Committee") with a title and an array of participant IDs.
+  - `PATCH /family/chat/conversations/:id/participants`: Adds or removes members from a group conversation.
+- **Current Reality:** `ChatController` only handles direct 1-on-1 chats via `POST /family/chat/conversations` with a single `recipientId`.
+- **Current Frontend Reality:** In `MessagesTab.tsx`, users can only start 1-on-1 chats; there is no option to create group discussions.
+
+---
+
+### Gap 6: Super Admin Telemetry Live Data Binding
+- **Severity:** 🟡 **MEDIUM**
+- **Missing Frontend Wiring:** In `src/app/admin-dashboard/super/page.tsx`:
+  - `privilegedAdmins` uses hardcoded static mock state (`Sarah Jenkins`, `Mike Ross`) instead of querying `useGetUsersListQuery({ role: 'ADMIN' })`.
+  - The metric cards for `1.2M Global Users` and `450K Families Created` are static text instead of binding `stats.totalUsers` and `stats.totalFamilies` from `useGetAdminStatsQuery()`.
+  - The *Security Audit Feed* ("Multiple Failed Logins") is hardcoded dummy HTML instead of pulling live security events from `useGetActivityLogsQuery()`.
+
+---
+
+### Gap 7: Network Analytics Visual Charts
+- **Severity:** 🟡 **MEDIUM**
+- **Missing UI Implementation:** In `src/app/admin-dashboard/analytics/page.tsx`:
+  - "Generational Tree Growth" is an empty placeholder div with text `"Interactive Generational Growth Graph"`.
+  - "Relationship Distribution" is an empty placeholder div with text `"Parent / Child / Spouse / Sibling Ratio Chart"`.
+  - No interactive SVG, Canvas, or dynamic chart component is rendered.
+
+---
+
+### Gap 8: Media Vault: Person Tagging
+- **Severity:** 🔵 **LOW / ENHANCEMENT**
+- **Missing Schema Relation:** In `prisma/schema/vault.prisma`, `Memory` does not have a relation or field referencing `Person` records (e.g. `taggedPersons Person[]` or `taggedPersonIds String[]`).
+- **Feature Gap:** When users upload photos or write memory stories in `MemoriesTab.tsx`, they cannot tag the relatives who are depicted in the memory.
+
+---
+
+## 5. 🛠️ Step-by-Step Remediation Plan & Code Specifications
+
+### Phase 1: Relationship Deletion & Editing (Immediate Resolution)
+1. In `src/family/relationships/relationships.service.ts`:
+   - Implement `deleteRelationship(id: string)`:
+     ```typescript
+     async deleteRelationship(id: string) {
+       const rel = await this.prisma.relationship.findUnique({ where: { id } });
+       if (!rel) throw new NotFoundException('Relationship not found');
+       await this.prisma.relationship.delete({ where: { id } });
+       return { success: true, message: 'Relationship unlinked successfully', id };
+     }
+     ```
+   - Implement `updateRelationship(id: string, dto: UpdateRelationshipDto)`.
+2. In `src/family/relationships/relationships.controller.ts`:
+   - Expose `@Delete(':id')` and `@Patch(':id')`.
+3. In `src/redux/api/familyApi.ts`:
+   - Add `deleteRelationship` mutation and `updateRelationship` mutation with `invalidatesTags: ["Sanctuary"]`.
+4. In `src/components/dashboard/tabs/RelationshipsTab.tsx`:
+   - Add an **Actions** column with an **"Unlink"** button (`<Trash2 />` / `<Unlink />`) that opens a confirmation dialog.
+
+### Phase 2: Member Editing Modal in Members Tab
+1. In `src/family/members/members.service.ts` & `members.controller.ts`:
+   - Expose `@Get(':id')` returning the member record with full relations.
+2. In `src/components/dashboard/tabs/MembersTab.tsx`:
+   - Add an **"Edit"** button (`<Pencil />`) to each member card.
+   - Build an `EditMemberModal` with fields: First Name, Last Name, Gender, Date of Birth, Date of Death, Living Status, Birth Place, Occupation, Bio, Photo URL.
+   - Connect the modal to `useUpdateMemberMutation()`.
+
+### Phase 3: Invitation Email Delivery & Public Join Page
+1. In `src/mail/mail.service.ts`:
+   - Implement `sendInvitationEmail(to, name, inviterName, joinUrl)` with a styled HTML invitation card.
+2. In `src/family/invitations/invitations.service.ts`:
+   - Update `createInvitation` to generate a crypto join token and call `this.mailService.sendInvitationEmail(...)`.
+3. In `family-together-frontend/src/app`:
+   - Create `src/app/join/page.tsx` that reads `?token=...`, validates the invitation, and lets the invited member choose a password to complete registration.
+
+### Phase 4: Event RSVP System
+1. In `prisma/schema/vault.prisma`:
+   - Add `EventRsvp` model:
+     ```prisma
+     model EventRsvp {
+       id        String   @id @default(uuid())
+       eventId   String   @map("event_id")
+       userId    String   @map("user_id")
+       status    String   @default("ATTENDING") // ATTENDING, MAYBE, DECLINED
+       createdAt DateTime @default(now()) @map("created_at")
+       updatedAt DateTime @updatedAt @map("updated_at")
+
+       event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+       user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+       @@unique([eventId, userId])
+       @@map("event_rsvps")
+     }
+     ```
+2. In `src/family/events/events.controller.ts`:
+   - Expose `POST /family/events/:id/rsvp` and `GET /family/events/:id/rsvps`.
+3. In `src/components/dashboard/tabs/EventsTab.tsx`:
+   - Add RSVP action buttons ("Attending", "Maybe", "Declined") and attendee counters.
+
+### Phase 5: Super Admin & Analytics Polish
+1. In `src/app/admin-dashboard/super/page.tsx`:
+   - Replace static numbers with `useGetAdminStatsQuery()`.
+   - Replace mock admins with `useGetUsersListQuery({ role: 'ADMIN' })`.
+   - Connect security audit feed to `useGetActivityLogsQuery()`.
+2. In `src/app/admin-dashboard/analytics/page.tsx`:
+   - Render dynamic SVG bar charts and pie charts using data from `GET /family/admin/stats`.
+
+---
+
+## 6. 📋 Verification & Assurance Matrix
+
+| Feature | Automated Test Command | Verification Criteria |
+| :--- | :--- | :--- |
+| **Relationship Delete** | `npm run test` / E2E script | Record is removed from `relationships` table; tree canvas updates. |
+| **Member Edit** | `PATCH /family/members/:id` | Changes persist in `persons` table; reflected immediately in RTK cache. |
+| **Event RSVPs** | `POST /family/events/:id/rsvp` | Unique constraint enforced per user; attendee count increments. |
+| **Invitation Email** | `POST /family/invitations` | Nodemailer outputs preview URL or delivers to Gmail inbox. |
+| **Super Admin Live** | Browser Inspection at `/admin-dashboard/super` | All counts reflect actual PostgreSQL row counts without mock data. |
+
+---
+
+*Document compiled and verified by Antigravity IDE • October 2026*
