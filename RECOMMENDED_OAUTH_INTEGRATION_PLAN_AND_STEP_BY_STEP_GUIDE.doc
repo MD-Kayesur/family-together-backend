@@ -1,0 +1,50 @@
+
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="utf-8">
+    <title>Recommended OAuth 2.0 (Google & Facebook) Integration Strategy & Implementation Guide</title>
+    <style>
+      body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1e293b; padding: 40px; }
+      h1 { color: #1e3a8a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+      h2 { color: #0f172a; margin-top: 25px; }
+      table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+      th, td { border: 1px solid #cbd5e1; padding: 10px 14px; text-align: left; }
+      th { background-color: #1e3a8a; color: #ffffff; }
+      code { background-color: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: Consolas, monospace; }
+      .box { background-color: #eff6ff; border-left: 4px solid #2563eb; padding: 14px 18px; margin: 15px 0; }
+      .step { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin: 10px 0; }
+    </style>
+  </head>
+  <body>
+    <h1>🎯 Recommended OAuth 2.0 (Google & Facebook) Integration Strategy & Implementation Guide</h1>
+    <p><em>Strategic Recommendation: Native NestJS Passport OAuth Flow, Credential Setup Guide (Google Cloud & Meta for Developers), Prisma Schema Extension, and Frontend UI Integration</em></p>
+    <hr/>
+
+    <h2>১. আমাদের সুস্পষ্ট পরামর্শ (Our Direct Recommendation)</h2>
+    <div class="box">
+      <strong>পরামর্শ:</strong> আমরা সম্পূর্ণ কোডবেস এমনভাবে তৈরি করে দেব যাতে <strong>NestJS Passport OAuth 2.0</strong> আর্কিটেকচার অনুযায়ী Google ও Facebook লগইন সিস্টেম সরাসরি সক্রিয় হয়ে যায়।<br/><br/>
+      আমাদের ব্যাকএন্ডে ইতোমধ্যে <code>PassportModule</code> ও <code>JwtStrategy</code> সক্রিয় রয়েছে। তাই এতে <code>GoogleStrategy</code> ও <code>FacebookStrategy</code> যুক্ত করা সবচেয়ে পরিচ্ছন্ন এবং পারফেক্ট সমাধান।
+    </div>
+
+    <h2>২. বাস্তবায়নের রূপরেখা (Implementation Roadmap)</h2>
+    <div class="step">
+      <strong>ধাপ ১: ব্যাকএন্ড স্ট্র্যাটেজি ও Prisma স্কিমা</strong><br/>
+      • Prisma <code>User</code> মডেলে <code>provider</code> ও <code>providerId</code> যুক্ত করা।<br/>
+      • <code>passport-google-oauth20</code> এবং <code>passport-facebook</code> ইন্সটল করে স্ট্র্যাটেজি ফাইল তৈরি করা।<br/>
+      • <code>auth.service.ts</code>-এ গুগল/ফেসবুক প্রোফাইল থেকে ইউজার খোঁজা বা নতুন ইউজার তৈরি করে JWT কুকি ইস্যু করা।
+    </div>
+
+    <div class="step">
+      <strong>ধাপ ২: ফ্রন্টএন্ড UI সোশ্যাল বাটন</strong><br/>
+      • <code>/signin</code> ও <code>/signup</code> পেজে অফিসিয়াল লোগোসহ <strong>"Continue with Google"</strong> এবং <strong>"Continue with Facebook"</strong> বাটন বসানো।
+    </div>
+
+    <div class="step">
+      <strong>ধাপ ৩: ফ্রি API Keys (Client ID ও Secret) সেটআপ</strong><br/>
+      • <strong>Google:</strong> Google Cloud Console থেকে OAuth Client ID ও Secret সংগ্রহ করে ব্যাকএন্ড <code>.env</code> ফাইলে পেস্ট করা।<br/>
+      • <strong>Facebook:</strong> Meta Developers Console থেকে App ID ও Secret সংগ্রহ করা।
+    </div>
+  </body>
+  </html>
+  
