@@ -1,0 +1,54 @@
+
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="utf-8">
+    <title>Realtime Family Conversation System & Role Permissions Guide</title>
+    <style>
+      body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1e293b; padding: 40px; }
+      h1 { color: #1e3a8a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+      h2 { color: #0f172a; margin-top: 25px; }
+      table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+      th, td { border: 1px solid #cbd5e1; padding: 10px 14px; text-align: left; }
+      th { background-color: #1e3a8a; color: #ffffff; }
+      code { background-color: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: Consolas, monospace; }
+      ul { padding-left: 20px; }
+      li { margin-bottom: 8px; }
+      .highlight { background-color: #eff6ff; border-left: 4px solid #2563eb; padding: 12px 16px; margin: 15px 0; }
+    </style>
+  </head>
+  <body>
+    <h1>💬 Realtime Family Conversation System & Role Permissions Guide</h1>
+    <p><em>Full Technical & Business Logic Explanation: Who Can Chat with Whom, Facebook Messenger-Style Relatives Verification, Socket.IO Realtime Flow, and Database Architecture</em></p>
+    <hr/>
+
+    <h2>১. কে কার সাথে Conversation (Chat) করতে পারবে?</h2>
+    <div class="highlight">
+      <strong>মূল নিয়মাবলি (canInitiateMessage লজিক):</strong>
+      <ol>
+        <li><strong>সরাসরি Owner-কে মেসেজ রেস্ট্রিক্টেড:</strong> সাধারণ Member সরাসরি Sanctuary Owner-কে ১-অন-১ নতুন মেসেজ পাঠাতে পারে না, যাতে ওনার স্প্যামিং থেকে মুক্ত থাকেন। মেম্বাররা ওনারের সাথে <strong>Sanctuary Circle</strong> গ্রুপ চ্যানেলে কথা বলতে পারে।</li>
+        <li><strong>Owner / SuperAdmin-এর পূর্ণ অধিকার:</strong> Owner বা SuperAdmin পরিবারের যেকোনো মেম্বারকে সরাসরি মেসেজ পাঠাতে পারেন। ওনার একবার মেসেজ শুরু করলে তখন মেম্বারও পাল্টা মেসেজ পাঠাতে পারে।</li>
+        <li><strong>Who Added Whom (অ্যাডকারী কানেকশন):</strong> যদি ইউজার A ইউজার B-কে ফ্যামিলিতে যুক্ত করে থাকে (বা B A-কে), তারা সরাসরি মেসেজ করতে পারবে।</li>
+        <li><strong>ফ্যামিলি ট্রিতে অ্যাক্টিভ রিলেশনশিপ (Active Relatives):</strong> ফেসবুকের ফ্রেন্ডশিপ লজিকের মতো—যদি দুজন মেম্বারের মধ্যে ফ্যামিলি ট্রিতে কোনো সক্রিয় রিলেশনশিপ (পিতামাতা-সন্তান, ভাই-বোন, স্পাউস) থাকে, তবে তারা সরাসরি চ্যাট করতে পারবে।</li>
+        <li><strong>ফ্যামিলি আইসোলেশন:</strong> অন্য কোনো পরিবারের মেম্বারের সাথে কোনো চ্যাট সম্ভব নয় (কঠোরভাবে familyId দ্বারা সুরক্ষিত)।</li>
+      </ol>
+    </div>
+
+    <h2>২. Conversation কীভাবে হচ্ছে? (How it works under the hood)</h2>
+    <ul>
+      <li><strong>PostgreSQL Database Schema:</strong> <code>Conversation</code> (চ্যাট থ্রেড), <code>ConversationParticipant</code> (অংশগ্রহণকারী ও আনরিড কাউন্ট), এবং <code>ChatMessage</code> (টেক্সট, ছবি, টাইমস্ট্যাম্প ও রিড স্ট্যাটাস)।</li>
+      <li><strong>Socket.IO Realtime Gateway:</strong> ব্রাউজার কানেক্ট হওয়ার সাথে সাথে ইউজার <code>user_{id}</code> এবং <code>family_{id}</code> রুমে যুক্ত হয়। চ্যাট ওপেন করলে <code>conv_{conversationId}</code> রুমে জয়েন করে।</li>
+      <li><strong>মেসেজ ট্রান্সফার ফ্লো:</strong> সেন্ডার মেসেজ লিখলে ব্যাকএন্ড ডেটাবেসে সেভ করে এবং সাথে সাথে <code>new_message</code> ইভেন্ট দিয়ে ব্রডকাস্ট করে। ০.১ সেকেন্ডে রিসিভারের স্ক্রিনে মেসেজ চলে আসে।</li>
+      <li><strong>টাইপিং ও রিড রিসিপ্ট:</strong> কিবোর্ডে চাপলে <code>user_typing</code> ইভেন্ট গিয়ে "... is typing" দেখায় এবং চ্যাট দেখলে <code>mark_read</code> ইভেন্ট গিয়ে আনরিড কাউন্টার ০ করে দেয়।</li>
+    </ul>
+
+    <h2>৩. কোড ফাইল রেফারেন্স</h2>
+    <table>
+      <tr><th>ফাইল</th><th>দায়িত্ব</th></tr>
+      <tr><td><code>src/family/chat/chat.service.ts</code></td><td>কানেকশন অনুমোদন লজিক (canInitiateMessage), থ্রেড তৈরি ও মেসেজ সেভ।</td></tr>
+      <tr><td><code>src/family/chat/chat.gateway.ts</code></td><td>রিয়েলটাইম Socket.IO রুম ও লাইভ ইভেন্ট হ্যান্ডলার।</td></tr>
+      <tr><td><code>src/components/dashboard/tabs/MessagesTab.tsx</code></td><td>ফ্রন্টএন্ড লাইভ চ্যাট ইউজার ইন্টারফেস।</td></tr>
+    </table>
+  </body>
+  </html>
+  
