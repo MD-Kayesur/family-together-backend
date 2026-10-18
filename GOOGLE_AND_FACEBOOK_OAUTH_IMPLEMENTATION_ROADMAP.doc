@@ -1,0 +1,52 @@
+
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="utf-8">
+    <title>Google & Facebook OAuth Implementation Architecture & Roadmap</title>
+    <style>
+      body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1e293b; padding: 40px; }
+      h1 { color: #1e3a8a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+      h2 { color: #0f172a; margin-top: 25px; }
+      table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+      th, td { border: 1px solid #cbd5e1; padding: 10px 14px; text-align: left; }
+      th { background-color: #1e3a8a; color: #ffffff; }
+      code { background-color: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: Consolas, monospace; }
+      .box { background-color: #eff6ff; border-left: 4px solid #2563eb; padding: 14px 18px; margin: 15px 0; }
+      .badge-rec { display: inline-block; padding: 3px 8px; border-radius: 4px; font-weight: bold; background-color: #dcfce7; color: #166534; }
+    </style>
+  </head>
+  <body>
+    <h1>🔑 Google & Facebook OAuth Implementation Architecture & Roadmap</h1>
+    <p><em>Complete Technical Guide: Architectural Solutions, Passport.js vs Firebase Comparison, Console Setup Steps, Prisma Schema Adjustments, and Full-Stack Integration Workflow</em></p>
+    <hr/>
+
+    <h2>১. গুগল ও ফেসবুক লগইন যুক্ত করার ২টি প্রধান উপায়</h2>
+    <div class="box">
+      <strong>পদ্ধতি ১ <span class="badge-rec">(সুপারিশকৃত / Recommended):</span> নেটিভ NestJS Passport OAuth Flow</strong><br/>
+      • <strong>পদ্ধতি:</strong> NestJS ব্যাকএন্ডে <code>passport-google-oauth20</code> এবং <code>passport-facebook</code> প্যাকেজ ব্যবহার করে সরাসরি OAuth2 ফ্লো সম্পন্ন করা।<br/>
+      • <strong>সুবিধা:</strong> আমাদের বিদ্যমান Prisma ডেটাবেস ও JWT কুকি সিস্টেমের সাথে ১০০% ইন্টিগ্রেটেড। কোনো তৃতীয় পক্ষের সার্ভিসের ওপর নির্ভরশীল থাকতে হয় না।
+    </div>
+
+    <div class="box">
+      <strong>পদ্ধতি ২: Firebase Authentication (Popup Method)</strong><br/>
+      • <strong>পদ্ধতি:</strong> ফ্রন্টএন্ডে ফায়ারবেস SDK দিয়ে পপআপে গুগল/ফেসবুক লগইন করিয়ে ফায়ারবেস আইডি টোকেন ব্যাকএন্ডে পাঠিয়ে ভেরিফাই করা।<br/>
+      • <strong>সুবিধা:</strong> ইন-পেজ পপআপ লগইন এক্সপেরিয়েন্স। তবে ফায়ারবেস কনসোলে সার্ভিস অ্যাকাউন্ট সেটআপের প্রয়োজন হয়।
+    </div>
+
+    <h2>২. পদ্ধতি ১ (NestJS Passport OAuth) বাস্তবায়নের ধাপসমূহ</h2>
+    <ol>
+      <li><strong>গুগল ও মেটা কনসোল থেকে ক্রেডেনশিয়াল সংগ্রহ:</strong>
+        <ul>
+          <li><strong>Google Cloud Console:</strong> OAuth Client ID ও Client Secret। রিডাইরেক্ট URI: <code>http://localhost:8000/api/auth/google/callback</code>।</li>
+          <li><strong>Meta for Developers:</strong> App ID ও App Secret। রিডাইরেক্ট URI: <code>http://localhost:8000/api/auth/facebook/callback</code>।</li>
+        </ul>
+      </li>
+      <li><strong>Prisma স্কিমা আপডেট:</strong> <code>User</code> মডেলে <code>provider</code> এবং <code>providerId</code> ফিল্ড যুক্ত করা (পাসওয়ার্ড ফিল্ড ইতোমধ্যেই অপশনাল রয়েছে)।</li>
+      <li><strong>NestJS ব্যাকএন্ড স্ট্র্যাটেজি:</strong> <code>GoogleStrategy</code> ও <code>FacebookStrategy</code> তৈরি করে <code>/api/auth/google</code> ও <code>/api/auth/facebook</code> এন্ডপয়েন্ট তৈরি করা।</li>
+      <li><strong>JWT কুকি ও ড্যাশবোর্ড রিডাইরেক্ট:</strong> লগইন সম্পন্ন হলে সিস্টেমের কাস্টম JWT টোকেন জেনারেট করে ফ্রন্টএন্ড ড্যাশবোর্ডে রিডাইরেক্ট করা।</li>
+      <li><strong>ফ্রন্টএন্ড UI বাটন:</strong> সাইন-ইন ও সাইন-আপ পেজে অফিসিয়াল গুগল ও ফেসবুক বাটন যুক্ত করা।</li>
+    </ol>
+  </body>
+  </html>
+  
