@@ -51,3 +51,15 @@ export class MarkReadDto {
   @IsString()
   conversationId: string;
 }
+
+export class UpdateChatMessageDto {
+  @ApiProperty({ description: 'Updated message text content' })
+  @IsNotEmpty()
+  @IsString()
+  text: string;
+
+  @ApiPropertyOptional({ description: 'Optional updated media URL' })
+  @IsOptional()
+  @IsString()
+  mediaUrl?: string;
+}

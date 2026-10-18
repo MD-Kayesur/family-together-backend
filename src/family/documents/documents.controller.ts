@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { DocumentsService } from './documents.service';
-import { CreateDocumentDto, CreateMultipleDocumentsDto, DocumentsQueryDto } from './documents.dto';
+import { CreateDocumentDto, CreateMultipleDocumentsDto, UpdateDocumentDto, DocumentsQueryDto } from './documents.dto';
 
 @ApiTags('Documents Archive')
 @Controller('family/documents')
@@ -58,6 +58,20 @@ export class DocumentsController {
   ) {
     const list = Array.isArray(body) ? body : (body as any)?.documents || [];
     return this.documentsService.createMultipleDocuments(list);
+  }
+
+  @Patch(':id')
+  @ApiOperation({
+    summary: 'Update/Rename a document in vault [Roles: MEMBER (Uploader), OWNER, ADMIN]',
+    description: `**Route:** \`PATCH /family/documents/:id\`
+**Purpose:** Updates document metadata, renaming the record, updating category, or replacing file reference.
+**Allowed Roles:** Document Uploader (\`MEMBER\` / \`USER\`), \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
+**Permissions:** Update permission granted to uploader or family owner/admin.`,
+  })
+  @ApiParam({ name: 'id', description: 'Unique document identifier' })
+  @ApiResponse({ status: 200, description: 'Document updated successfully' })
+  updateDocument(@Param('id') id: string, @Body() body: UpdateDocumentDto) {
+    return this.documentsService.updateDocument(id, body);
   }
 
   @Delete(':id')

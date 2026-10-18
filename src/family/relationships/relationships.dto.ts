@@ -72,3 +72,37 @@ export class CreateRelationshipDto {
   @IsString()
   typeCode?: string;
 }
+
+export class UpdateRelationshipDto {
+  @ApiPropertyOptional({
+    description: 'Updated relationship type code (e.g. PARENT_CHILD, SPOUSE, SIBLING)',
+    example: 'SPOUSE',
+  })
+  @IsOptional()
+  @IsString()
+  typeCode?: string;
+
+  @ApiPropertyOptional({
+    description: 'Updated relationship status (ACTIVE, ENDED, PENDING_VERIFICATION)',
+    example: 'ACTIVE',
+  })
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @ApiPropertyOptional({
+    description: 'Relationship start date',
+    example: '1985-06-15',
+  })
+  @IsOptional()
+  @IsString()
+  startDate?: string;
+
+  @ApiPropertyOptional({
+    description: 'Relationship end date',
+    example: '2020-01-01',
+  })
+  @IsOptional()
+  @IsString()
+  endDate?: string;
+}

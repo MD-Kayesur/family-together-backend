@@ -48,6 +48,20 @@ export class MembersController {
     return this.membersService.createMember(body);
   }
 
+  @Get(':id')
+  @ApiOperation({
+    summary: 'Get single family member details by ID [Roles: MEMBER, OWNER, ADMIN]',
+    description: `**Route:** \`GET /family/members/:id\`
+**Purpose:** Retrieves full individual person profile including relations and linked account.
+**Allowed Roles:** \`MEMBER\`, \`USER\`, \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`
+**Permissions:** Member profile read access.`,
+  })
+  @ApiParam({ name: 'id', description: 'Unique member / person identifier' })
+  @ApiResponse({ status: 200, description: 'Family member profile retrieved successfully' })
+  getMemberById(@Param('id') id: string) {
+    return this.membersService.getMemberById(id);
+  }
+
   @Patch(':id')
   @ApiOperation({
     summary: 'Update a family member profile [Roles: MEMBER (Self), OWNER, ADMIN]',

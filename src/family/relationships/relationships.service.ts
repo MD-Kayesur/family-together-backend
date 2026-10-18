@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { buildPaginatedResponse } from '../../common/interfaces/paginated-result.interface';
-import { CreateRelationshipDto, RelationshipsQueryDto } from './relationships.dto';
+import { CreateRelationshipDto, UpdateRelationshipDto, RelationshipsQueryDto } from './relationships.dto';
 
 @Injectable()
 export class RelationshipsService {
@@ -124,5 +124,78 @@ export class RelationshipsService {
         createdBy: 'system',
       },
     });
+  }
+
+  async updateRelationship(id: string, data: UpdateRelationshipDto) {
+    const existing = await this.prisma.relationship.findUnique({
+      where: { id },
+      include: { relationshipType: true },
+    });
+
+    if (!existing) {
+      throw new NotFoundException(`Relationship connection #${id} not found`);
+    }
+
+    let relTypeId = existing.relationshipTypeId;
+    if (data.typeCode && data.typeCode !== existing.relationshipType?.code) {
+      let relType = await this.prisma.relationshipType.findFirst({
+        where: { code: data.typeCode },
+      });
+
+      if (!relType) {
+        const formattedName = data.typeCode
+          .toLowerCase()
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, (c) => c.toUpperCase());
+        relType = await this.prisma.relationshipType.create({
+          data: {
+            code: data.typeCode,
+            name: formattedName,
+            category: 'BIOLOGICAL',
+          },
+        });
+      }
+      relTypeId = relType.id;
+    }
+
+    const updated = await this.prisma.relationship.update({
+      where: { id },
+      data: {
+        relationshipTypeId: relTypeId,
+        ...(data.status ? { status: data.status.toUpperCase() as any } : {}),
+        ...(data.startDate ? { startDate: new Date(data.startDate) } : {}),
+        ...(data.endDate ? { endDate: new Date(data.endDate) } : {}),
+      },
+      include: {
+        fromPerson: true,
+        toPerson: true,
+        relationshipType: true,
+      },
+    });
+
+    return {
+      id: updated.id,
+      from: `${updated.fromPerson?.firstName || ''} ${updated.fromPerson?.lastName || ''}`.trim(),
+      to: `${updated.toPerson?.firstName || ''} ${updated.toPerson?.lastName || ''}`.trim(),
+      type: updated.relationshipType?.name || 'Related',
+      status: updated.status || 'ACTIVE',
+      fromPersonId: updated.fromPersonId,
+      toPersonId: updated.toPersonId,
+    };
+  }
+
+  async deleteRelationship(id: string) {
+    const existing = await this.prisma.relationship.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException(`Relationship connection #${id} not found`);
+    }
+
+    await this.prisma.relationship.delete({ where: { id } });
+
+    return {
+      success: true,
+      message: 'Relationship connection unlinked and deleted successfully',
+      id,
+    };
   }
 }

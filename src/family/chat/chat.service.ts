@@ -1,6 +1,6 @@
 import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateConversationDto, SendChatMessageDto } from './chat.dto';
+import { CreateConversationDto, SendChatMessageDto, UpdateChatMessageDto } from './chat.dto';
 
 @Injectable()
 export class ChatService {
@@ -279,4 +279,123 @@ export class ChatService {
 
     return { success: true };
   }
+
+  private async isOwnerOrAdmin(userId: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+    return user?.role === 'OWNER' || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
+  }
+
+  /**
+   * Edit / update an existing chat message
+   */
+  async updateMessage(messageId: string, userId: string, dto: UpdateChatMessageDto) {
+    const msg = await this.prisma.chatMessage.findUnique({
+      where: { id: messageId },
+    });
+
+    if (!msg) {
+      throw new NotFoundException(`Message #${messageId} not found`);
+    }
+
+    const isAdmin = await this.isOwnerOrAdmin(userId);
+    if (msg.senderId !== userId && !isAdmin) {
+      throw new ForbiddenException('You can only edit your own messages');
+    }
+
+    const updated = await this.prisma.chatMessage.update({
+      where: { id: messageId },
+      data: {
+        text: dto.text,
+        ...(dto.mediaUrl !== undefined ? { mediaUrl: dto.mediaUrl } : {}),
+      },
+    });
+
+    // Check if this was the latest message in conversation and refresh lastMessage text
+    const conversation = await this.prisma.conversation.findUnique({
+      where: { id: msg.conversationId },
+    });
+    if (conversation) {
+      const latestMsg = await this.prisma.chatMessage.findFirst({
+        where: { conversationId: msg.conversationId },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (latestMsg && latestMsg.id === messageId) {
+        await this.prisma.conversation.update({
+          where: { id: msg.conversationId },
+          data: { lastMessage: dto.text },
+        });
+      }
+    }
+
+    return updated;
+  }
+
+  /**
+   * Delete an existing chat message
+   */
+  async deleteMessage(messageId: string, userId: string) {
+    const msg = await this.prisma.chatMessage.findUnique({
+      where: { id: messageId },
+    });
+
+    if (!msg) {
+      return { success: true, message: 'Message already deleted or not found' };
+    }
+
+    const isAdmin = await this.isOwnerOrAdmin(userId);
+    if (msg.senderId !== userId && !isAdmin) {
+      throw new ForbiddenException('You can only delete your own messages unless you are an administrator');
+    }
+
+    await this.prisma.chatMessage.delete({
+      where: { id: messageId },
+    });
+
+    // Refresh conversation lastMessage if needed
+    const latestMsg = await this.prisma.chatMessage.findFirst({
+      where: { conversationId: msg.conversationId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    await this.prisma.conversation.update({
+      where: { id: msg.conversationId },
+      data: {
+        lastMessage: latestMsg ? latestMsg.text : 'No messages',
+        lastSenderAt: latestMsg ? latestMsg.createdAt : new Date(),
+      },
+    });
+
+    return { success: true, deletedId: messageId, conversationId: msg.conversationId };
+  }
+
+  /**
+   * Delete an entire conversation thread
+   */
+  async deleteConversation(conversationId: string, userId: string) {
+    const conv = await this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+      include: { participants: true },
+    });
+
+    if (!conv) {
+      return { success: true, message: 'Conversation already deleted or not found' };
+    }
+
+    const isParticipant = conv.participants.some((p) => p.userId === userId);
+    const isAdmin = await this.isOwnerOrAdmin(userId);
+
+    if (!isParticipant && !isAdmin) {
+      throw new ForbiddenException('You do not have permission to delete this conversation');
+    }
+
+    await this.prisma.conversation.delete({
+      where: { id: conversationId },
+    });
+
+    return { success: true, deletedId: conversationId };
+  }
 }
+

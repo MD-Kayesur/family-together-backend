@@ -398,6 +398,19 @@ export class MembersService {
     });
   }
 
+  async getMemberById(id: string) {
+    const person = await this.prisma.person.findUnique({
+      where: { id },
+      include: {
+        user: true,
+        fromRelationships: { include: { toPerson: true, relationshipType: true } },
+        toRelationships: { include: { fromPerson: true, relationshipType: true } },
+      },
+    });
+    if (!person) throw new NotFoundException(`Family member #${id} not found`);
+    return person;
+  }
+
   async updateMember(id: string, data: UpdateMemberDto) {
     const person = await this.prisma.person.findUnique({ where: { id } });
     if (!person) throw new NotFoundException('Family member not found');

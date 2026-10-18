@@ -2,6 +2,8 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
+  Delete,
   Body,
   Param,
   Req,
@@ -12,9 +14,10 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiParam,
 } from '@nestjs/swagger';
 import { ChatService } from './chat.service';
-import { CreateConversationDto, SendChatMessageDto } from './chat.dto';
+import { CreateConversationDto, SendChatMessageDto, UpdateChatMessageDto } from './chat.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -110,4 +113,57 @@ export class ChatController {
     const userId = req.user.id || req.user.sub;
     return this.chatService.markAsRead(conversationId, userId);
   }
+
+  @Patch('messages/:id')
+  @ApiOperation({
+    summary: 'Edit / update a chat message [Roles: Message Sender, OWNER, ADMIN]',
+    description: `**Route:** \`PATCH /family/chat/messages/:id\`
+**Purpose:** Allows message sender (or sanctuary owner) to edit their previously sent message text.
+**Permissions:** Message sender or Sanctuary Administrator.`,
+  })
+  @ApiParam({ name: 'id', description: 'Unique message identifier' })
+  @ApiResponse({ status: 200, description: 'Message updated successfully' })
+  async updateMessage(
+    @Req() req: any,
+    @Param('id') messageId: string,
+    @Body() dto: UpdateChatMessageDto,
+  ) {
+    const userId = req.user.id || req.user.sub;
+    return this.chatService.updateMessage(messageId, userId, dto);
+  }
+
+  @Delete('messages/:id')
+  @ApiOperation({
+    summary: 'Delete a chat message [Roles: Message Sender, OWNER, ADMIN]',
+    description: `**Route:** \`DELETE /family/chat/messages/:id\`
+**Purpose:** Removes a single message from conversation thread history.
+**Permissions:** Sender or Sanctuary Administrator.`,
+  })
+  @ApiParam({ name: 'id', description: 'Unique message identifier' })
+  @ApiResponse({ status: 200, description: 'Message deleted successfully' })
+  async deleteMessage(
+    @Req() req: any,
+    @Param('id') messageId: string,
+  ) {
+    const userId = req.user.id || req.user.sub;
+    return this.chatService.deleteMessage(messageId, userId);
+  }
+
+  @Delete('conversations/:id')
+  @ApiOperation({
+    summary: 'Delete an entire conversation thread [Roles: Participant, OWNER, ADMIN]',
+    description: `**Route:** \`DELETE /family/chat/conversations/:id\`
+**Purpose:** Removes the conversation and all associated messages permanently.
+**Permissions:** Participant in the thread or Sanctuary Administrator.`,
+  })
+  @ApiParam({ name: 'id', description: 'Unique conversation identifier' })
+  @ApiResponse({ status: 200, description: 'Conversation deleted successfully' })
+  async deleteConversation(
+    @Req() req: any,
+    @Param('id') conversationId: string,
+  ) {
+    const userId = req.user.id || req.user.sub;
+    return this.chatService.deleteConversation(conversationId, userId);
+  }
 }
+

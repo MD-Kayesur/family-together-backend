@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Body, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { RelationshipsService } from './relationships.service';
-import { CreateRelationshipDto, RelationshipsQueryDto } from './relationships.dto';
+import { CreateRelationshipDto, UpdateRelationshipDto, RelationshipsQueryDto } from './relationships.dto';
 
 @ApiTags('Family Relationships')
 @Controller('family/relationships')
@@ -32,5 +32,34 @@ export class RelationshipsController {
   @ApiResponse({ status: 201, description: 'Relationship established successfully' })
   createRelationship(@Body() body: CreateRelationshipDto) {
     return this.relationshipsService.createRelationship(body);
+  }
+
+  @Patch(':id')
+  @ApiOperation({
+    summary: 'Update an existing relationship link [Roles: OWNER, ADMIN, MEMBER]',
+    description: `**Route:** \`PATCH /family/relationships/:id\`
+**Purpose:** Modifies relationship type code (e.g. changing between PARENT_CHILD, SPOUSE, SIBLING) or verification status.
+**Allowed Roles:** \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`, \`MEMBER\``,
+  })
+  @ApiParam({ name: 'id', description: 'Unique relationship identifier' })
+  @ApiResponse({ status: 200, description: 'Relationship updated successfully' })
+  updateRelationship(
+    @Param('id') id: string,
+    @Body() body: UpdateRelationshipDto,
+  ) {
+    return this.relationshipsService.updateRelationship(id, body);
+  }
+
+  @Delete(':id')
+  @ApiOperation({
+    summary: 'Delete and unlink a relationship connection [Roles: OWNER, ADMIN, MEMBER]',
+    description: `**Route:** \`DELETE /family/relationships/:id\`
+**Purpose:** Removes the relationship link between two relatives, disconnecting the tree branch edge.
+**Allowed Roles:** \`OWNER\`, \`ADMIN\`, \`SUPER_ADMIN\`, \`MEMBER\``,
+  })
+  @ApiParam({ name: 'id', description: 'Unique relationship identifier' })
+  @ApiResponse({ status: 200, description: 'Relationship connection deleted successfully' })
+  deleteRelationship(@Param('id') id: string) {
+    return this.relationshipsService.deleteRelationship(id);
   }
 }

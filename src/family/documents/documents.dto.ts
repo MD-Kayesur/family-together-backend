@@ -101,3 +101,45 @@ export class CreateMultipleDocumentsDto {
   @IsArray()
   documents: CreateDocumentDto[];
 }
+
+export class UpdateDocumentDto {
+  @ApiPropertyOptional({
+    description: 'Display name or title of the document',
+    example: 'Updated Land Deed Certificate',
+  })
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @ApiPropertyOptional({
+    description: 'Category classification (e.g. Legal Records, Birth Certificate, Historic Photo)',
+    example: 'Legal Records',
+  })
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @ApiPropertyOptional({
+    description: 'File size indicator',
+    example: '2.5 MB',
+  })
+  @IsOptional()
+  @IsString()
+  size?: string;
+
+  @ApiPropertyOptional({
+    description: 'Primary single file URL or storage link',
+    example: 'https://storage.familyroots.io/documents/sample.pdf',
+  })
+  @IsOptional()
+  @IsString()
+  fileUrl?: string;
+
+  @ApiPropertyOptional({
+    description: 'Name or email of the uploader / editor',
+    example: 'Family Member',
+  })
+  @IsOptional()
+  @IsString()
+  uploadedBy?: string;
+}

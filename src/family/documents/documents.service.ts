@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { buildPaginatedResponse } from '../../common/interfaces/paginated-result.interface';
-import { CreateDocumentDto, DocumentsQueryDto } from './documents.dto';
+import { CreateDocumentDto, UpdateDocumentDto, DocumentsQueryDto } from './documents.dto';
 
 @Injectable()
 export class DocumentsService {
@@ -230,6 +230,33 @@ export class DocumentsService {
       }
       throw err;
     }
+  }
+
+  async updateDocument(id: string, data: UpdateDocumentDto) {
+    const existing = await this.prisma.document.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException(`Document #${id} not found in sanctuary vault`);
+    }
+
+    const updated = await this.prisma.document.update({
+      where: { id },
+      data: {
+        ...(data.name ? { name: data.name } : {}),
+        ...(data.category ? { category: data.category } : {}),
+        ...(data.size ? { size: data.size } : {}),
+        ...(data.fileUrl ? { fileUrl: data.fileUrl } : {}),
+        ...(data.uploadedBy ? { uploadedBy: data.uploadedBy } : {}),
+      },
+    });
+
+    const parsed = this.parseDocumentFiles(updated.fileUrl, updated.name, updated.size);
+    return {
+      ...updated,
+      fileUrl: parsed.fileUrl,
+      fileUrls: parsed.fileUrls,
+      files: parsed.files,
+      fileCount: parsed.fileCount,
+    };
   }
 
   async deleteAllDocuments() {
