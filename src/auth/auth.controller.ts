@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Patch, Body, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Body, Query, Req, Res, UseGuards, UnauthorizedException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
@@ -12,6 +12,8 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto, ResetPasswordDto, VerifyResetCodeDto } from './dto/reset-password.dto';
 import { VerifyEmailDto, ResendVerificationDto } from './dto/verify-email.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { GoogleAuthGuard } from './guards/google-auth.guard';
+import { FacebookAuthGuard } from './guards/facebook-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 
 @ApiTags('Auth')
@@ -50,6 +52,138 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     return this.authService.signIn(dto, req, res);
+  }
+
+  @Get('google')
+  @UseGuards(GoogleAuthGuard)
+  @ApiOperation({
+    summary: 'Initiate Google OAuth 2.0 flow [Role: PUBLIC]',
+    description: `**Route:** \`GET /auth/google\`
+**Purpose:** Redirects user to Google OAuth consent page or dev simulation login.
+**Required Permissions / Roles:** \`PUBLIC\` (No auth required).`,
+  })
+  googleAuth(@Req() req: Request, @Res() res: Response) {
+    const isConfigured =
+      process.env.GOOGLE_CLIENT_ID &&
+      !process.env.GOOGLE_CLIENT_ID.startsWith('your-') &&
+      !process.env.GOOGLE_CLIENT_ID.startsWith('dummy-');
+
+    if (!isConfigured || req.query.simulated === 'true') {
+      const email = (req.query.email as string) || 'demo.google.user@familyroots.app';
+      const name = (req.query.name as string) || 'Google Demo User';
+      return this.authService.handleOAuthLogin(
+        {
+          email,
+          fullName: name,
+          provider: 'google',
+          providerId: 'google_demo_1092837465',
+          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+        },
+        req,
+        res,
+      );
+    }
+  }
+
+  @Get('google/callback')
+  @UseGuards(GoogleAuthGuard)
+  @ApiOperation({
+    summary: 'Google OAuth callback handler [Role: PUBLIC]',
+    description: `**Route:** \`GET /auth/google/callback\`
+**Purpose:** Handles Google OAuth authorization code exchange, user provisioning, JWT cookie generation, and dashboard redirect.
+**Required Permissions / Roles:** \`PUBLIC\`.`,
+  })
+  googleAuthCallback(@Req() req: Request, @Res() res: Response) {
+    if (req.user) {
+      return this.authService.handleOAuthLogin(req.user as any, req, res);
+    }
+
+    const isConfigured =
+      process.env.GOOGLE_CLIENT_ID &&
+      !process.env.GOOGLE_CLIENT_ID.startsWith('your-') &&
+      !process.env.GOOGLE_CLIENT_ID.startsWith('dummy-');
+
+    if (!isConfigured) {
+      return this.authService.handleOAuthLogin(
+        {
+          email: 'demo.google.user@familyroots.app',
+          fullName: 'Google Demo User',
+          provider: 'google',
+          providerId: 'google_demo_1092837465',
+          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+        },
+        req,
+        res,
+      );
+    }
+
+    throw new UnauthorizedException('Google authentication failed');
+  }
+
+  @Get('facebook')
+  @UseGuards(FacebookAuthGuard)
+  @ApiOperation({
+    summary: 'Initiate Facebook OAuth 2.0 flow [Role: PUBLIC]',
+    description: `**Route:** \`GET /auth/facebook\`
+**Purpose:** Redirects user to Facebook OAuth authorization dialog or dev simulation login.
+**Required Permissions / Roles:** \`PUBLIC\`.`,
+  })
+  facebookAuth(@Req() req: Request, @Res() res: Response) {
+    const isConfigured =
+      process.env.FACEBOOK_APP_ID &&
+      !process.env.FACEBOOK_APP_ID.startsWith('your-') &&
+      !process.env.FACEBOOK_APP_ID.startsWith('dummy-');
+
+    if (!isConfigured || req.query.simulated === 'true') {
+      const email = (req.query.email as string) || 'demo.facebook.user@familyroots.app';
+      const name = (req.query.name as string) || 'Facebook Demo User';
+      return this.authService.handleOAuthLogin(
+        {
+          email,
+          fullName: name,
+          provider: 'facebook',
+          providerId: 'fb_demo_987654321',
+          avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+        },
+        req,
+        res,
+      );
+    }
+  }
+
+  @Get('facebook/callback')
+  @UseGuards(FacebookAuthGuard)
+  @ApiOperation({
+    summary: 'Facebook OAuth callback handler [Role: PUBLIC]',
+    description: `**Route:** \`GET /auth/facebook/callback\`
+**Purpose:** Handles Facebook OAuth response, user provisioning, JWT cookie generation, and dashboard redirect.
+**Required Permissions / Roles:** \`PUBLIC\`.`,
+  })
+  facebookAuthCallback(@Req() req: Request, @Res() res: Response) {
+    if (req.user) {
+      return this.authService.handleOAuthLogin(req.user as any, req, res);
+    }
+
+    const isConfigured =
+      process.env.FACEBOOK_APP_ID &&
+      !process.env.FACEBOOK_APP_ID.startsWith('your-') &&
+      !process.env.FACEBOOK_APP_ID.startsWith('dummy-');
+
+    if (!isConfigured) {
+      return this.authService.handleOAuthLogin(
+        {
+          email: 'demo.facebook.user@familyroots.app',
+          fullName: 'Facebook Demo User',
+          provider: 'facebook',
+          providerId: 'fb_demo_987654321',
+          avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+        },
+        req,
+        res,
+      );
+    }
+
+    throw new UnauthorizedException('Facebook authentication failed');
   }
 
   @Post('refresh')

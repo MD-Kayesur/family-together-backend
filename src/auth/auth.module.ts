@@ -10,7 +10,11 @@ import { TokenService } from './services/token.service';
 import { SessionService } from './services/session.service';
 import { VerificationService } from './services/verification.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { GoogleStrategy } from './strategies/google.strategy';
+import { FacebookStrategy } from './strategies/facebook.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { GoogleAuthGuard } from './guards/google-auth.guard';
+import { FacebookAuthGuard } from './guards/facebook-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { PermissionsGuard } from './guards/permissions.guard';
 
@@ -33,13 +37,19 @@ import { PermissionsGuard } from './guards/permissions.guard';
     SessionService,
     VerificationService,
     JwtStrategy,
+    GoogleStrategy,
+    FacebookStrategy,
     JwtAuthGuard,
+    GoogleAuthGuard,
+    FacebookAuthGuard,
     RolesGuard,
     PermissionsGuard,
   ],
   exports: [
     AuthService,
     JwtAuthGuard,
+    GoogleAuthGuard,
+    FacebookAuthGuard,
     RolesGuard,
     PermissionsGuard,
     PasswordService,

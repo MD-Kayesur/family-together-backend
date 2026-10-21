@@ -344,6 +344,91 @@ export class AuthService {
     };
   }
 
+  async handleOAuthLogin(
+    profile: {
+      email: string;
+      fullName: string;
+      provider: 'google' | 'facebook';
+      providerId: string;
+      avatarUrl?: string | null;
+    },
+    req: Request,
+    res: Response,
+  ) {
+    if (!profile.email) {
+      throw new BadRequestException('Email not provided by OAuth provider');
+    }
+
+    const email = profile.email.toLowerCase();
+    let user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (user) {
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          provider: user.provider === 'local' ? profile.provider : user.provider,
+          providerId: user.providerId || profile.providerId,
+          avatarUrl: user.avatarUrl || profile.avatarUrl,
+          emailVerified: true,
+          status: user.status === 'PENDING' ? 'ACTIVE' : user.status,
+        },
+      });
+    } else {
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          fullName: profile.fullName || 'User',
+          provider: profile.provider,
+          providerId: profile.providerId,
+          avatarUrl: profile.avatarUrl,
+          emailVerified: true,
+          status: 'ACTIVE',
+          role: 'USER',
+        },
+      });
+    }
+
+    if (user.status === 'SUSPENDED') {
+      throw new UnauthorizedException('Your account has been suspended. Please contact support.');
+    }
+
+    const refreshToken = this.tokenService.generateRefreshToken();
+    const userAgent = (req.headers['user-agent'] as string) || 'OAuth Browser Session';
+    const ipAddress = req.ip || req.socket.remoteAddress || 'Unknown IP';
+
+    const session = await this.sessionService.createSession(
+      user.id,
+      refreshToken,
+      userAgent,
+      ipAddress,
+    );
+
+    const accessToken = this.tokenService.generateAccessToken(
+      user.id,
+      user.email,
+      user.role,
+      session.id,
+    );
+
+    this.setAuthCookies(res, accessToken, refreshToken);
+
+    const frontendBase = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',')[0].trim();
+    const redirectUrl = new URL(`${frontendBase}/auth/callback`);
+    redirectUrl.searchParams.set('token', accessToken);
+    redirectUrl.searchParams.set('refreshToken', refreshToken);
+    redirectUrl.searchParams.set('userId', user.id);
+    redirectUrl.searchParams.set('email', user.email);
+    redirectUrl.searchParams.set('role', user.role);
+    redirectUrl.searchParams.set('name', user.fullName);
+    if (user.avatarUrl) {
+      redirectUrl.searchParams.set('avatar', user.avatarUrl);
+    }
+
+    return res.redirect(redirectUrl.toString());
+  }
+
   private setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
     const isProduction = process.env.NODE_ENV === 'production';
 

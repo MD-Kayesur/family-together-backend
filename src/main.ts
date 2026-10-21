@@ -147,7 +147,7 @@ Every route in this API documentation is tagged with its **Route Path** and **Al
   SwaggerModule.setup('docs', app, documentFactory, swaggerCustomOptions);
 
   const port = process.env.PORT ?? 3000;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   logger.log(`Application is running on: http://localhost:${port}`);
   logger.log(`Swagger OpenAPI docs available at: http://localhost:${port}/api/docs`);
 }
