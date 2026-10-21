@@ -39,6 +39,8 @@ model User {
   status          UserStatus               @default(PENDING)
   emailVerified   Boolean                  @default(false)
   emailVerifiedAt DateTime?
+  provider        String?                  @default("local")
+  providerId      String?
   createdById     String?                  @map("created_by_id")
   createdAt       DateTime                 @default(now())
   updatedAt       DateTime                 @updatedAt
