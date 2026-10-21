@@ -20,6 +20,7 @@ import { ChatService } from './chat.service';
 import { CreateConversationDto, SendChatMessageDto, UpdateChatMessageDto } from './chat.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ChatGateway } from './chat.gateway';
 
 @ApiTags('Real-Time Family Chat & Messenger')
 @ApiBearerAuth('access-token')
@@ -29,7 +30,17 @@ export class ChatController {
   constructor(
     private readonly chatService: ChatService,
     private readonly prisma: PrismaService,
+    private readonly chatGateway: ChatGateway,
   ) {}
+
+  @Get('online-users')
+  @ApiOperation({ summary: 'Get list of currently active / online user IDs and last active timestamps' })
+  async getOnlineUsers() {
+    return {
+      onlineUserIds: this.chatGateway.getOnlineUserIds(),
+      lastActiveMap: await this.chatGateway.getLastActiveMapWithDbFallback(),
+    };
+  }
 
   private async getFamilyIdForUser(userId: string): Promise<string> {
     const membership = await this.prisma.familyMember.findFirst({

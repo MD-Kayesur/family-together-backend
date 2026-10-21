@@ -41,6 +41,7 @@ model User {
   emailVerifiedAt DateTime?
   provider        String?                  @default("local")
   providerId      String?
+  lastActiveAt    DateTime?                @default(now()) @map("last_active_at")
   createdById     String?                  @map("created_by_id")
   createdAt       DateTime                 @default(now())
   updatedAt       DateTime                 @updatedAt
