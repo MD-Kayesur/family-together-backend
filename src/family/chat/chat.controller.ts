@@ -42,6 +42,52 @@ export class ChatController {
     };
   }
 
+  @Get('users')
+  @ApiOperation({ summary: 'Get all platform and family users available for chat and presence' })
+  async getChatUsers(@Req() req: any) {
+    const currentUserId = req.user.id || req.user.sub;
+    const currentUserRole = req.user.role || 'MEMBER';
+
+    const users = await this.prisma.user.findMany({
+      where: {
+        id: { not: currentUserId },
+        status: 'ACTIVE',
+      },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        avatarUrl: true,
+        role: true,
+        lastActiveAt: true,
+        createdAt: true,
+      },
+      orderBy: {
+        lastActiveAt: 'desc',
+      },
+    });
+
+    const onlineUserIds = new Set(this.chatGateway.getOnlineUserIds());
+    const lastActiveMap = await this.chatGateway.getLastActiveMapWithDbFallback();
+
+    return users.map((u) => {
+      const isOwnerTarget = u.role === 'OWNER';
+      const isRestricted = currentUserRole === 'MEMBER' && isOwnerTarget;
+
+      return {
+        id: u.id,
+        fullName: u.fullName || u.email,
+        email: u.email,
+        avatarUrl: u.avatarUrl,
+        role: u.role,
+        online: onlineUserIds.has(u.id),
+        lastActiveAt: lastActiveMap[u.id] || (u.lastActiveAt ? u.lastActiveAt.toISOString() : null),
+        canMessage: !isRestricted,
+        isOwnerTarget,
+      };
+    });
+  }
+
   private async getFamilyIdForUser(userId: string): Promise<string> {
     const membership = await this.prisma.familyMember.findFirst({
       where: {

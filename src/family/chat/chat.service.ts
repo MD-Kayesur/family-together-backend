@@ -32,8 +32,8 @@ export class ChatService {
       return false;
     }
 
-    // RULE 2: OWNER or SUPER_ADMIN can message any member
-    if (sender.role === 'OWNER' || sender.role === 'SUPER_ADMIN') {
+    // RULE 2: OWNER, ADMIN, or SUPER_ADMIN can message any member
+    if (sender.role === 'OWNER' || sender.role === 'ADMIN' || sender.role === 'SUPER_ADMIN') {
       return true;
     }
 
@@ -60,6 +60,11 @@ export class ChatService {
       if (activeLink) {
         return true;
       }
+    }
+
+    // RULE 5: Peer family members/users can message each other (when recipient is not the Owner)
+    if (recipient.role !== 'OWNER') {
+      return true;
     }
 
     return false;
