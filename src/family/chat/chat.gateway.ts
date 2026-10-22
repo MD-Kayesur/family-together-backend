@@ -32,6 +32,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // Track last active timestamp: userId -> ISO string
   private readonly lastActiveTimes = new Map<string, string>();
 
+  // Cache DB last active times to avoid blocking socket connection with remote database queries
+  private cachedDbLastActiveMap: Record<string, string> = {};
+  private lastDbFetchTime = 0;
+  private readonly DB_CACHE_TTL = 60000; // 60 seconds TTL
+
   constructor(
     private readonly chatService: ChatService,
     private readonly jwtService: JwtService,
@@ -51,25 +56,38 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   async getLastActiveMapWithDbFallback(): Promise<Record<string, string>> {
-    const map: Record<string, string> = {};
+    const now = Date.now();
+    // Return cached map if within TTL to guarantee sub-millisecond socket handshake
+    if (now - this.lastDbFetchTime < this.DB_CACHE_TTL && Object.keys(this.cachedDbLastActiveMap).length > 0) {
+      const merged = { ...this.cachedDbLastActiveMap };
+      for (const [userId, timestamp] of this.lastActiveTimes.entries()) {
+        merged[userId] = timestamp;
+      }
+      return merged;
+    }
+
     try {
       const users = await this.prisma.user.findMany({
         select: { id: true, lastActiveAt: true },
       });
+      const dbMap: Record<string, string> = {};
       for (const u of users) {
         if (u.lastActiveAt) {
-          map[u.id] = u.lastActiveAt.toISOString();
+          dbMap[u.id] = u.lastActiveAt.toISOString();
         }
       }
+      this.cachedDbLastActiveMap = dbMap;
+      this.lastDbFetchTime = now;
     } catch {
       // Fallback to in-memory only
     }
 
     // Overlay in-memory live updates
+    const finalMap = { ...this.cachedDbLastActiveMap };
     for (const [userId, timestamp] of this.lastActiveTimes.entries()) {
-      map[userId] = timestamp;
+      finalMap[userId] = timestamp;
     }
-    return map;
+    return finalMap;
   }
 
   async handleConnection(client: Socket) {
@@ -90,7 +108,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       if (!token) {
         this.logger.warn(`Client disconnected: No auth token provided (${client.id})`);
-        client.disconnect();
+        client.emit('auth_error', { message: 'No auth token provided' });
+        client.disconnect(true);
         return;
       }
 
@@ -141,7 +160,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
     } catch (err: any) {
       this.logger.warn(`Socket authentication failed: ${err.message}`);
-      client.disconnect();
+      client.emit('auth_error', { message: err.message });
+      client.disconnect(true);
     }
   }
 
