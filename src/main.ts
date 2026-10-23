@@ -39,11 +39,15 @@ async function bootstrap() {
       // Match Vercel deployment preview / production domains
       const isVercel = /^https:\/\/[a-zA-Z0-9_\-.]+\.vercel\.app$/.test(requestOrigin);
 
+      // Match Render deployment preview / production domains
+      const isRender = /^https:\/\/[a-zA-Z0-9_\-.]+\.onrender\.com$/.test(requestOrigin);
+
       if (
         envOrigins.includes(requestOrigin) ||
         isLocalhost ||
         isLocalNetwork ||
         isVercel ||
+        isRender ||
         process.env.NODE_ENV !== 'production'
       ) {
         return callback(null, true);
