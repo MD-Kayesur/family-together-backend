@@ -13,6 +13,7 @@ import { Logger } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { SendChatMessageDto, TypingEventDto, MarkReadDto } from './chat.dto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { PushService } from './push.service';
 
 @WebSocketGateway({
   cors: {
@@ -41,6 +42,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly chatService: ChatService,
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
+    private readonly pushService: PushService,
   ) {}
 
   getOnlineUserIds(): string[] {
@@ -240,8 +242,46 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       const savedMessage = await this.chatService.saveMessage(senderId, dto);
 
-      // Broadcast to all participants in this conversation
+      // 1. Broadcast to the active conversation room (for currently focused chat window)
       this.server.to(`conv_${dto.conversationId}`).emit('new_message', savedMessage);
+
+      // 2. Fetch all participants to alert their personal devices/tabs
+      try {
+        const participants = await this.prisma.conversationParticipant.findMany({
+          where: { conversationId: dto.conversationId },
+          select: { userId: true },
+        });
+
+        for (const p of participants) {
+          if (p.userId !== senderId) {
+            // Send direct socket alert to user's personal room across any active tab/window
+            this.server.to(`user_${p.userId}`).emit('new_message', savedMessage);
+            this.server.to(`user_${p.userId}`).emit('message_notification', {
+              id: savedMessage.id,
+              conversationId: dto.conversationId,
+              senderId,
+              senderName: savedMessage.senderName,
+              avatar: savedMessage.avatar,
+              text: savedMessage.text,
+              createdAt: savedMessage.createdAt,
+            });
+
+            // Dispatch background Web Push (rings / vibrates phone & desktop even when app is closed)
+            this.pushService
+              .sendPushToUser(p.userId, {
+                title: `Message from ${savedMessage.senderName}`,
+                body: savedMessage.text || 'Sent an attachment',
+                icon: savedMessage.avatar || '/icon.png',
+                conversationId: dto.conversationId,
+                senderId,
+                url: `/user-dashboard?tab=messages&convId=${dto.conversationId}`,
+              })
+              .catch(() => {});
+          }
+        }
+      } catch (err: any) {
+        this.logger.warn(`Failed to dispatch participant notifications: ${err.message}`);
+      }
 
       // Return acknowledgment to sender
       return { success: true, message: savedMessage };
@@ -249,6 +289,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.logger.error(`send_message failed: ${err.message}`);
       return { error: err.message };
     }
+  }
+
+  @SubscribeMessage('register_push_subscription')
+  handleRegisterPush(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { endpoint: string; keys: { p256dh: string; auth: string }; userAgent?: string },
+  ) {
+    const userId = client.data?.userId;
+    if (!userId) return { error: 'Unauthorized' };
+    return this.pushService.saveSubscription(userId, data);
   }
 
   @SubscribeMessage('typing')
