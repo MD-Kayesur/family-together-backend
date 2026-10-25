@@ -8,6 +8,7 @@ import {
   Param,
   Req,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -21,6 +22,7 @@ import { CreateConversationDto, SendChatMessageDto, UpdateChatMessageDto } from 
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ChatGateway } from './chat.gateway';
+import { PushService } from './push.service';
 
 @ApiTags('Real-Time Family Chat & Messenger')
 @ApiBearerAuth('access-token')
@@ -31,7 +33,26 @@ export class ChatController {
     private readonly chatService: ChatService,
     private readonly prisma: PrismaService,
     private readonly chatGateway: ChatGateway,
+    private readonly pushService: PushService,
   ) {}
+
+  @Get('push-key')
+  @ApiOperation({ summary: 'Get VAPID public key for device push notification subscription' })
+  getPushPublicKey() {
+    return {
+      publicKey: this.pushService.getPublicKey(),
+    };
+  }
+
+  @Post('push-subscribe')
+  @ApiOperation({ summary: 'Register device push notification subscription for the authenticated user' })
+  subscribeToPush(
+    @Req() req: any,
+    @Body() body: { endpoint: string; keys: { p256dh: string; auth: string }; userAgent?: string },
+  ) {
+    const userId = req.user.id || req.user.sub;
+    return this.pushService.saveSubscription(userId, body);
+  }
 
   @Get('online-users')
   @ApiOperation({ summary: 'Get list of currently active / online user IDs and last active timestamps' })
@@ -126,6 +147,9 @@ export class ChatController {
   ) {
     const userId = req.user.id || req.user.sub;
     const familyId = await this.getFamilyIdForUser(userId);
+    if (!dto.recipientId) {
+      throw new BadRequestException('recipientId is required to start a conversation');
+    }
     return this.chatService.getOrCreateDirectConversation(userId, dto.recipientId, familyId);
   }
 
