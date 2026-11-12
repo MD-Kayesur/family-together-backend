@@ -17,13 +17,12 @@ export class DocumentsService {
     files: Array<{ name: string; size?: string; fileUrl: string }>;
     fileCount: number;
   } {
-    const dummyUrl = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
     if (!fileUrl) {
       return {
-        fileUrl: dummyUrl,
-        fileUrls: [dummyUrl],
-        files: [{ name: fallbackName, size: fallbackSize, fileUrl: dummyUrl }],
-        fileCount: 1,
+        fileUrl: '',
+        fileUrls: [],
+        files: [],
+        fileCount: 0,
       };
     }
 
