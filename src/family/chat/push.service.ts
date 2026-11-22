@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as webpush from 'web-push';
+import { PrismaService } from '../../prisma/prisma.service';
 
 export interface PushSubscriptionKeys {
   p256dh: string;
@@ -33,7 +34,7 @@ export class PushService {
 
   private vapidKeys: { publicKey: string; privateKey: string };
 
-  constructor() {
+  constructor(private readonly prisma: PrismaService) {
     this.initializeVapid();
   }
 
@@ -65,39 +66,78 @@ export class PushService {
     return this.vapidKeys?.publicKey || '';
   }
 
-  saveSubscription(userId: string, subscription: { endpoint: string; keys: { p256dh: string; auth: string }; userAgent?: string }) {
+  async saveSubscription(userId: string, subscription: { endpoint: string; keys: { p256dh: string; auth: string }; userAgent?: string }) {
     if (!subscription?.endpoint || !subscription?.keys?.auth || !subscription?.keys?.p256dh) {
       return { success: false, message: 'Invalid push subscription payload' };
     }
 
-    const current = this.userSubscriptions.get(userId) || [];
-    // Deduplicate by endpoint
-    const filtered = current.filter((s) => s.endpoint !== subscription.endpoint);
-    filtered.push({
-      endpoint: subscription.endpoint,
-      keys: subscription.keys,
-      userAgent: subscription.userAgent,
-      createdAt: new Date().toISOString(),
-    });
-
-    this.userSubscriptions.set(userId, filtered);
-    this.logger.log(`Registered device push subscription for user ${userId} (${filtered.length} total active devices)`);
-    return { success: true, totalDevices: filtered.length };
+    try {
+      await this.prisma.pushSubscription.upsert({
+        where: { endpoint: subscription.endpoint },
+        update: {
+          userId,
+          p256dh: subscription.keys.p256dh,
+          auth: subscription.keys.auth,
+          userAgent: subscription.userAgent || null,
+        },
+        create: {
+          userId,
+          endpoint: subscription.endpoint,
+          p256dh: subscription.keys.p256dh,
+          auth: subscription.keys.auth,
+          userAgent: subscription.userAgent || null,
+        },
+      });
+      this.logger.log(`Persisted device push subscription for user ${userId} in PostgreSQL`);
+      return { success: true };
+    } catch (err: any) {
+      this.logger.error(`Database error saving push subscription: ${err.message}`);
+      // Fallback in memory
+      const current = this.userSubscriptions.get(userId) || [];
+      const filtered = current.filter((s) => s.endpoint !== subscription.endpoint);
+      filtered.push({
+        endpoint: subscription.endpoint,
+        keys: subscription.keys,
+        userAgent: subscription.userAgent,
+        createdAt: new Date().toISOString(),
+      });
+      this.userSubscriptions.set(userId, filtered);
+      return { success: true };
+    }
   }
 
-  removeSubscription(userId: string, endpoint: string) {
-    const current = this.userSubscriptions.get(userId);
-    if (!current) return;
-    const filtered = current.filter((s) => s.endpoint !== endpoint);
-    if (filtered.length > 0) {
-      this.userSubscriptions.set(userId, filtered);
-    } else {
-      this.userSubscriptions.delete(userId);
+  async removeSubscription(userId: string, endpoint: string) {
+    try {
+      await this.prisma.pushSubscription.deleteMany({
+        where: { endpoint },
+      });
+    } catch {
+      const current = this.userSubscriptions.get(userId);
+      if (current) {
+        const filtered = current.filter((s) => s.endpoint !== endpoint);
+        if (filtered.length > 0) {
+          this.userSubscriptions.set(userId, filtered);
+        } else {
+          this.userSubscriptions.delete(userId);
+        }
+      }
     }
   }
 
   async sendPushToUser(userId: string, payload: NotificationPayload) {
-    const subscriptions = this.userSubscriptions.get(userId);
+    let subscriptions: Array<{ endpoint: string; keys: { p256dh: string; auth: string } }> = [];
+    try {
+      const dbSubs = await this.prisma.pushSubscription.findMany({
+        where: { userId },
+      });
+      subscriptions = dbSubs.map((s) => ({
+        endpoint: s.endpoint,
+        keys: { p256dh: s.p256dh, auth: s.auth },
+      }));
+    } catch {
+      subscriptions = this.userSubscriptions.get(userId) || [];
+    }
+
     if (!subscriptions || subscriptions.length === 0) {
       return { sent: 0, failed: 0 };
     }
@@ -133,7 +173,6 @@ export class PushService {
           failed++;
           this.logger.warn(`Push dispatch failed for user ${userId} (${err.statusCode || err.message})`);
           if (err.statusCode === 404 || err.statusCode === 410) {
-            // Subscription has expired or user unsubscribed
             deadEndpoints.push(sub.endpoint);
           }
         }
@@ -141,7 +180,7 @@ export class PushService {
     );
 
     for (const ep of deadEndpoints) {
-      this.removeSubscription(userId, ep);
+      await this.removeSubscription(userId, ep);
     }
 
     return { sent, failed };
