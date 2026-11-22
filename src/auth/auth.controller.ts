@@ -5,6 +5,7 @@ import { AuthService } from './auth.service';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 import { SessionService } from './services/session.service';
+import { TwoFactorService } from './services/two-factor.service';
 import { SignUpDto } from './dto/signup.dto';
 import { SignInDto } from './dto/signin.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
@@ -22,6 +23,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly sessionService: SessionService,
+    private readonly twoFactorService: TwoFactorService,
   ) {}
 
   @Post('signup')
@@ -374,5 +376,59 @@ export class AuthController {
     },
   ) {
     return this.authService.updateProfile(userId, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiCookieAuth('access_token')
+  @Get('2fa/generate')
+  @ApiOperation({
+    summary: 'Generate 2FA TOTP secret and QR code URL [Roles: Authenticated]',
+    description: 'Generates a new RFC 6238 Base32 TOTP secret and otpauth URI for Google Authenticator or Authy.',
+  })
+  generate2FASetup(@CurrentUser('id') userId: string) {
+    return this.twoFactorService.generate2FASetup(userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiCookieAuth('access_token')
+  @Post('2fa/enable')
+  @ApiOperation({
+    summary: 'Verify code and enable 2FA on account [Roles: Authenticated]',
+    description: 'Validates 6-digit TOTP authentication code and permanently activates two-factor security.',
+  })
+  enable2FA(
+    @CurrentUser('id') userId: string,
+    @Body() dto: { code: string },
+  ) {
+    return this.twoFactorService.enable2FA(userId, dto.code);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiCookieAuth('access_token')
+  @Post('2fa/disable')
+  @ApiOperation({
+    summary: 'Disable 2FA security on account [Roles: Authenticated]',
+  })
+  disable2FA(
+    @CurrentUser('id') userId: string,
+    @Body() dto: { code: string },
+  ) {
+    return this.twoFactorService.disable2FA(userId, dto.code);
+  }
+
+  @Post('2fa/authenticate')
+  @ApiOperation({
+    summary: 'Authenticate 2FA challenge code during sign-in [Role: PUBLIC]',
+    description: 'Verifies 6-digit TOTP code and completes login session.',
+  })
+  authenticate2FA(
+    @Body() dto: { userId: string; code: string },
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.authenticate2FA(dto, req, res);
   }
 }

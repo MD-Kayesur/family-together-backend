@@ -6,6 +6,7 @@ import { PasswordService } from './services/password.service';
 import { TokenService } from './services/token.service';
 import { SessionService } from './services/session.service';
 import { VerificationService } from './services/verification.service';
+import { TwoFactorService } from './services/two-factor.service';
 import { SignUpDto } from './dto/signup.dto';
 import { SignInDto } from './dto/signin.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -21,6 +22,7 @@ export class AuthService {
     private readonly tokenService: TokenService,
     private readonly sessionService: SessionService,
     private readonly verificationService: VerificationService,
+    private readonly twoFactorService: TwoFactorService,
   ) {}
 
   async signUp(dto: SignUpDto) {
@@ -94,6 +96,15 @@ export class AuthService {
         requiresEmailVerification: true,
         email: user.email,
       });
+    }
+
+    if (user.isTwoFactorEnabled) {
+      return {
+        requires2FA: true,
+        userId: user.id,
+        email: user.email,
+        message: 'Two-factor authentication code required',
+      };
     }
 
     const refreshToken = this.tokenService.generateRefreshToken();
@@ -445,6 +456,49 @@ export class AuthService {
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
+  }
+
+  async authenticate2FA(dto: { userId: string; code: string }, req: Request, res: Response) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: dto.userId },
+    });
+
+    if (!user || !user.twoFactorSecret || !user.isTwoFactorEnabled) {
+      throw new UnauthorizedException('Invalid 2FA authentication request');
+    }
+
+    const isValid = this.twoFactorService.verifyTotpCode(user.twoFactorSecret, dto.code.trim());
+    if (!isValid) {
+      throw new UnauthorizedException('Invalid 6-digit two-factor authentication code');
+    }
+
+    const refreshToken = this.tokenService.generateRefreshToken();
+    const userAgent = (req.headers['user-agent'] as string) || '2FA Browser Session';
+    const ipAddress = req.ip || req.socket.remoteAddress || 'Unknown IP';
+
+    const session = await this.sessionService.createSession(
+      user.id,
+      refreshToken,
+      userAgent,
+      ipAddress,
+    );
+
+    const accessToken = this.tokenService.generateAccessToken(
+      user.id,
+      user.email,
+      user.role,
+      session.id,
+    );
+
+    this.setAuthCookies(res, accessToken, refreshToken);
+
+    const { password, twoFactorSecret, ...userProfile } = user;
+    return {
+      message: 'Sign in successful',
+      user: userProfile,
+      accessToken,
+      refreshToken,
+    };
   }
 
   private clearAuthCookies(res: Response) {

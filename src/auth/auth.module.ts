@@ -9,6 +9,7 @@ import { PasswordService } from './services/password.service';
 import { TokenService } from './services/token.service';
 import { SessionService } from './services/session.service';
 import { VerificationService } from './services/verification.service';
+import { TwoFactorService } from './services/two-factor.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { FacebookStrategy } from './strategies/facebook.strategy';
@@ -36,6 +37,7 @@ import { PermissionsGuard } from './guards/permissions.guard';
     TokenService,
     SessionService,
     VerificationService,
+    TwoFactorService,
     JwtStrategy,
     GoogleStrategy,
     FacebookStrategy,

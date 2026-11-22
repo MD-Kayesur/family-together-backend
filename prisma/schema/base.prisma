@@ -42,6 +42,8 @@ model User {
   provider        String?                  @default("local")
   providerId      String?
   lastActiveAt    DateTime?                @default(now()) @map("last_active_at")
+  twoFactorSecret  String?                  @map("two_factor_secret")
+  isTwoFactorEnabled Boolean                @default(false) @map("is_two_factor_enabled")
   createdById     String?                  @map("created_by_id")
   createdAt       DateTime                 @default(now())
   updatedAt       DateTime                 @updatedAt
@@ -49,6 +51,7 @@ model User {
   sessions        Session[]
   resetTokens     PasswordResetToken[]
   verifyTokens    EmailVerificationToken[]
+  pushSubscriptions PushSubscription[]
 
   person          Person?
   claims          PersonClaim[]
@@ -102,4 +105,18 @@ model EmailVerificationToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("email_verification_tokens")
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("push_subscriptions")
 }
