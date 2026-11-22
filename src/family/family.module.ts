@@ -11,6 +11,7 @@ import { EventsController } from './events/events.controller';
 import { DocumentsController } from './documents/documents.controller';
 import { InvitationsController } from './invitations/invitations.controller';
 import { AnnouncementsController } from './announcements/announcements.controller';
+import { GedcomController } from './gedcom/gedcom.controller';
 
 // Services
 import { FamilyService } from './family.service';
@@ -21,6 +22,7 @@ import { EventsService } from './events/events.service';
 import { DocumentsService } from './documents/documents.service';
 import { InvitationsService } from './invitations/invitations.service';
 import { AnnouncementsService } from './announcements/announcements.service';
+import { GedcomService } from './gedcom/gedcom.service';
 
 import { ChatModule } from './chat/chat.module';
 
@@ -35,6 +37,7 @@ import { ChatModule } from './chat/chat.module';
     DocumentsController,
     InvitationsController,
     AnnouncementsController,
+    GedcomController,
   ],
   providers: [
     FamilyService,
@@ -45,6 +48,7 @@ import { ChatModule } from './chat/chat.module';
     DocumentsService,
     InvitationsService,
     AnnouncementsService,
+    GedcomService,
   ],
   exports: [
     FamilyService,
@@ -55,6 +59,7 @@ import { ChatModule } from './chat/chat.module';
     DocumentsService,
     InvitationsService,
     AnnouncementsService,
+    GedcomService,
     ChatModule,
   ],
 })
