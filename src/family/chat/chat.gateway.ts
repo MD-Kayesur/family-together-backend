@@ -331,4 +331,93 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { error: err.message };
     }
   }
+
+  // --- WebRTC Audio & Video Gathering Signaling Handlers ---
+
+  @SubscribeMessage('webrtc_call_user')
+  handleWebRTCCallUser(
+    @ConnectedSocket() client: Socket,
+    @MessageBody()
+    data: {
+      recipientId: string;
+      conversationId: string;
+      callerName: string;
+      callerAvatar?: string;
+      isVideo?: boolean;
+      offer: any;
+    },
+  ) {
+    const callerId = client.data.userId;
+    this.logger.log(`WebRTC call initiated from ${callerId} to ${data.recipientId} (video: ${data.isVideo})`);
+
+    this.server.to(`user_${data.recipientId}`).emit('webrtc_incoming_call', {
+      callerId,
+      callerName: data.callerName,
+      callerAvatar: data.callerAvatar,
+      conversationId: data.conversationId,
+      isVideo: data.isVideo ?? true,
+      offer: data.offer,
+    });
+
+    return { status: 'calling', recipientId: data.recipientId };
+  }
+
+  @SubscribeMessage('webrtc_answer_call')
+  handleWebRTCAnswerCall(
+    @ConnectedSocket() client: Socket,
+    @MessageBody()
+    data: {
+      callerId: string;
+      conversationId: string;
+      answer: any;
+    },
+  ) {
+    const responderId = client.data.userId;
+    this.logger.log(`WebRTC call answered by ${responderId} for caller ${data.callerId}`);
+
+    this.server.to(`user_${data.callerId}`).emit('webrtc_call_answered', {
+      responderId,
+      conversationId: data.conversationId,
+      answer: data.answer,
+    });
+
+    return { status: 'answered', callerId: data.callerId };
+  }
+
+  @SubscribeMessage('webrtc_ice_candidate')
+  handleWebRTCIceCandidate(
+    @ConnectedSocket() client: Socket,
+    @MessageBody()
+    data: {
+      targetUserId: string;
+      candidate: any;
+    },
+  ) {
+    const senderId = client.data.userId;
+    this.server.to(`user_${data.targetUserId}`).emit('webrtc_ice_candidate', {
+      senderId,
+      candidate: data.candidate,
+    });
+    return { status: 'relayed' };
+  }
+
+  @SubscribeMessage('webrtc_end_call')
+  handleWebRTCEndCall(
+    @ConnectedSocket() client: Socket,
+    @MessageBody()
+    data: {
+      targetUserId: string;
+      conversationId?: string;
+    },
+  ) {
+    const senderId = client.data.userId;
+    this.logger.log(`WebRTC call ended between ${senderId} and ${data.targetUserId}`);
+
+    this.server.to(`user_${data.targetUserId}`).emit('webrtc_call_ended', {
+      endedBy: senderId,
+      conversationId: data.conversationId,
+    });
+
+    return { status: 'ended' };
+  }
 }
