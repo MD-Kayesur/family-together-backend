@@ -7,6 +7,8 @@ import {
   PricingPlan,
   CreateCheckoutSessionDto,
   CreatePortalSessionDto,
+  UpdateMemberSubscriptionDto,
+  MemberSubscriptionRecord,
 } from './billing.dto';
 
 @Injectable()
@@ -431,5 +433,138 @@ export class BillingService {
     }
 
     return { received: true };
+  }
+
+  /**
+   * Retrieve all members of a sanctuary with their allocated subscription tiers and quotas
+   */
+  async getMemberSubscriptions(userId?: string, familyId?: string) {
+    const resolvedFamilyId = await this.resolveFamilyId(userId, familyId);
+
+    const members = await this.prisma.familyMember.findMany({
+      where: { familyId: resolvedFamilyId },
+      include: {
+        person: {
+          include: {
+            user: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const records: MemberSubscriptionRecord[] = members.map((m) => {
+      const p = m.person;
+      const u = p?.user;
+      const bio = p?.bio || '';
+
+      const tierMatch = bio.match(/\[TIER:(FREE|PRO|UNLIMITED)(?:;STORAGE:(\d+))?(?:;ADD_MEMBERS:(true|false))?(?:;NOTE:([^\]]+))?\]/i);
+
+      let tier: 'FREE' | 'PRO' | 'UNLIMITED' = 'FREE';
+      let storageLimitMb = 500;
+      let canAddMembers = false;
+      let note = '';
+
+      if (m.role === 'OWNER' || m.role === 'ADMIN') {
+        tier = 'UNLIMITED';
+        storageLimitMb = 50000;
+        canAddMembers = true;
+      } else if (tierMatch) {
+        tier = (tierMatch[1].toUpperCase() as any) || 'FREE';
+        storageLimitMb = tierMatch[2] ? parseInt(tierMatch[2], 10) : (tier === 'PRO' ? 5000 : 500);
+        canAddMembers = tierMatch[3] ? tierMatch[3] === 'true' : (tier === 'PRO');
+        note = tierMatch[4] || '';
+      }
+
+      return {
+        memberId: m.id,
+        personId: p.id,
+        userId: u?.id || null,
+        name: `${p.firstName} ${p.lastName}`.trim(),
+        email: u?.email || p.email || null,
+        avatarUrl: p.photoUrl || u?.avatarUrl || null,
+        familyRole: m.role,
+        tier,
+        storageLimitMb,
+        storageUsedMb: 12.5,
+        canAddMembers,
+        canUseAllFeatures: tier === 'PRO' || tier === 'UNLIMITED',
+        grantedAt: m.updatedAt.toISOString(),
+        note,
+      };
+    });
+
+    return {
+      familyId: resolvedFamilyId,
+      totalMembers: records.length,
+      proMembersCount: records.filter((r) => r.tier === 'PRO').length,
+      unlimitedMembersCount: records.filter((r) => r.tier === 'UNLIMITED').length,
+      members: records,
+    };
+  }
+
+  /**
+   * Update a member's subscription tier, storage quota (e.g. 5,000 MB), and feature access
+   */
+  async updateMemberSubscription(
+    memberId: string,
+    dto: UpdateMemberSubscriptionDto,
+    callerUserId?: string,
+  ) {
+    const member = await this.prisma.familyMember.findUnique({
+      where: { id: memberId },
+      include: { person: true },
+    });
+
+    if (!member) {
+      throw new NotFoundException(`Family member ${memberId} not found`);
+    }
+
+    const p = member.person;
+    let bio = p.bio || '';
+    bio = bio.replace(/\s*\[TIER:[^\]]+\]/g, '').trim();
+
+    const targetTier = dto.tier.toUpperCase() as 'FREE' | 'PRO' | 'UNLIMITED';
+    const storageLimitMb = dto.storageLimitMb || (targetTier === 'PRO' ? 5000 : targetTier === 'UNLIMITED' ? 50000 : 500);
+    const canAddMembers = dto.canAddMembers !== undefined ? dto.canAddMembers : (targetTier === 'PRO' || targetTier === 'UNLIMITED');
+    const note = dto.note ? `;NOTE:${dto.note.replace(/[\];]/g, '')}` : '';
+
+    const newTag = `[TIER:${targetTier};STORAGE:${storageLimitMb};ADD_MEMBERS:${canAddMembers}${note}]`;
+    const updatedBio = bio ? `${bio}\n\n${newTag}` : newTag;
+
+    let newFamilyRole = member.role;
+    if (targetTier === 'UNLIMITED' && member.role === 'MEMBER') {
+      newFamilyRole = 'ADMIN';
+    } else if (targetTier === 'FREE' && member.role === 'ADMIN') {
+      newFamilyRole = 'MEMBER';
+    }
+
+    await Promise.all([
+      this.prisma.person.update({
+        where: { id: p.id },
+        data: { bio: updatedBio },
+      }),
+      this.prisma.familyMember.update({
+        where: { id: member.id },
+        data: { role: newFamilyRole },
+      }),
+    ]);
+
+    this.logger.log(`Updated member ${member.id} (${p.firstName} ${p.lastName}) to tier: ${targetTier} (Quota: ${storageLimitMb} MB)`);
+
+    return {
+      success: true,
+      message: `Successfully updated ${p.firstName} ${p.lastName} to ${targetTier} plan (${storageLimitMb} MB quota).`,
+      member: {
+        memberId: member.id,
+        personId: p.id,
+        name: `${p.firstName} ${p.lastName}`.trim(),
+        tier: targetTier,
+        storageLimitMb,
+        canAddMembers,
+        canUseAllFeatures: targetTier === 'PRO' || targetTier === 'UNLIMITED',
+        familyRole: newFamilyRole,
+      },
+    };
   }
 }

@@ -73,3 +73,52 @@ export interface PricingPlan {
   popular?: boolean;
   features: PlanFeature[];
 }
+
+export class UpdateMemberSubscriptionDto {
+  @ApiProperty({
+    enum: ['FREE', 'PRO', 'UNLIMITED'],
+    description: 'Target member subscription tier',
+    example: 'PRO',
+  })
+  @IsString()
+  tier: 'FREE' | 'PRO' | 'UNLIMITED';
+
+  @ApiPropertyOptional({
+    description: 'Custom storage limit in MB for the member (defaults to 5000 MB for PRO)',
+    example: 5000,
+  })
+  @IsOptional()
+  storageLimitMb?: number;
+
+  @ApiPropertyOptional({
+    description: 'Whether the member has permissions to add more relatives',
+    example: true,
+  })
+  @IsOptional()
+  canAddMembers?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Optional note or custom justification',
+    example: 'Family archivist and genealogist branch lead',
+  })
+  @IsOptional()
+  @IsString()
+  note?: string;
+}
+
+export interface MemberSubscriptionRecord {
+  memberId: string;
+  personId: string;
+  userId?: string | null;
+  name: string;
+  email?: string | null;
+  avatarUrl?: string | null;
+  familyRole: string;
+  tier: 'FREE' | 'PRO' | 'UNLIMITED';
+  storageLimitMb: number;
+  storageUsedMb: number;
+  canAddMembers: boolean;
+  canUseAllFeatures: boolean;
+  grantedAt?: string;
+  note?: string;
+}

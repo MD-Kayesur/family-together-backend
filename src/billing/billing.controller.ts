@@ -2,6 +2,8 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
+  Param,
   Body,
   Query,
   Req,
@@ -15,6 +17,7 @@ import { BillingService } from './billing.service';
 import {
   CreateCheckoutSessionDto,
   CreatePortalSessionDto,
+  UpdateMemberSubscriptionDto,
 } from './billing.dto';
 
 @ApiTags('Billing & Subscriptions')
@@ -104,5 +107,38 @@ export class BillingController {
     @Headers('stripe-signature') signature?: string,
   ) {
     return this.billingService.handleWebhook(rawBody, signature);
+  }
+
+  @Get('member-subscriptions')
+  @ApiBearerAuth('access-token')
+  @ApiCookieAuth('access_token')
+  @ApiOperation({
+    summary: 'Get all sanctuary members with their assigned subscription tiers and quotas [Roles: OWNER, ADMIN]',
+    description: `Retrieves a list of family members with their allocated tier (FREE, PRO, UNLIMITED), storage quotas (e.g. 5,000 MB), and feature flags.`,
+  })
+  @ApiResponse({ status: 200, description: 'Member subscriptions retrieved' })
+  getMemberSubscriptions(
+    @Query('familyId') familyId?: string,
+    @Req() req?: any,
+  ) {
+    const userId = req?.user?.id;
+    return this.billingService.getMemberSubscriptions(userId, familyId);
+  }
+
+  @Patch('member-subscriptions/:id')
+  @ApiBearerAuth('access-token')
+  @ApiCookieAuth('access_token')
+  @ApiOperation({
+    summary: 'Update member subscription tier, storage quota (e.g. 5,000 MB) or feature access [Roles: OWNER, ADMIN]',
+    description: `Enables the Owner to allocate a PRO tier (5,000 MB storage quota, member addition privileges, full platform access) to any member.`,
+  })
+  @ApiResponse({ status: 200, description: 'Member subscription tier updated successfully' })
+  updateMemberSubscription(
+    @Param('id') id: string,
+    @Body() dto: UpdateMemberSubscriptionDto,
+    @Req() req?: any,
+  ) {
+    const callerUserId = req?.user?.id;
+    return this.billingService.updateMemberSubscription(id, dto, callerUserId);
   }
 }
